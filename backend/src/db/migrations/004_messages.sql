@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS messages (
+  id            CHAR(36) PRIMARY KEY,
+  channel_id    CHAR(36) NOT NULL,
+  user_id       CHAR(36) NOT NULL,
+  parent_id     CHAR(36) DEFAULT NULL,
+  body          TEXT NOT NULL,
+  is_pinned     TINYINT(1) NOT NULL DEFAULT 0,
+  edited_at     DATETIME DEFAULT NULL,
+  deleted_at    DATETIME DEFAULT NULL,
+  mentions      JSON DEFAULT NULL,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_channel_created (channel_id, created_at DESC),
+  INDEX idx_parent (parent_id),
+  INDEX idx_user (user_id),
+  INDEX idx_pinned (is_pinned),
+  FULLTEXT idx_body_ft (body),
+  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_id) REFERENCES messages(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -1,0 +1,2228 @@
+
+
+<!-- Theme corner (visible during login) -->
+<div class="theme-corner">
+  <button data-fn="toggleTheme" id="themeBtn" title="Toggle theme">🌙</button>
+</div>
+
+<!-- ============ LOGIN ============ -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-logo-icon">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+          <path d="M4 6h16M4 12h16M4 18h10" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="login-brand-name"><span class="accent">E</span>teams</div>
+      <div class="login-brand-sub">EDARA · A SODIC Company</div>
+    </div>
+    <div class="login-title" data-i18n="loginTitle">Sign in to your workspace</div>
+    <div class="login-sub" data-i18n="loginSub">Stay connected. Work together. Get things done.</div>
+    <div class="login-field">
+      <label data-i18n="email">Work email</label>
+      <input type="email" value="jasmine.ali@edara.com.eg" id="loginEmail">
+    </div>
+    <div class="login-field">
+      <label data-i18n="password">Password</label>
+      <input type="password" value="••••••••••" id="loginPass">
+    </div>
+    <button class="login-btn" data-fn="doLogin" data-i18n="signIn">Sign In</button>
+    <div class="login-footer" data-i18n="footer">ETeams · Internal Communication Platform</div>
+  </div>
+</div>
+
+<!-- ============ WORKSPACE ============ -->
+<div class="workspace" id="workspace">
+
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="logo-mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M4 6h16M4 12h16M4 18h10" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="brand-text"><span class="accent">E</span>teams</div>
+    </div>
+    <div class="search-wrap">
+      <div class="search-bar" id="searchBar" data-fn="focusSearch">
+        <span>🔍</span>
+        <input type="text" id="searchInput" placeholder="Search channels, messages, docs, media, links, people…" data-i18n-ph="searchPlaceholder">
+        <span class="search-shortcut">⌘K</span>
+      </div>
+      <div class="search-dropdown" id="searchDropdown"></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="lang-toggle" data-fn="toggleLang" id="langToggle">العربية</button>
+      <button class="topbar-btn" data-fn="toggleTheme" id="themeBtnTop" title="Toggle theme">🌙</button>
+      <button class="topbar-btn" data-fn="showToast" data-msg="No new notifications" title="Notifications">🔔<span class="dot"></span></button>
+      <button class="topbar-btn" data-fn="showToast" data-msg="Help center" title="Help">❓</button>
+      <div class="avatar-me" data-fn="toggleStatus" id="myAvatar">JA<span class="presence-dot" id="myPresence"></span></div>
+      <div class="status-menu" id="statusMenu">
+        <div class="status-me-head">
+          <div class="avatar">JA</div>
+          <div class="info">
+            <div class="name">Jasmine Ali</div>
+            <div class="role">Digital Transformation Director</div>
+          </div>
+        </div>
+        <div class="status-list">
+          <button class="status-opt active-status" data-fn="setStatus" data-status="online" data-icon="online" data-label="Active">
+            <span class="dot online"></span><span>Active</span>
+          </button>
+          <button class="status-opt" data-fn="setStatus" data-status="away" data-icon="away" data-label="Away">
+            <span class="dot away"></span><span>Away</span>
+          </button>
+          <button class="status-opt" data-fn="setStatus" data-status="dnd" data-icon="dnd" data-label="Do Not Disturb">
+            <span class="dot dnd"></span><span>Do Not Disturb</span>
+          </button>
+          <button class="status-opt" data-fn="setStatus" data-status="meeting" data-icon="meeting" data-label="In a meeting">
+            <span class="dot meeting"></span><span>In a meeting</span>
+          </button>
+          <div class="status-divider"></div>
+          <button class="status-action" data-fn="showToast" data-msg="Set custom status">
+            <span>✏️</span><span>Set a custom status</span>
+          </button>
+          <button class="status-action" data-fn="showToast" data-msg="Notification preferences">
+            <span>🔕</span><span>Pause notifications</span>
+          </button>
+          <div class="status-divider"></div>
+          <button class="status-action" data-fn="showToast" data-msg="Profile settings">
+            <span>👤</span><span>View profile</span>
+          </button>
+          <button class="status-action" data-fn="showToast" data-msg="Preferences">
+            <span>⚙️</span><span>Preferences</span>
+          </button>
+          <button class="status-action" data-fn="doLogout">
+            <span>🚪</span><span>Sign out of ETeams</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="workspace-header">
+        <div class="workspace-name">EDARA IFM</div>
+        <button class="compose-btn" data-fn="showToast" data-msg="Compose new message" title="New message">✏️</button>
+      </div>
+      <div class="sidebar-scroll">
+        <div style="padding: 4px 0 6px;">
+          <div class="nav-item" data-fn="showToast" data-msg="Threads panel">
+            <span class="icon">🧵</span><span class="name" data-i18n="threads">Threads</span>
+          </div>
+          <div class="nav-item" data-fn="showToast" data-msg="Saved items">
+            <span class="icon">🔖</span><span class="name" data-i18n="saved">Saved</span>
+          </div>
+          <div class="nav-item" data-fn="openAdmin" style="border-top:1px solid var(--border); margin-top:8px; padding-top:12px;">
+            <span class="icon" style="color:var(--emerald)">🛡️</span>
+            <span class="name" style="color:var(--emerald); font-weight:600;" data-i18n="adminPanel">Admin Panel</span>
+            <span class="status-pill role-sa" style="font-size:9px; padding:2px 6px;">SA</span>
+          </div>
+        </div>
+
+        <div class="section-header" data-fn="toggleSection" data-section="announcements">
+          <span data-i18n="announcementsSec">Announcements</span>
+          <span class="plus">+</span>
+        </div>
+        <div id="sec-announcements">
+          <div class="nav-item unread" data-fn="openChannel" data-channel="announcements">
+            <span class="icon">📢</span><span class="name">announcements</span>
+            <span class="badge">2</span>
+          </div>
+          <div class="nav-item active" data-fn="openChannel" data-channel="ceo-announcements">
+            <span class="icon">⭐</span><span class="name">ceo-announcements</span>
+          </div>
+          <div class="nav-item unread" data-fn="openChannel" data-channel="ehub">
+            <span class="icon" style="color:var(--gold)">🎉</span><span class="name">ehub</span>
+            <span class="badge">5</span>
+          </div>
+        </div>
+
+        <div class="section-header" data-fn="toggleSection" data-section="channels">
+          <span data-i18n="channelsSec">Channels</span>
+          <span class="plus">+</span>
+        </div>
+        <div id="sec-channels">
+          <div class="nav-item" data-fn="openChannel" data-channel="general">
+            <span class="icon">#</span><span class="name">general</span>
+          </div>
+          <div class="nav-item unread" data-fn="openChannel" data-channel="procurement">
+            <span class="icon">#</span><span class="name">procurement</span>
+            <span class="badge emerald">3</span>
+          </div>
+          <div class="nav-item" data-fn="openChannel" data-channel="warehouse">
+            <span class="icon">#</span><span class="name">warehouse</span>
+          </div>
+          <div class="nav-item" data-fn="openChannel" data-channel="digital-transformation">
+            <span class="icon">#</span><span class="name">digital-transformation</span>
+          </div>
+          <div class="nav-item" data-fn="openChannel" data-channel="hr-updates">
+            <span class="icon">#</span><span class="name">hr-updates</span>
+          </div>
+          <div class="nav-item" data-fn="openChannel" data-channel="it-support">
+            <span class="icon">#</span><span class="name">it-support</span>
+          </div>
+          <div class="nav-item" data-fn="openChannel" data-channel="security-ops">
+            <span class="icon">#</span><span class="name">security-ops</span>
+          </div>
+          <div class="nav-item" data-fn="openChannel" data-channel="community-mgmt">
+            <span class="icon">#</span><span class="name">community-management</span>
+          </div>
+        </div>
+
+        <div class="section-header" data-fn="toggleSection" data-section="dms">
+          <span data-i18n="dmsSec">Direct Messages</span>
+          <span class="plus">+</span>
+        </div>
+        <div id="sec-dms">
+          <div class="nav-item dm-item" data-fn="openDM" data-user="beltagy">
+            <span class="avatar" style="background:linear-gradient(135deg,#FCD34D,#F59E0B); color:#4A3600;">MB<span class="presence online"></span></span>
+            <span class="name">Mohamed Beltagy</span>
+          </div>
+          <div class="nav-item dm-item unread" data-fn="openDM" data-user="karim">
+            <span class="avatar" style="background:linear-gradient(135deg,#3B82F6,#1D4ED8);">KS<span class="presence online"></span></span>
+            <span class="name">Karim Sobhy</span>
+            <span class="badge emerald">1</span>
+          </div>
+          <div class="nav-item dm-item group-dm" data-fn="openDM" data-user="group1">
+            <span class="avatar">👥</span>
+            <span class="name">Karim, Wessam, Nourhan</span>
+          </div>
+          <div class="nav-item dm-item" data-fn="openDM" data-user="wessam-y">
+            <span class="avatar" style="background:linear-gradient(135deg,#EC4899,#BE185D);">WY<span class="presence away"></span></span>
+            <span class="name">Wessam Youssef</span>
+          </div>
+          <div class="nav-item dm-item" data-fn="openDM" data-user="nourhan">
+            <span class="avatar" style="background:linear-gradient(135deg,#3BA7D6,#22D3EE);">NA<span class="presence online"></span></span>
+            <span class="name">Nourhan Ahmed</span>
+          </div>
+          <div class="nav-item dm-item" data-fn="openDM" data-user="ahmed">
+            <span class="avatar" style="background:linear-gradient(135deg,#3B82F6,#1D4ED8);">AF<span class="presence"></span></span>
+            <span class="name">Ahmed Fathy</span>
+          </div>
+          <div class="nav-item dm-item" data-fn="openDM" data-user="sara">
+            <span class="avatar" style="background:linear-gradient(135deg,#F59E0B,#D97706);">SM<span class="presence online"></span></span>
+            <span class="name">Sara Mostafa</span>
+          </div>
+          <div class="nav-item dm-item" data-fn="openDM" data-user="omar">
+            <span class="avatar" style="background:linear-gradient(135deg,#3BA7D6,#0891B2);">OK<span class="presence away"></span></span>
+            <span class="name">Omar Khaled</span>
+          </div>
+          <div class="nav-item" data-fn="showToast" data-msg="Add teammates">
+            <span class="icon" style="color:var(--text-mute)">+</span>
+            <span class="name" style="color:var(--text-mute)" data-i18n="addTeammates">Add teammates</span>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="avatar-me" data-fn="toggleStatus">JA<span class="presence-dot"></span></div>
+        <div class="me-info" data-fn="toggleStatus">
+          <div class="me-name">Jasmine Ali</div>
+          <div class="me-status"><span class="dot"></span><span id="statusLabel">Active</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CHAT AREA -->
+    <section class="chat-area">
+      <div class="chat-header">
+        <div class="chat-header-top">
+          <div>
+            <div class="chat-title">
+              <span class="prefix" id="chHeadPrefix">⭐</span>
+              <span class="name" id="chHeadName">ceo-announcements</span>
+              <span class="caret">▾</span>
+            </div>
+            <div class="chat-topic" id="chHeadTopic">Top-down announcements from the CEO office — read-only for members</div>
+          </div>
+          <div class="chat-actions">
+            <div class="members-mini" data-fn="openView" data-view="people">
+              <div class="stack">
+                <div class="avatar" style="background:linear-gradient(135deg,#FCD34D,#F59E0B);color:#4A3600;">MB</div>
+                <div class="avatar" style="background:linear-gradient(135deg,#3B82F6,#1D4ED8);">KS</div>
+                <div class="avatar" style="background:linear-gradient(135deg,#3BA7D6,#22D3EE);">NA</div>
+              </div>
+              <span class="count" id="chHeadCount">487</span>
+            </div>
+            <button class="chat-icon-btn call" data-fn="startCall" title="Voice call">📞</button>
+            <button class="chat-icon-btn video" data-fn="startVideo" title="Video call">📹</button>
+            <div style="position:relative;">
+              <button class="chat-icon-btn" data-fn="toggleViewMenu" title="View">⋯</button>
+              <div class="view-menu" id="viewMenu">
+                <button class="view-opt" data-fn="openView" data-view="files"><span>📁</span><span>Files</span><span class="c">24</span></button>
+                <button class="view-opt" data-fn="openView" data-view="pins"><span>📌</span><span>Pinned</span><span class="c">3</span></button>
+                <button class="view-opt" data-fn="openView" data-view="people"><span>👥</span><span>People</span><span class="c" id="viewPeopleCount">487</span></button>
+                <div class="view-sep"></div>
+                <button class="view-opt" data-fn="toggleRightPanel" data-panel="details"><span>ℹ️</span><span>Channel details</span></button>
+              </div>
+            </div>
+            <div style="position:relative;">
+              <button class="chat-icon-btn" data-fn="toggleExport" title="Export conversation">⬇</button>
+              <div class="export-menu" id="exportMenu">
+                <div class="export-head" data-i18n="exportHead">Export this conversation</div>
+                <button class="export-opt" data-fn="doExport" data-format="html">
+                  <span class="icon">🌐</span>
+                  <div><div class="lbl" data-i18n="exportHtml">HTML (formatted)</div><div class="sub" data-i18n="exportHtmlSub">Best for viewing & printing</div></div>
+                </button>
+                <button class="export-opt" data-fn="doExport" data-format="txt">
+                  <span class="icon">📄</span>
+                  <div><div class="lbl" data-i18n="exportTxt">Plain text (.txt)</div><div class="sub" data-i18n="exportTxtSub">Lightweight, searchable</div></div>
+                </button>
+                <button class="export-opt" data-fn="doExport" data-format="csv">
+                  <span class="icon">📊</span>
+                  <div><div class="lbl" data-i18n="exportCsv">CSV (Excel)</div><div class="sub" data-i18n="exportCsvSub">For analysis or archiving</div></div>
+                </button>
+                <button class="export-opt" data-fn="doExport" data-format="pdf">
+                  <span class="icon">📕</span>
+                  <div><div class="lbl" data-i18n="exportPdf">PDF (via print)</div><div class="sub" data-i18n="exportPdfSub">Opens print dialog · save as PDF</div></div>
+                </button>
+                <div class="export-note" data-i18n="exportNote">🔒 All exports include watermark, timestamp, and exporter name</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages tab -->
+      <div class="tab-pane active" id="pane-messages">
+        <div class="messages" id="messages"></div>
+        <div class="typing-indicator" id="typingIndicator">
+          <span id="typingText">Karim Sobhy is typing</span>
+          <span class="typing-dots"><span></span><span></span><span></span></span>
+        </div>
+        <div class="composer-wrap">
+          <div class="composer">
+            <textarea class="composer-input" id="composerInput" placeholder="Message #ceo-announcements" rows="2"></textarea>
+            <div class="composer-bottom">
+              <div class="composer-tools">
+                <button class="format-btn" data-fn="showAttach" title="Attach">+</button>
+                <button class="format-btn" data-fn="toggleEmoji" title="Emoji">😊</button>
+                <button class="format-btn" data-fn="toggleMention" title="Mention">@</button>
+                <div style="position:relative;">
+                  <button class="format-btn" data-fn="toggleMoreComposer" title="More">⋯</button>
+                  <div class="view-menu" id="moreComposerMenu" style="bottom:36px; top:auto; inset-inline-start:0; inset-inline-end:auto; width:200px;">
+                    <button class="view-opt" data-fn="showToast" data-msg="Record audio message"><span>🎙️</span><span>Voice note</span></button>
+                    <button class="view-opt" data-fn="showToast" data-msg="Record video clip"><span>🎬</span><span>Video clip</span></button>
+                    <button class="view-opt" data-fn="showToast" data-msg="Schedule for later"><span>📅</span><span>Schedule send</span></button>
+                    <div class="view-sep"></div>
+                    <button class="view-opt" data-fn="showToast" data-msg="Use *bold* _italic_ ~strike~ `code`"><span>Aa</span><span>Formatting tips</span></button>
+                  </div>
+                </div>
+              </div>
+              <button class="composer-send" id="sendBtn" data-fn="sendMessage">➤</button>
+            </div>
+          </div>
+          <div class="composer-hint" data-i18n="composerHint"><b>Enter</b> to send · <b>@</b> to mention · <b>*bold*</b> · <b>_italic_</b></div>
+        </div>
+      </div>
+
+      <!-- Files tab -->
+      <div class="tab-pane" id="pane-files">
+        <div style="padding: 16px 20px 8px; display: flex; align-items: center; gap: 12px;">
+          <input class="people-search" placeholder="Filter files…" data-i18n-ph="filterFiles">
+          <button class="add-people-btn" data-fn="showAttach">+ <span data-i18n="uploadBtn">Upload</span></button>
+        </div>
+        <div class="files-grid" id="filesGrid"></div>
+      </div>
+
+      <!-- Pins tab -->
+      <div class="tab-pane" id="pane-pins">
+        <div class="pins-list" id="pinsList"></div>
+      </div>
+
+      <!-- People tab -->
+      <div class="tab-pane" id="pane-people">
+        <div class="people-toolbar">
+          <input class="people-search" placeholder="Search members…" id="peopleSearch" data-i18n-ph="searchMembers">
+          <button class="add-people-btn" data-fn="showToast" data-msg="Invite members"><span>+</span><span data-i18n="addMembers">Add members</span></button>
+        </div>
+        <div class="people-list" id="peopleList"></div>
+      </div>
+    </section>
+
+    <!-- ============ ADMIN PANEL ============ -->
+    <section class="admin-panel" id="adminPanel">
+      <div class="admin-topbar">
+        <div>
+          <div class="admin-title">
+            <div class="shield">🛡️</div>
+            <div>
+              <div>Admin Panel</div>
+              <div class="admin-sub"><span class="sa-badge">SUPERADMIN</span> Jasmine Ali · Full system control</div>
+            </div>
+          </div>
+        </div>
+        <button class="admin-btn-ghost" data-fn="closeAdmin">← Back to chat</button>
+      </div>
+      <div class="admin-tabs">
+        <div class="admin-tab active" data-fn="switchAdminTab" data-atab="dashboard"><span>📊</span><span>Dashboard</span></div>
+        <div class="admin-tab" data-fn="switchAdminTab" data-atab="users"><span>👥</span><span>Users</span></div>
+        <div class="admin-tab" data-fn="switchAdminTab" data-atab="channels"><span>#</span><span>Channels & Permissions</span></div>
+        <div class="admin-tab" data-fn="switchAdminTab" data-atab="audit"><span>📜</span><span>Audit Log</span></div>
+        <div class="admin-tab" data-fn="switchAdminTab" data-atab="broadcast"><span>📣</span><span>Broadcast</span></div>
+        <div class="admin-tab" data-fn="switchAdminTab" data-atab="security"><span>🔐</span><span>Security & Retention</span></div>
+      </div>
+      <div class="admin-content" id="adminContent"></div>
+    </section>
+    <!-- end admin panel -->
+
+    <!-- RIGHT PANEL -->
+    <aside class="right-panel" id="rightPanel">
+      <div class="right-header">
+        <div class="title" id="rightTitle">Channel Details</div>
+        <button class="chat-icon-btn" data-fn="toggleRightPanel">✕</button>
+      </div>
+      <div class="right-scroll" id="rightScroll"></div>
+    </aside>
+
+  </div>
+</div>
+
+<!-- Emoji picker -->
+<div class="emoji-picker" id="emojiPicker">
+  <div class="emoji-search"><input type="text" placeholder="Search emoji..." data-i18n-ph="searchEmoji"></div>
+  <div class="emoji-scroll">
+    <div class="emoji-cat">Frequently Used</div>
+    <div class="emoji-grid">
+      <button data-fn="pickEmoji" data-e="👍">👍</button>
+      <button data-fn="pickEmoji" data-e="❤️">❤️</button>
+      <button data-fn="pickEmoji" data-e="🎉">🎉</button>
+      <button data-fn="pickEmoji" data-e="🔥">🔥</button>
+      <button data-fn="pickEmoji" data-e="👏">👏</button>
+      <button data-fn="pickEmoji" data-e="✅">✅</button>
+      <button data-fn="pickEmoji" data-e="🙏">🙏</button>
+      <button data-fn="pickEmoji" data-e="💯">💯</button>
+    </div>
+    <div class="emoji-cat">Smileys</div>
+    <div class="emoji-grid">
+      <button data-fn="pickEmoji" data-e="😀">😀</button>
+      <button data-fn="pickEmoji" data-e="😂">😂</button>
+      <button data-fn="pickEmoji" data-e="🥲">🥲</button>
+      <button data-fn="pickEmoji" data-e="😊">😊</button>
+      <button data-fn="pickEmoji" data-e="😍">😍</button>
+      <button data-fn="pickEmoji" data-e="🤩">🤩</button>
+      <button data-fn="pickEmoji" data-e="😎">😎</button>
+      <button data-fn="pickEmoji" data-e="🤔">🤔</button>
+      <button data-fn="pickEmoji" data-e="😅">😅</button>
+      <button data-fn="pickEmoji" data-e="😇">😇</button>
+      <button data-fn="pickEmoji" data-e="🤗">🤗</button>
+      <button data-fn="pickEmoji" data-e="🙄">🙄</button>
+      <button data-fn="pickEmoji" data-e="😴">😴</button>
+      <button data-fn="pickEmoji" data-e="🥳">🥳</button>
+      <button data-fn="pickEmoji" data-e="😭">😭</button>
+      <button data-fn="pickEmoji" data-e="🤯">🤯</button>
+    </div>
+    <div class="emoji-cat">Work</div>
+    <div class="emoji-grid">
+      <button data-fn="pickEmoji" data-e="💼">💼</button>
+      <button data-fn="pickEmoji" data-e="📊">📊</button>
+      <button data-fn="pickEmoji" data-e="📈">📈</button>
+      <button data-fn="pickEmoji" data-e="💡">💡</button>
+      <button data-fn="pickEmoji" data-e="⚡">⚡</button>
+      <button data-fn="pickEmoji" data-e="🚀">🚀</button>
+      <button data-fn="pickEmoji" data-e="🎯">🎯</button>
+      <button data-fn="pickEmoji" data-e="⏰">⏰</button>
+      <button data-fn="pickEmoji" data-e="📌">📌</button>
+      <button data-fn="pickEmoji" data-e="📎">📎</button>
+      <button data-fn="pickEmoji" data-e="🔔">🔔</button>
+      <button data-fn="pickEmoji" data-e="⭐">⭐</button>
+      <button data-fn="pickEmoji" data-e="✨">✨</button>
+      <button data-fn="pickEmoji" data-e="🏆">🏆</button>
+      <button data-fn="pickEmoji" data-e="🎁">🎁</button>
+      <button data-fn="pickEmoji" data-e="☕">☕</button>
+    </div>
+    <div class="emoji-cat">Celebrations</div>
+    <div class="emoji-grid">
+      <button data-fn="pickEmoji" data-e="🎂">🎂</button>
+      <button data-fn="pickEmoji" data-e="🎈">🎈</button>
+      <button data-fn="pickEmoji" data-e="🎊">🎊</button>
+      <button data-fn="pickEmoji" data-e="🍰">🍰</button>
+      <button data-fn="pickEmoji" data-e="💐">💐</button>
+      <button data-fn="pickEmoji" data-e="🌹">🌹</button>
+      <button data-fn="pickEmoji" data-e="🥇">🥇</button>
+      <button data-fn="pickEmoji" data-e="👑">👑</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mention popup -->
+<div class="mention-popup" id="mentionPopup">
+  <div class="mention-head" data-i18n="mentionHead">People, channels, and everyone</div>
+  <div class="mention-list" id="mentionList"></div>
+</div>
+
+<!-- Call modal -->
+<div class="modal-backdrop" id="callModal">
+  <div class="call-modal">
+    <div class="call-avatar" id="callAvatar" style="background:linear-gradient(135deg,#3BA7D6,#22D3EE);">EC</div>
+    <div class="call-name" id="callName">Voice call · #ceo-announcements</div>
+    <div class="call-status" id="callStatus">Connecting…</div>
+    <div class="call-timer" id="callTimer">00:00</div>
+    <div class="call-controls">
+      <button class="call-btn mute" data-fn="toggleMute" id="muteBtn" title="Mute">🎤</button>
+      <button class="call-btn video" data-fn="switchToVideo" title="Start video">📹</button>
+      <button class="call-btn end" data-fn="endCall" title="End call">📞</button>
+    </div>
+  </div>
+</div>
+
+<!-- Video modal -->
+<div class="modal-backdrop" id="videoModal">
+  <div class="video-modal">
+    <div class="video-header">
+      <div class="video-title">
+        <span class="rec"></span>
+        <span data-i18n="videoCallTitle">Video call · Digital Transformation Sync</span>
+        <span style="color:rgba(255,255,255,0.6); font-size:12px; margin-inline-start:8px;">00:02:34</span>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="chat-icon-btn" style="color:white;" data-fn="showToast" data-msg="Invite participants">👥+</button>
+        <button class="chat-icon-btn" style="color:white;" data-fn="showToast" data-msg="Meeting chat">💬</button>
+      </div>
+    </div>
+    <div class="video-grid">
+      <div class="video-tile speaking">
+        <div class="tile-avatar" style="background:linear-gradient(135deg,#FCD34D,#F59E0B); color:#4A3600;">MB</div>
+        <div class="tile-label">Mohamed Beltagy · Speaking</div>
+      </div>
+      <div class="video-tile">
+        <div class="tile-avatar" style="background:linear-gradient(135deg,#3BA7D6,#22D3EE);">JA</div>
+        <div class="tile-label">Jasmine Ali (You)</div>
+      </div>
+      <div class="video-tile muted">
+        <div class="tile-avatar" style="background:linear-gradient(135deg,#3B82F6,#1D4ED8);">KS</div>
+        <div class="tile-label">Karim Sobhy</div>
+      </div>
+      <div class="video-tile">
+        <div class="tile-avatar" style="background:linear-gradient(135deg,#EC4899,#BE185D);">WY</div>
+        <div class="tile-label">Wessam Youssef</div>
+      </div>
+    </div>
+    <div class="video-controls">
+      <button class="video-btn"><span>🎤</span><span data-i18n="mute">Mute</span></button>
+      <button class="video-btn"><span>📹</span><span data-i18n="stopVideo">Stop video</span></button>
+      <button class="video-btn"><span>🖥️</span><span data-i18n="screenShare">Share screen</span></button>
+      <button class="video-btn"><span>✋</span><span data-i18n="raiseHand">Raise hand</span></button>
+      <button class="video-btn"><span>⚙️</span><span data-i18n="settings">Settings</span></button>
+      <button class="video-btn end" data-fn="endVideo"><span>📞</span><span data-i18n="leave">Leave</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Attach modal -->
+<div class="modal-backdrop" id="attachModal">
+  <div class="attach-modal">
+    <h3 data-i18n="attachTitle">Attach to your message</h3>
+    <div class="attach-options">
+      <button class="attach-opt" data-fn="attachFile" data-type="file">
+        <span class="icon">📎</span><span class="label" data-i18n="uploadFile">Upload from computer</span>
+      </button>
+      <button class="attach-opt" data-fn="attachFile" data-type="image">
+        <span class="icon">🖼️</span><span class="label" data-i18n="uploadImage">Photo or video</span>
+      </button>
+      <button class="attach-opt" data-fn="attachFile" data-type="drive">
+        <span class="icon">📁</span><span class="label" data-i18n="fromDrive">From EDARA Drive</span>
+      </button>
+      <button class="attach-opt" data-fn="attachFile" data-type="poll">
+        <span class="icon">📊</span><span class="label" data-i18n="createPoll">Create a poll</span>
+      </button>
+    </div>
+    <div style="margin-top:14px; text-align:end;">
+      <button class="format-btn" style="width:auto; padding:6px 14px; background:var(--panel-2); border-radius:6px;" data-fn="closeModal" data-modal="attachModal">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create User modal -->
+<div class="modal-backdrop" id="createUserModal">
+  <div class="big-modal" style="width:640px;">
+    <h3>👤 Create new user</h3>
+    <div class="msub">Set up profile, then pick a role preset — or go Custom to tick every permission yourself.</div>
+
+    <!-- PROFILE -->
+    <div style="font-size:11px; color:var(--text-mute); text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin-bottom:8px;">Profile</div>
+    <div class="form-row">
+      <div class="form-field"><label>Full name</label><input type="text" id="nuName" placeholder="e.g. Farah Nasser" value="Farah Nasser"></div>
+      <div class="form-field"><label>Work email</label><input type="email" id="nuEmail" placeholder="name@edara.com.eg" value="farah.nasser@edara.com.eg"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Department</label>
+        <select id="nuDept">
+          <option>Executive</option><option>HR</option><option>Finance</option>
+          <option>Procurement</option><option>IT</option><option>Operations</option>
+          <option>Security</option><option>Marketing</option><option>Community Management</option>
+          <option>Warehouse</option><option>Digital Transformation</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Job title</label><input type="text" id="nuTitle" placeholder="e.g. HR Coordinator" value="HR Coordinator"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Reports to</label>
+        <select id="nuManager">
+          <option value="mariam">Mariam Adel · HR Manager</option>
+          <option value="beltagy">Mohamed Beltagy · CEO</option>
+          <option value="jasmine">Jasmine Ali · DT Director</option>
+          <option value="karim">Karim Sobhy · FM Operations Manager</option>
+          <option value="hana">Hana Mahmoud · Finance Manager</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Employment type</label>
+        <select id="nuType">
+          <option>Full-time employee</option>
+          <option>Part-time employee</option>
+          <option>Contractor</option>
+          <option>Intern</option>
+          <option>Guest / External vendor (expires)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ROLE PRESET -->
+    <div style="font-size:11px; color:var(--text-mute); text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin:20px 0 8px;">Role preset — pick one, or Custom</div>
+    <div class="template-grid" style="grid-template-columns:1fr 1fr 1fr;">
+      <button class="template-card selected" data-fn="pickUserRole" data-role="standard">
+        <div class="tname">👤 Standard Employee</div>
+        <div class="tdesc">Most staff · post, react, DM, join channels, calls</div>
+        <div class="tperms">14 permissions</div>
+      </button>
+      <button class="template-card" data-fn="pickUserRole" data-role="manager">
+        <div class="tname">👔 Manager</div>
+        <div class="tdesc">Standard + create channels, be Channel Manager</div>
+        <div class="tperms">17 permissions</div>
+      </button>
+      <button class="template-card" data-fn="pickUserRole" data-role="director">
+        <div class="tname">🎖️ Director</div>
+        <div class="tdesc">Manager + @channel, @here, invite guests, analytics</div>
+        <div class="tperms">21 permissions</div>
+      </button>
+      <button class="template-card" data-fn="pickUserRole" data-role="executive">
+        <div class="tname">👑 Executive</div>
+        <div class="tdesc">Director + @everyone, emergency broadcasts</div>
+        <div class="tperms">23 permissions</div>
+      </button>
+      <button class="template-card" data-fn="pickUserRole" data-role="guest">
+        <div class="tname">🔒 Guest / Contractor</div>
+        <div class="tdesc">Limited · no channel creation, no @mentions, expires</div>
+        <div class="tperms">6 permissions</div>
+      </button>
+      <button class="template-card" data-fn="pickUserRole" data-role="custom">
+        <div class="tname">⚙️ Custom</div>
+        <div class="tdesc">Tick exactly what you want below</div>
+        <div class="tperms">Choose ↓</div>
+      </button>
+    </div>
+
+    <!-- FULL PERMISSION CHECKLIST (collapsed by default) -->
+    <div style="margin-bottom: 12px;">
+      <button class="admin-btn-ghost" style="width:100%; text-align:start; display:flex; align-items:center; justify-content:space-between;" data-fn="togglePermCatalog" id="permCatalogToggle">
+        <span>⚙️ Show all 42 permissions individually</span>
+        <span id="permCatalogChevron">▾</span>
+      </button>
+    </div>
+    <div id="permCatalogWrap" style="display:none;">
+    <div style="background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:12px;">
+      <div style="font-size:12px; color:var(--text-dim); margin-bottom:12px;">📋 Full permission catalog — <b style="color:var(--emerald);">green</b> checked = granted. Change preset above or tick individually.</div>
+
+      <!-- Account -->
+      <div class="perm-group-title">🔐 Account</div>
+      <label class="perm-check"><input type="checkbox" data-cat="account" data-perm="login" checked><span>Can log in to ETeams</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="account" data-perm="2fa"><span>Two-factor authentication required (mandatory for Directors+)</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="account" data-perm="mobile" checked><span>Can use mobile app</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="account" data-perm="edit-profile" checked><span>Can edit own profile picture and status</span></label>
+
+      <!-- Messaging -->
+      <div class="perm-group-title">💬 Messaging</div>
+      <label class="perm-check"><input type="checkbox" data-cat="msg" data-perm="post-public" checked><span>Can post in public channels</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="msg" data-perm="post-private" checked><span>Can post in private channels they belong to</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="msg" data-perm="post-announce"><span>Can post in announcement channels (usually CEO/HR only)</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="msg" data-perm="edit-own" checked><span>Can edit their own messages</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="msg" data-perm="delete-own" checked><span>Can delete their own messages (audit log preserved)</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="msg" data-perm="react" checked><span>Can add emoji reactions</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="msg" data-perm="thread" checked><span>Can start & reply in threads</span></label>
+
+      <!-- DMs -->
+      <div class="perm-group-title">✉️ Direct messages</div>
+      <label class="perm-check"><input type="checkbox" data-cat="dm" data-perm="dm-anyone" checked><span>Can DM anyone in the workspace</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="dm" data-perm="dm-exec"><span>Can DM executives (CEO, directors) directly</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="dm" data-perm="group-dm" checked><span>Can create group DMs (3+ people)</span></label>
+
+      <!-- Special mentions -->
+      <div class="perm-group-title">🔔 Special mentions (broadcast reach)</div>
+      <label class="perm-check"><input type="checkbox" data-cat="mention" data-perm="at-user" checked><span>Can @mention individual users</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="mention" data-perm="at-here"><span>Can use @here (notify active members in channel)</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="mention" data-perm="at-channel"><span>Can use @channel (notify ALL members in channel)</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="mention" data-perm="at-everyone"><span>Can use @everyone (notify entire workspace)</span></label>
+
+      <!-- Calls -->
+      <div class="perm-group-title">📞 Calls & meetings</div>
+      <label class="perm-check"><input type="checkbox" data-cat="call" data-perm="voice" checked><span>Can start voice calls</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="call" data-perm="video" checked><span>Can start video calls</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="call" data-perm="screen"><span>Can share screen in calls</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="call" data-perm="record"><span>Can record calls (with participant consent)</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="call" data-perm="invite-external"><span>Can invite external participants to calls</span></label>
+
+      <!-- Files & content -->
+      <div class="perm-group-title">📎 Files & content</div>
+      <label class="perm-check"><input type="checkbox" data-cat="file" data-perm="upload" checked><span>Can upload files (up to 100 MB)</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="file" data-perm="upload-large"><span>Can upload files above 100 MB (up to 1 GB)</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="file" data-perm="poll" checked><span>Can create polls</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="file" data-perm="audio" checked><span>Can send voice notes / audio clips</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="file" data-perm="video-clip"><span>Can send video clips</span></label>
+
+      <!-- Channel creation -->
+      <div class="perm-group-title"># Channel creation</div>
+      <label class="perm-check"><input type="checkbox" data-cat="ch" data-perm="create-public"><span>Can create public channels</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="ch" data-perm="create-private"><span>Can create private channels</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="ch" data-perm="invite-guest"><span>Can invite external guests to channels</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="ch" data-perm="join-any"><span>Can join any public channel without approval</span></label>
+
+      <!-- Delegated management -->
+      <div class="perm-group-title">🔑 Delegated management (per-channel)</div>
+      <label class="perm-check"><input type="checkbox" data-cat="mgr" data-perm="be-manager"><span>Can be assigned as Channel Manager (specific channels)</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="mgr" data-perm="view-analytics"><span>Can view analytics for their channels</span></label>
+
+      <!-- Data & export -->
+      <div class="perm-group-title">📤 Data & export</div>
+      <label class="perm-check"><input type="checkbox" data-cat="data" data-perm="export-dm" checked><span>Can export their own DMs</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="data" data-perm="export-channel"><span>Can export channel history (channels they belong to)</span></label>
+      <label class="perm-check"><input type="checkbox" data-cat="data" data-perm="search-history"><span>Can search full workspace history (default: own channels only)</span></label>
+
+      <!-- Restricted (Superadmin only, locked) -->
+      <div class="perm-group-title" style="color:var(--danger);">⛔ Restricted — Superadmin only (cannot be granted)</div>
+      <label class="perm-check locked"><input type="checkbox" disabled><span>Create / delete channels globally</span></label>
+      <label class="perm-check locked"><input type="checkbox" disabled><span>View any private channel (including ones they're not in)</span></label>
+      <label class="perm-check locked"><input type="checkbox" disabled><span>View system audit log</span></label>
+      <label class="perm-check locked"><input type="checkbox" disabled><span>Send system-wide broadcasts</span></label>
+      <label class="perm-check locked"><input type="checkbox" disabled><span>Place / release legal holds</span></label>
+      <label class="perm-check locked"><input type="checkbox" disabled><span>Deactivate or delete user accounts</span></label>
+      <label class="perm-check locked"><input type="checkbox" disabled><span>Assign or revoke Superadmin role</span></label>
+      <label class="perm-check locked"><input type="checkbox" disabled><span>Set global retention policies</span></label>
+    </div>
+    </div>
+
+    <!-- Initial channels -->
+    <div style="font-size:11px; color:var(--text-mute); text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin-bottom:8px;">Initial channels to join</div>
+    <div class="form-field">
+      <select id="nuChannels" multiple size="4" style="height:auto; padding:8px;">
+        <option selected>#announcements (mandatory)</option>
+        <option selected>#ceo-announcements (mandatory)</option>
+        <option selected>#ehub (mandatory)</option>
+        <option selected>#general</option>
+        <option>#hr-updates</option>
+        <option>#it-support</option>
+        <option>#community-management</option>
+      </select>
+      <div style="font-size:11px; color:var(--text-dim); margin-top:6px;">📌 Announcement channels are mandatory and cannot be left. Hold ⌘ / Ctrl to multi-select.</div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="admin-btn-ghost" data-fn="closeModal" data-modal="createUserModal">Cancel</button>
+      <button class="admin-btn-primary" data-fn="saveNewUser">✉️ Create user & send welcome email</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Channel modal -->
+<div class="modal-backdrop" id="createChannelModal">
+  <div class="big-modal">
+    <h3>🆕 Create a new channel</h3>
+    <div class="msub">You'll be able to assign a Channel Manager and invite members after creation.</div>
+    <div class="form-field">
+      <label>Channel name</label>
+      <input type="text" id="ncName" placeholder="e.g. hr-onboarding" value="marketing-updates">
+    </div>
+    <div class="form-field">
+      <label>Description / topic</label>
+      <input type="text" id="ncDesc" placeholder="What is this channel about?" value="Marketing campaigns, brand updates, and press">
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label>Type</label>
+        <select id="ncType">
+          <option value="public">🌐 Public (all staff can join)</option>
+          <option value="private">🔒 Private (invite only)</option>
+          <option value="announce">📢 Announcement (read-only for members)</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Retention policy</label>
+        <select id="ncRet">
+          <option value="forever">Forever (CEO/HR level)</option>
+          <option value="7y" selected>7 years (compliance default)</option>
+          <option value="3y">3 years (general)</option>
+          <option value="1y">1 year (temporary)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-field">
+      <label>Initial members</label>
+      <select id="ncMembers">
+        <option>All 487 staff (auto-add)</option>
+        <option selected>Marketing team (12 people)</option>
+        <option>Directors only (18 people)</option>
+        <option>Manual selection</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="admin-btn-ghost" data-fn="closeModal" data-modal="createChannelModal">Cancel</button>
+      <button class="admin-btn-primary" data-fn="saveNewChannel">Create channel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Channel Manager modal -->
+<div class="modal-backdrop" id="assignManagerModal">
+  <div class="big-modal">
+    <h3>🔑 Assign Channel Manager</h3>
+    <div class="msub">Grant a user delegated management rights for <b id="amChannelName">#marketing-updates</b>. You (Superadmin) retain full override at all times.</div>
+    <div class="form-field">
+      <label>Assign to</label>
+      <select id="amUser">
+        <option value="karim">Karim Sobhy · FM Operations Manager</option>
+        <option value="wessam-y">Wessam Youssef · Procurement Lead</option>
+        <option value="sara" selected>Sara Mostafa · Marketing Coordinator</option>
+        <option value="nourhan">Nourhan Ahmed · Community Manager</option>
+        <option value="mai">Mai Hassan · HR Coordinator</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Permission template</label>
+      <div class="template-grid">
+        <button class="template-card selected" data-fn="pickTemplate" data-tpl="full">
+          <div class="tname">👑 Full Manager</div>
+          <div class="tdesc">Add/remove members, pin, edit, delete messages</div>
+          <div class="tperms">5 permissions</div>
+        </button>
+        <button class="template-card" data-fn="pickTemplate" data-tpl="poster">
+          <div class="tname">📝 Poster Only</div>
+          <div class="tdesc">Post to read-only channels (e.g. CEO announcements)</div>
+          <div class="tperms">1 permission</div>
+        </button>
+        <button class="template-card" data-fn="pickTemplate" data-tpl="moderator">
+          <div class="tname">🛡️ Moderator</div>
+          <div class="tdesc">Pin messages, delete inappropriate content</div>
+          <div class="tperms">2 permissions</div>
+        </button>
+        <button class="template-card" data-fn="pickTemplate" data-tpl="custom">
+          <div class="tname">⚙️ Custom</div>
+          <div class="tdesc">Pick exactly which permissions to grant</div>
+          <div class="tperms">Choose below ↓</div>
+        </button>
+      </div>
+    </div>
+    <div class="perm-checklist" id="permChecklist">
+      <label class="perm-check"><input type="checkbox" data-perm="add" checked><span>Can add members to channel</span></label>
+      <label class="perm-check"><input type="checkbox" data-perm="remove" checked><span>Can remove members from channel</span></label>
+      <label class="perm-check"><input type="checkbox" data-perm="pin" checked><span>Can pin/unpin messages</span></label>
+      <label class="perm-check"><input type="checkbox" data-perm="edit" checked><span>Can edit channel topic & description</span></label>
+      <label class="perm-check"><input type="checkbox" data-perm="delete" checked><span>Can delete others' messages (logged)</span></label>
+      <label class="perm-check"><input type="checkbox" data-perm="post"><span>Can post (for read-only channels)</span></label>
+      <label class="perm-check locked"><input type="checkbox" disabled><span>Can archive channel</span></label>
+      <label class="perm-check locked"><input type="checkbox" disabled><span>Can rename channel</span></label>
+      <label class="perm-check locked"><input type="checkbox" disabled><span>Can invite external guests</span></label>
+      <label class="perm-check locked"><input type="checkbox" disabled><span>Can assign other managers</span></label>
+    </div>
+    <div class="modal-footer">
+      <button class="admin-btn-ghost" data-fn="closeModal" data-modal="assignManagerModal">Cancel</button>
+      <button class="admin-btn-primary" data-fn="saveManager">Grant permissions</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+
+var currentChannel = 'ceo-announcements';
+var currentTab = 'messages';
+var currentLang = 'en';
+
+var members = [
+  { id: 'beltagy', name: 'Mohamed Beltagy', role: 'CEO', avatar: 'MB', color: 'linear-gradient(135deg,#FCD34D,#F59E0B)', text: '#4A3600', presence: 'online' },
+  { id: 'jasmine', name: 'Jasmine Ali', role: 'Digital Transformation Director', avatar: 'JA', color: 'linear-gradient(135deg,#3BA7D6,#22D3EE)', text: 'white', presence: 'online' },
+  { id: 'karim', name: 'Karim Sobhy', role: 'FM Operations Manager', avatar: 'KS', color: 'linear-gradient(135deg,#3B82F6,#1D4ED8)', text: 'white', presence: 'online' },
+  { id: 'wessam-y', name: 'Wessam Youssef', role: 'Procurement Lead', avatar: 'WY', color: 'linear-gradient(135deg,#EC4899,#BE185D)', text: 'white', presence: 'away' },
+  { id: 'mariam', name: 'Mariam Adel', role: 'HR Manager', avatar: 'MA', color: 'linear-gradient(135deg,#F59E0B,#D97706)', text: 'white', presence: 'online' },
+  { id: 'nourhan', name: 'Nourhan Ahmed', role: 'Community Manager', avatar: 'NA', color: 'linear-gradient(135deg,#3BA7D6,#22D3EE)', text: 'white', presence: 'online' },
+  { id: 'ahmed', name: 'Ahmed Fathy', role: 'Warehouse Supervisor', avatar: 'AF', color: 'linear-gradient(135deg,#3B82F6,#1D4ED8)', text: 'white', presence: 'offline' },
+  { id: 'sara', name: 'Sara Mostafa', role: 'Marketing Coordinator', avatar: 'SM', color: 'linear-gradient(135deg,#F59E0B,#D97706)', text: 'white', presence: 'online' },
+  { id: 'omar', name: 'Omar Khaled', role: 'IT Support Lead', avatar: 'OK', color: 'linear-gradient(135deg,#3BA7D6,#0891B2)', text: 'white', presence: 'away' },
+  { id: 'hana', name: 'Hana Mahmoud', role: 'Finance Manager', avatar: 'HM', color: 'linear-gradient(135deg,#3B82F6,#1E40AF)', text: 'white', presence: 'online' },
+  { id: 'youssef', name: 'Youssef Ibrahim', role: 'Security Head', avatar: 'YI', color: 'linear-gradient(135deg,#F97316,#C2410C)', text: 'white', presence: 'online' },
+  { id: 'mai', name: 'Mai Hassan', role: 'HR Coordinator', avatar: 'MH', color: 'linear-gradient(135deg,#F472B6,#BE185D)', text: 'white', presence: 'online' }
+];
+
+function findMember(id) {
+  for (var i=0; i<members.length; i++) if (members[i].id === id) return members[i];
+  return members[0];
+}
+
+var channels = {
+  'ceo-announcements': { prefix: '⭐', name: 'ceo-announcements', count: 487, topic: 'Top-down announcements from the CEO office — read-only for members' },
+  'announcements': { prefix: '📢', name: 'announcements', count: 487, topic: 'Company-wide announcements from leadership and HR' },
+  'ehub': { prefix: '🎉', name: 'ehub', count: 487, topic: 'Celebrations, birthdays, milestones, and social updates ✨' },
+  'general': { prefix: '#', name: 'general', count: 487, topic: 'Company-wide conversation' },
+  'procurement': { prefix: '#', name: 'procurement', count: 32, topic: 'Sourcing, RFQs, PO tracking, supplier updates' },
+  'warehouse': { prefix: '#', name: 'warehouse', count: 24, topic: 'Warehouse operations, stock, delivery coordination' },
+  'digital-transformation': { prefix: '#', name: 'digital-transformation', count: 18, topic: 'DT initiatives, module updates, AI innovation' },
+  'hr-updates': { prefix: '#', name: 'hr-updates', count: 156, topic: 'HR policies, benefits, onboarding, and updates' },
+  'it-support': { prefix: '#', name: 'it-support', count: 42, topic: 'IT tickets, system status, access requests' },
+  'security-ops': { prefix: '#', name: 'security-ops', count: 68, topic: 'Security operations, LPR, gate management, patrols' },
+  'community-mgmt': { prefix: '#', name: 'community-management', count: 47, topic: 'Allegria, Eastown, Villette, Katameya Heights' }
+};
+
+var messagesByChannel = {
+  'ceo-announcements': [
+    { author: 'beltagy', badge: 'CEO', time: 'Yesterday at 9:15 AM',
+      text: 'Team,<br><br>I want to formally introduce our new internal communication channel — <b>ETeams</b>. From today, this replaces internal emails for all day-to-day coordination.<br><br>Faster. Cleaner. More transparent. Let\'s use it well. 🚀',
+      reactions: [{ e: '🎉', count: 87, mine: true }, { e: '🚀', count: 64 }, { e: '👏', count: 52 }, { e: '❤️', count: 41 }],
+      pinned: true
+    },
+    { author: 'beltagy', badge: 'CEO', time: 'Yesterday at 2:40 PM',
+      text: 'Congratulations to the <span class="mention">@Digital Transformation</span> team for hitting the Phase 1 milestone on the unified portal. This is exactly the pace we need across every function.<br><br>Full recognition at Sunday\'s townhall.',
+      reactions: [{ e: '👏', count: 58 }, { e: '🔥', count: 34 }, { e: '💯', count: 28 }],
+      thread: { count: 12, avatars: ['jasmine', 'karim', 'wessam-y'] }
+    },
+    { author: 'beltagy', badge: 'CEO', time: 'Today at 8:05 AM',
+      text: '<span class="mention channel-wide">@channel</span> Q4 targets are attached. Read carefully — we align on execution this Thursday.',
+      attachment: { type: 'file', icon: '📄', name: 'EDARA_Q4_2026_Targets.pdf', meta: '2.4 MB · PDF' },
+      reactions: [{ e: '✅', count: 41 }, { e: '👀', count: 22 }]
+    },
+    { author: 'beltagy', badge: 'CEO', time: 'Today at 8:07 AM',
+      text: 'One more thing — <b>townhall this Sunday, 11 AM</b>, main auditorium and live on ETeams. Attendance expected from all directors.',
+      reactions: [{ e: '📌', count: 34 }, { e: '✅', count: 47 }]
+    }
+  ],
+  'announcements': [
+    { author: 'mariam', badge: 'HR', time: 'Today at 9:30 AM',
+      text: '<span class="mention channel-wide">@channel</span> 📅 <b>Ramadan working hours</b> start next Monday.<br>Full policy attached — please review and share with your teams.',
+      attachment: { type: 'file', icon: '📄', name: 'Ramadan_Working_Hours_2026.pdf', meta: '840 KB · PDF' },
+      reactions: [{ e: '🙏', count: 128 }, { e: '✅', count: 94 }]
+    },
+    { author: 'omar', badge: 'ADMIN', time: 'Today at 11:20 AM',
+      text: '<span class="mention channel-wide">@here</span> ⚙️ Scheduled maintenance on the ERP system tonight <b>10 PM – 12 AM</b>. Expect brief downtime.',
+      reactions: [{ e: '👍', count: 34 }]
+    }
+  ],
+  'ehub': [
+    { author: 'nourhan', time: 'Today at 8:45 AM',
+      text: '🎂 Happy birthday <span class="mention">@Karim Sobhy</span>! Wishing you an amazing year ahead 🎉<br>Cake at 3 PM in the cafeteria — everyone\'s welcome!',
+      attachment: { type: 'image', label: '🎂', celebration: true },
+      reactions: [{ e: '🎂', count: 62, mine: true }, { e: '🎉', count: 48 }, { e: '❤️', count: 39 }, { e: '🥳', count: 24 }]
+    },
+    { author: 'sara', time: 'Today at 10:15 AM',
+      text: '🏆 Big shoutout to the <span class="channel-link">#warehouse</span> team for closing the month with <b>zero incidents</b> and <b>98% SLA</b>. You legends. 👏',
+      reactions: [{ e: '👏', count: 71 }, { e: '🏆', count: 43 }, { e: '🔥', count: 28 }],
+      thread: { count: 8, avatars: ['ahmed', 'wessam-y'] }
+    },
+    { author: 'mai', time: 'Today at 12:30 PM',
+      text: '☕ Coffee & connect this Thursday, 4 PM in the lounge. Come meet the new joiners! Bring your team 💚',
+      reactions: [{ e: '☕', count: 34 }, { e: '❤️', count: 18 }]
+    },
+    { author: 'jasmine', time: 'Today at 1:05 PM',
+      text: '<span class="mention channel-wide">@here</span> Welcome to our newest joiners this week! 🎊<br>Say hi to <span class="mention">@Farah Nasser</span>, <span class="mention">@Ziad Amr</span>, and <span class="mention">@Layla Kamal</span> 🌟',
+      reactions: [{ e: '👋', count: 89 }, { e: '🎉', count: 44 }]
+    }
+  ],
+  'general': [
+    { author: 'jasmine', time: 'Today at 9:00 AM',
+      text: 'Good morning team ☀️ Let\'s make it a great week!',
+      reactions: [{ e: '☀️', count: 24 }, { e: '💪', count: 17 }]
+    },
+    { author: 'karim', time: 'Today at 9:12 AM',
+      text: 'Morning all — heads up: the cafeteria menu got a refresh, koshari is back on Wednesdays 🎉'
+    }
+  ],
+  'procurement': [
+    { author: 'wessam-y', time: 'Today at 10:20 AM',
+      text: '<span class="mention">@Jasmine Ali</span> RFQ-2026-142 for the Allegria HVAC filters — 3 vendors responded. Comparison sheet attached.',
+      attachment: { type: 'file', icon: '📊', name: 'RFQ-2026-142_Comparison.xlsx', meta: '124 KB · Excel' },
+      reactions: [{ e: '✅', count: 4 }],
+      thread: { count: 3, avatars: ['jasmine', 'karim'] }
+    },
+    { author: 'hana', time: 'Today at 11:05 AM',
+      text: 'Budget approval for PO-2026-089 is signed. You can proceed.',
+      reactions: [{ e: '🙌', count: 5 }]
+    }
+  ],
+  'digital-transformation': [
+    { author: 'jasmine', time: 'Today at 8:30 AM',
+      text: 'Morning team 🚀 Kicking off the <b>WRS Phase 2</b> sprint today. Standup at 9:30, boardroom demo prep review at 2 PM.<br><br>Priority: PIN-based handover flow + budget dashboard polish.',
+      reactions: [{ e: '💪', count: 8 }, { e: '🚀', count: 5 }]
+    }
+  ]
+};
+
+['warehouse', 'hr-updates', 'it-support', 'security-ops', 'community-mgmt'].forEach(function(c) {
+  if (!messagesByChannel[c]) {
+    messagesByChannel[c] = [
+      { author: 'jasmine', time: 'Today at 9:00 AM', text: 'Channel is set up. Welcome team 👋' }
+    ];
+  }
+});
+
+var dmMessages = {
+  'beltagy': [
+    { author: 'beltagy', badge: 'CEO', time: 'Today at 7:45 AM',
+      text: 'Jasmine — can we do 10 minutes before the townhall on Sunday? Want to align on the DT slot.' },
+    { author: 'jasmine', time: 'Today at 7:48 AM',
+      text: 'Absolutely. I\'ll be at your office 10:30 sharp. Bringing the updated roadmap.' },
+    { author: 'beltagy', badge: 'CEO', time: 'Today at 7:50 AM',
+      text: 'Perfect. 🙏', reactions: [{ e: '✅', count: 1, mine: true }] }
+  ],
+  'karim': [
+    { author: 'karim', time: 'Today at 10:30 AM',
+      text: 'Have a minute to review the maintenance schedule for Allegria?' }
+  ],
+  'group1': [
+    { author: 'nourhan', time: 'Today at 9:00 AM',
+      text: 'Morning team! Ready for the Villette walkthrough later?' },
+    { author: 'karim', time: 'Today at 9:02 AM', text: 'Meeting at reception, 2 PM.' },
+    { author: 'wessam-y', time: 'Today at 9:15 AM', text: '✅ I\'ll bring the vendor list.' }
+  ]
+};
+
+// ============================================================
+// RENDER MESSAGES
+// ============================================================
+
+function renderMessage(m, idx) {
+  var member = findMember(m.author);
+  var isMine = m.author === 'jasmine';
+  var html = '';
+  html += '<div class="message' + (m.pinned ? ' pinned' : '') + '" data-msg-idx="' + idx + '">';
+  html += '<div class="msg-avatar" style="background:' + member.color + '; color:' + member.text + '">' + member.avatar + '</div>';
+  html += '<div class="msg-body">';
+  html += '<div class="msg-head">';
+  html += '<span class="msg-author">' + member.name + '</span>';
+  if (m.badge === 'CEO') html += '<span class="msg-badge ceo">CEO</span>';
+  else if (m.badge === 'HR') html += '<span class="msg-badge hr">HR</span>';
+  else if (m.badge === 'ADMIN') html += '<span class="msg-badge admin">ADMIN</span>';
+  html += '<span class="msg-time">' + m.time + '</span>';
+  if (m.edited) html += '<span class="msg-edited">(edited)</span>';
+  html += '</div>';
+  html += '<div class="msg-text">' + m.text + '</div>';
+
+  if (m.attachment) {
+    html += '<div class="attachment">';
+    if (m.attachment.type === 'image') {
+      html += '<div class="attachment-image' + (m.attachment.celebration ? ' celebration' : '') + '">' + m.attachment.label + '</div>';
+    } else {
+      html += '<div class="attachment-file">';
+      html += '<div class="file-icon">' + m.attachment.icon + '</div>';
+      html += '<div class="file-info">';
+      html += '<div class="file-name">' + m.attachment.name + '</div>';
+      html += '<div class="file-meta">' + m.attachment.meta + '</div>';
+      html += '</div>';
+      html += '<button class="attachment-download" data-fn="showToast" data-msg="Downloading ' + m.attachment.name + '">⬇</button>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  if (m.reactions && m.reactions.length) {
+    html += '<div class="reactions">';
+    for (var i=0; i<m.reactions.length; i++) {
+      var r = m.reactions[i];
+      html += '<button class="reaction' + (r.mine ? ' mine' : '') + '" data-fn="toggleReaction">' + r.e + ' <span class="count">' + r.count + '</span></button>';
+    }
+    html += '<button class="reaction-add" data-fn="toggleEmoji">+</button>';
+    html += '</div>';
+  }
+
+  if (m.thread) {
+    html += '<div class="thread-indicator" data-fn="showToast" data-msg="Opening thread">';
+    html += '<div class="thread-avatars">';
+    for (var j=0; j<m.thread.avatars.length; j++) {
+      var tm = findMember(m.thread.avatars[j]);
+      html += '<div class="msg-avatar" style="background:' + tm.color + '; color:' + tm.text + '">' + tm.avatar + '</div>';
+    }
+    html += '</div>';
+    html += '<span>' + m.thread.count + ' replies</span>';
+    html += '<span style="color:var(--text-mute); font-weight:400;">· Last reply 2h ago</span>';
+    html += '</div>';
+  }
+
+  html += '</div>';
+
+  // Hover actions
+  html += '<div class="msg-actions">';
+  html += '<button class="msg-action" data-fn="toggleEmoji" title="React">😊</button>';
+  html += '<button class="msg-action" data-fn="showToast" data-msg="Reply in thread" title="Reply">💬</button>';
+  html += '<button class="msg-action" data-fn="showToast" data-msg="Forward" title="Forward">↗️</button>';
+  html += '<button class="msg-action" data-fn="showToast" data-msg="Saved for later" title="Save">🔖</button>';
+  if (isMine) {
+    html += '<button class="msg-action" data-fn="editMessage" data-idx="' + idx + '" title="Edit">✏️</button>';
+    html += '<button class="msg-action danger" data-fn="deleteMessage" data-idx="' + idx + '" title="Delete">🗑️</button>';
+  } else {
+    html += '<button class="msg-action" data-fn="showToast" data-msg="More actions" title="More">⋯</button>';
+  }
+  html += '</div>';
+  html += '</div>';
+  return html;
+}
+
+function renderChannel(channelId) {
+  currentChannel = channelId;
+  var ch = channels[channelId];
+  if (!ch) return;
+
+  document.getElementById('chHeadPrefix').textContent = ch.prefix;
+  document.getElementById('chHeadName').textContent = ch.name;
+  document.getElementById('chHeadCount').textContent = ch.count;
+  document.getElementById('chHeadTopic').textContent = ch.topic;
+  var vc = document.getElementById('viewPeopleCount');
+  if (vc) vc.textContent = ch.count;
+  document.getElementById('composerInput').placeholder = 'Message #' + ch.name;
+
+  var msgs = messagesByChannel[channelId] || [];
+  var html = '';
+
+  if (channelId === 'ehub') {
+    html += '<div class="announcement-banner"><span class="icon">🎂</span><div class="text"><b>3 birthdays today</b> · Karim Sobhy, Layla Kamal, Ahmed Fathy — send them some love!</div></div>';
+  }
+  if (channelId === 'ceo-announcements') {
+    html += '<div class="announcement-banner emerald"><span class="icon">📌</span><div class="text"><b>Pinned:</b> Q4 townhall this Sunday at 11 AM — attendance expected.</div></div>';
+  }
+  html += '<div class="day-divider"><span>Today</span></div>';
+
+  for (var i=0; i<msgs.length; i++) html += renderMessage(msgs[i], i);
+  document.getElementById('messages').innerHTML = html;
+  document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+
+  var items = document.querySelectorAll('.nav-item');
+  for (var k=0; k<items.length; k++) items[k].classList.remove('active');
+  var activeItem = document.querySelector('[data-channel="' + channelId + '"]');
+  if (activeItem) {
+    activeItem.classList.add('active');
+    activeItem.classList.remove('unread');
+    var badge = activeItem.querySelector('.badge');
+    if (badge) badge.remove();
+  }
+
+  // Simulate typing indicator for CEO channel
+  if (channelId === 'ceo-announcements') {
+    setTimeout(function() { showTyping('Karim Sobhy'); }, 1800);
+  }
+}
+
+function renderDM(userId) {
+  var m = userId === 'group1' ?
+    { name: 'Karim, Wessam, Nourhan', role: '3 members · Group message', color: '', avatar: '👥', text: '', presence: 'online' } :
+    findMember(userId);
+  currentChannel = 'dm-' + userId;
+
+  document.getElementById('chHeadPrefix').innerHTML = userId === 'group1' ?
+    '<span style="font-size:14px;">👥</span>' :
+    '<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:' + (m.presence === 'online' ? '#22C55E' : m.presence === 'away' ? '#F59E0B' : '#64748B') + ';"></span>';
+  document.getElementById('chHeadName').textContent = m.name;
+  document.getElementById('chHeadCount').textContent = userId === 'group1' ? 3 : 2;
+  document.getElementById('chHeadTopic').textContent = m.role;
+  document.getElementById('composerInput').placeholder = 'Message ' + m.name;
+
+  var msgs = dmMessages[userId] || [{ author: userId, time: 'Today', text: 'Hey! 👋' }];
+  var html = '<div class="day-divider"><span>Today</span></div>';
+  for (var i=0; i<msgs.length; i++) html += renderMessage(msgs[i], i);
+  document.getElementById('messages').innerHTML = html;
+  document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+
+  var items = document.querySelectorAll('.nav-item');
+  for (var k=0; k<items.length; k++) items[k].classList.remove('active');
+  var activeItem = document.querySelector('[data-user="' + userId + '"]');
+  if (activeItem) {
+    activeItem.classList.add('active');
+    activeItem.classList.remove('unread');
+    var badge = activeItem.querySelector('.badge');
+    if (badge) badge.remove();
+  }
+}
+
+// ============================================================
+// TABS (Messages/Files/Pins/People)
+// ============================================================
+
+function switchTab(tab) {
+  currentTab = tab;
+  var tabs = document.querySelectorAll('.chat-tab');
+  for (var i=0; i<tabs.length; i++) tabs[i].classList.remove('active');
+  var activeTab = document.querySelector('.chat-tab[data-tab="' + tab + '"]');
+  if (activeTab) activeTab.classList.add('active');
+
+  var panes = document.querySelectorAll('.tab-pane');
+  for (var j=0; j<panes.length; j++) panes[j].classList.remove('active');
+  document.getElementById('pane-' + tab).classList.add('active');
+
+  if (tab === 'files') renderFiles();
+  else if (tab === 'pins') renderPins();
+  else if (tab === 'people') renderPeople();
+}
+
+function renderFiles() {
+  var files = [
+    { icon: '📄', name: 'EDARA_Q4_2026_Targets.pdf', meta: '2.4 MB · Yesterday', color: 'linear-gradient(135deg,#DC2626,#991B1B)' },
+    { icon: '📊', name: 'RFQ-2026-142_Comparison.xlsx', meta: '124 KB · Today', color: 'linear-gradient(135deg,#3BA7D6,#22D3EE)' },
+    { icon: '📄', name: 'Ramadan_Working_Hours_2026.pdf', meta: '840 KB · Today', color: 'linear-gradient(135deg,#DC2626,#991B1B)' },
+    { icon: '🎂', name: 'Karim_Birthday.jpg', meta: '1.8 MB · Today', color: 'linear-gradient(135deg,#F59E0B,#D97706)' },
+    { icon: '📈', name: 'Warehouse_Monthly_Report.pdf', meta: '3.2 MB · 2 days ago', color: 'linear-gradient(135deg,#DC2626,#991B1B)' },
+    { icon: '🎬', name: 'DT_Roadmap_Presentation.pptx', meta: '12.4 MB · 3 days ago', color: 'linear-gradient(135deg,#F59E0B,#D97706)' },
+    { icon: '📄', name: 'Company_Handbook_2026.pdf', meta: '4.7 MB · Last week', color: 'linear-gradient(135deg,#DC2626,#991B1B)' },
+    { icon: '📊', name: 'Q3_Financial_Summary.xlsx', meta: '542 KB · Last week', color: 'linear-gradient(135deg,#3BA7D6,#22D3EE)' }
+  ];
+  var html = '';
+  for (var i=0; i<files.length; i++) {
+    var f = files[i];
+    html += '<div class="file-card" data-fn="showToast" data-msg="Opening ' + f.name + '">';
+    html += '<div class="thumb" style="background:' + f.color + '">' + f.icon + '</div>';
+    html += '<div class="fname">' + f.name + '</div>';
+    html += '<div class="fmeta">' + f.meta + '</div>';
+    html += '</div>';
+  }
+  document.getElementById('filesGrid').innerHTML = html;
+}
+
+function renderPins() {
+  var pins = [
+    { author: 'beltagy', time: 'Yesterday at 9:15 AM', text: '📣 Introducing ETeams — our new internal communication platform. From today, this replaces email for day-to-day coordination.' },
+    { author: 'mariam', time: 'Last Monday', text: '📅 Ramadan working hours policy — please read and share with your teams.' },
+    { author: 'jasmine', time: '2 weeks ago', text: '🚀 Digital Transformation roadmap — key milestones and Q1-Q4 delivery calendar.' }
+  ];
+  var html = '';
+  for (var i=0; i<pins.length; i++) {
+    var p = pins[i]; var m = findMember(p.author);
+    html += '<div class="pin-item">';
+    html += '<div class="pin-head">';
+    html += '<div class="msg-avatar" style="width:24px; height:24px; font-size:11px; border-radius:6px; background:' + m.color + '; color:' + m.text + '">' + m.avatar + '</div>';
+    html += '<span class="pin-author">' + m.name + '</span>';
+    html += '<span class="pin-time">· ' + p.time + '</span>';
+    html += '</div>';
+    html += '<div class="pin-text">' + p.text + '</div>';
+    html += '</div>';
+  }
+  document.getElementById('pinsList').innerHTML = html;
+}
+
+function renderPeople() {
+  var html = '';
+  for (var i=0; i<members.length; i++) {
+    var m = members[i];
+    html += '<div class="member-row" data-fn="openDM" data-user="' + m.id + '">';
+    html += '<div class="avatar" style="background:' + m.color + '; color:' + m.text + '">' + m.avatar;
+    html += '<span class="presence ' + m.presence + '"></span></div>';
+    html += '<div class="info"><div class="name">' + m.name + '</div><div class="role">' + m.role + '</div></div>';
+    html += '<button class="chat-icon-btn" data-fn="openDM" data-user="' + m.id + '">💬</button>';
+    html += '</div>';
+  }
+  html += '<div style="text-align:center; padding:16px; color:var(--text-mute); font-size:12px;">Showing 12 of ' + (channels[currentChannel] ? channels[currentChannel].count : 487) + ' members</div>';
+  document.getElementById('peopleList').innerHTML = html;
+}
+
+// ============================================================
+// I18N
+// ============================================================
+
+var i18n = {
+  en: {
+    loginTitle: 'Sign in to your workspace',
+    loginSub: 'Stay connected. Work together. Get things done.',
+    email: 'Work email', password: 'Password',
+    signIn: 'Sign In', or: 'OR',
+    footer: 'ETeams · Internal Communication Platform',
+    searchPlaceholder: 'Search channels, messages, docs, media, links, people…',
+    threads: 'Threads', mentions: 'Mentions & Reactions',
+    drafts: 'Drafts', saved: 'Saved',
+    announcementsSec: 'Announcements', channelsSec: 'Channels', dmsSec: 'Direct Messages',
+    addTeammates: 'Add teammates',
+    tabMessages: 'Messages', tabFiles: 'Files', tabPins: 'Pins', tabPeople: 'People',
+    composerHint: '<b>Enter</b> to send · <b>Shift+Enter</b> for new line · <b>@</b> to mention · <b>@channel</b> to notify all',
+    attachTitle: 'Attach to your message',
+    uploadFile: 'Upload from computer', uploadImage: 'Photo or video',
+    fromDrive: 'From EDARA Drive', createPoll: 'Create a poll',
+    videoCallTitle: 'Video call · Digital Transformation Sync',
+    mute: 'Mute', stopVideo: 'Stop video', screenShare: 'Share screen',
+    raiseHand: 'Raise hand', settings: 'Settings', leave: 'Leave',
+    mentionHead: 'People, channels, and everyone',
+    filterFiles: 'Filter files…', uploadBtn: 'Upload',
+    searchMembers: 'Search members…', addMembers: 'Add members',
+    searchEmoji: 'Search emoji…'
+  },
+  ar: {
+    loginTitle: 'تسجيل الدخول إلى مساحة العمل',
+    loginSub: 'ابق متصلاً. اعمل معاً. أنجز الأمور.',
+    email: 'البريد الإلكتروني للعمل', password: 'كلمة المرور',
+    signIn: 'تسجيل الدخول', or: 'أو',
+    footer: 'ETeams · منصة التواصل الداخلي',
+    searchPlaceholder: 'ابحث في القنوات والرسائل والمستندات والوسائط والروابط والأشخاص…',
+    threads: 'المحادثات', mentions: 'الإشارات والتفاعلات',
+    drafts: 'المسودات', saved: 'المحفوظات',
+    announcementsSec: 'الإعلانات', channelsSec: 'القنوات', dmsSec: 'الرسائل المباشرة',
+    addTeammates: 'إضافة أعضاء',
+    tabMessages: 'الرسائل', tabFiles: 'الملفات', tabPins: 'المثبّتة', tabPeople: 'الأعضاء',
+    composerHint: '<b>Enter</b> للإرسال · <b>Shift+Enter</b> لسطر جديد · <b>@</b> للإشارة · <b>@channel</b> لإخطار الجميع',
+    attachTitle: 'إرفاق برسالتك',
+    uploadFile: 'رفع من الجهاز', uploadImage: 'صورة أو فيديو',
+    fromDrive: 'من EDARA Drive', createPoll: 'إنشاء استطلاع',
+    videoCallTitle: 'مكالمة فيديو · اجتماع التحول الرقمي',
+    mute: 'كتم', stopVideo: 'إيقاف الفيديو', screenShare: 'مشاركة الشاشة',
+    raiseHand: 'رفع اليد', settings: 'الإعدادات', leave: 'مغادرة',
+    mentionHead: 'الأشخاص والقنوات والجميع',
+    filterFiles: 'تصفية الملفات…', uploadBtn: 'رفع',
+    searchMembers: 'بحث في الأعضاء…', addMembers: 'إضافة أعضاء',
+    searchEmoji: 'بحث في الرموز…'
+  }
+};
+
+function applyLang() {
+  var s = i18n[currentLang];
+  var els = document.querySelectorAll('[data-i18n]');
+  for (var i=0; i<els.length; i++) {
+    var k = els[i].getAttribute('data-i18n');
+    if (s[k]) els[i].innerHTML = s[k];
+  }
+  var phs = document.querySelectorAll('[data-i18n-ph]');
+  for (var j=0; j<phs.length; j++) {
+    var k2 = phs[j].getAttribute('data-i18n-ph');
+    if (s[k2]) phs[j].setAttribute('placeholder', s[k2]);
+  }
+  document.getElementById('langToggle').textContent = currentLang === 'en' ? 'العربية' : 'English';
+  document.documentElement.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
+  document.documentElement.setAttribute('lang', currentLang);
+}
+
+// ============================================================
+// ACTIONS
+// ============================================================
+
+var actions = {
+  doLogin: function() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.querySelector('.theme-corner').style.display = 'none';
+    document.getElementById('workspace').classList.add('active');
+    renderChannel('ceo-announcements');
+  },
+  doLogout: function() {
+    document.getElementById('statusMenu').classList.remove('active');
+    document.getElementById('workspace').classList.remove('active');
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.querySelector('.theme-corner').style.display = 'flex';
+  },
+  toggleTheme: function() {
+    var cur = document.documentElement.getAttribute('data-theme');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '🌙' : '☀️';
+    var t = document.getElementById('themeBtnTop');
+    if (t) t.textContent = next === 'dark' ? '🌙' : '☀️';
+    showToast(next === 'dark' ? 'Dark mode' : 'Light mode');
+  },
+  toggleLang: function() {
+    currentLang = currentLang === 'en' ? 'ar' : 'en';
+    applyLang();
+    showToast(currentLang === 'ar' ? 'تم التحويل إلى العربية' : 'Switched to English');
+  },
+  toggleSection: function(el) {
+    var section = el.getAttribute('data-section');
+    var content = document.getElementById('sec-' + section);
+    if (!content) return;
+    el.classList.toggle('collapsed');
+    content.style.display = content.style.display === 'none' ? 'block' : 'none';
+  },
+  openChannel: function(el) {
+    document.getElementById('adminPanel').classList.remove('active');
+    document.querySelector('.chat-area').style.display = '';
+    switchTab('messages');
+    renderChannel(el.getAttribute('data-channel'));
+    document.getElementById('rightPanel').classList.remove('active');
+  },
+  openDM: function(el) {
+    document.getElementById('adminPanel').classList.remove('active');
+    document.querySelector('.chat-area').style.display = '';
+    switchTab('messages');
+    renderDM(el.getAttribute('data-user'));
+    document.getElementById('rightPanel').classList.remove('active');
+  },
+  switchTab: function(el) {
+    switchTab(el.getAttribute('data-tab'));
+  },
+  toggleRightPanel: function(el) {
+    var panel = document.getElementById('rightPanel');
+    if (panel.classList.contains('active')) {
+      panel.classList.remove('active'); return;
+    }
+    document.getElementById('rightTitle').textContent = currentLang === 'ar' ? 'تفاصيل القناة' : 'Channel Details';
+    document.getElementById('rightScroll').innerHTML = renderDetails();
+    panel.classList.add('active');
+  },
+  toggleEmoji: function() {
+    document.getElementById('emojiPicker').classList.toggle('active');
+    document.getElementById('mentionPopup').classList.remove('active');
+  },
+  toggleMention: function() {
+    var popup = document.getElementById('mentionPopup');
+    var list = document.getElementById('mentionList');
+    var html = '';
+    html += '<div class="mention-item special" data-fn="pickMention" data-name="channel"><div class="avatar">📢</div><div class="info"><div class="username">@channel</div><div class="fullname">Notify everyone in this channel</div></div></div>';
+    html += '<div class="mention-item special" data-fn="pickMention" data-name="here"><div class="avatar">👋</div><div class="info"><div class="username">@here</div><div class="fullname">Notify only active members</div></div></div>';
+    html += '<div class="mention-item special" data-fn="pickMention" data-name="everyone"><div class="avatar">🌐</div><div class="info"><div class="username">@everyone</div><div class="fullname">Notify all workspace members</div></div></div>';
+    for (var i=0; i<Math.min(members.length, 8); i++) {
+      var m = members[i];
+      html += '<div class="mention-item" data-fn="pickMention" data-name="' + m.name + '">';
+      html += '<div class="avatar" style="background:' + m.color + '; color:' + m.text + '">' + m.avatar + '</div>';
+      html += '<div class="info"><div class="username">@' + m.name.split(' ')[0].toLowerCase() + '</div><div class="fullname">' + m.name + ' · ' + m.role + '</div></div>';
+      html += '</div>';
+    }
+    list.innerHTML = html;
+    popup.classList.toggle('active');
+    document.getElementById('emojiPicker').classList.remove('active');
+  },
+  pickEmoji: function(el) {
+    var input = document.getElementById('composerInput');
+    input.value += el.getAttribute('data-e');
+    input.focus();
+    updateSendState();
+    document.getElementById('emojiPicker').classList.remove('active');
+  },
+  pickMention: function(el) {
+    var input = document.getElementById('composerInput');
+    input.value += '@' + el.getAttribute('data-name') + ' ';
+    input.focus();
+    updateSendState();
+    document.getElementById('mentionPopup').classList.remove('active');
+  },
+  showAttach: function() { document.getElementById('attachModal').classList.add('active'); },
+  attachFile: function(el) {
+    closeModal(null, 'attachModal');
+    var t = el.getAttribute('data-type');
+    showToast(t === 'poll' ? 'Poll builder opened' : t === 'drive' ? 'EDARA Drive opened' : 'File picker opened');
+  },
+  closeModal: function(el) { closeModal(null, el.getAttribute('data-modal')); },
+  sendMessage: function() {
+    var input = document.getElementById('composerInput');
+    var text = input.value.trim();
+    if (!text) return;
+    var processed = text
+      .replace(/@(channel|here|everyone)\b/g, '<span class="mention channel-wide">@$1</span>')
+      .replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+    var newMsg = { author: 'jasmine', time: 'Just now', text: processed };
+    if (currentChannel.indexOf('dm-') === 0) {
+      var uid = currentChannel.substring(3);
+      if (!dmMessages[uid]) dmMessages[uid] = [];
+      dmMessages[uid].push(newMsg);
+      renderDM(uid);
+    } else {
+      if (!messagesByChannel[currentChannel]) messagesByChannel[currentChannel] = [];
+      messagesByChannel[currentChannel].push(newMsg);
+      renderChannel(currentChannel);
+    }
+    input.value = '';
+    updateSendState();
+  },
+  editMessage: function(el) {
+    var idx = parseInt(el.getAttribute('data-idx'), 10);
+    var pool = currentChannel.indexOf('dm-') === 0 ?
+      dmMessages[currentChannel.substring(3)] : messagesByChannel[currentChannel];
+    if (!pool || !pool[idx]) return;
+    var stripped = pool[idx].text.replace(/<[^>]+>/g, '');
+    var updated = prompt('Edit your message:', stripped);
+    if (updated !== null && updated.trim()) {
+      pool[idx].text = updated
+        .replace(/@(channel|here|everyone)\b/g, '<span class="mention channel-wide">@$1</span>')
+        .replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+      pool[idx].edited = true;
+      if (currentChannel.indexOf('dm-') === 0) renderDM(currentChannel.substring(3));
+      else renderChannel(currentChannel);
+      showToast('Message edited');
+    }
+  },
+  deleteMessage: function(el) {
+    if (!confirm('Delete this message? This cannot be undone.')) return;
+    var idx = parseInt(el.getAttribute('data-idx'), 10);
+    var pool = currentChannel.indexOf('dm-') === 0 ?
+      dmMessages[currentChannel.substring(3)] : messagesByChannel[currentChannel];
+    if (!pool) return;
+    pool.splice(idx, 1);
+    if (currentChannel.indexOf('dm-') === 0) renderDM(currentChannel.substring(3));
+    else renderChannel(currentChannel);
+    showToast('Message deleted');
+  },
+  toggleReaction: function(el) {
+    el.classList.toggle('mine');
+    var c = el.querySelector('.count');
+    if (c) {
+      var n = parseInt(c.textContent, 10);
+      c.textContent = el.classList.contains('mine') ? n + 1 : n - 1;
+    }
+  },
+  toggleStatus: function() {
+    document.getElementById('statusMenu').classList.toggle('active');
+  },
+  setStatus: function(el) {
+    var status = el.getAttribute('data-status');
+    var label = el.getAttribute('data-label');
+    var opts = document.querySelectorAll('.status-opt');
+    for (var i=0; i<opts.length; i++) opts[i].classList.remove('active-status');
+    el.classList.add('active-status');
+
+    // Update all avatar presence dots + status label
+    var dots = document.querySelectorAll('.presence-dot, .sidebar-footer .me-status .dot');
+    for (var j=0; j<dots.length; j++) {
+      dots[j].classList.remove('online', 'away', 'dnd');
+      dots[j].style.background = status === 'online' ? 'var(--online)' :
+                                 status === 'away' ? 'var(--away)' :
+                                 status === 'dnd' ? 'var(--dnd)' :
+                                 status === 'meeting' ? 'var(--blue)' : 'var(--online)';
+    }
+    document.getElementById('statusLabel').textContent = label;
+    document.getElementById('statusMenu').classList.remove('active');
+    showToast('Status: ' + label);
+  },
+  startCall: function() {
+    var ch = channels[currentChannel] || { name: currentChannel };
+    document.getElementById('callName').textContent = 'Voice call · #' + (ch.name || 'chat');
+    document.getElementById('callModal').classList.add('active');
+    document.getElementById('callStatus').textContent = 'Ringing…';
+    setTimeout(function() {
+      document.getElementById('callStatus').textContent = 'Connected · 3 participants';
+      startCallTimer();
+    }, 1200);
+  },
+  toggleMute: function(el) { el.classList.toggle('on'); },
+  switchToVideo: function() { endCall(); actions.startVideo(); },
+  endCall: function() { endCall(); },
+  startVideo: function() { document.getElementById('videoModal').classList.add('active'); },
+  endVideo: function() {
+    document.getElementById('videoModal').classList.remove('active');
+    showToast('Call ended');
+  },
+  toggleExport: function() {
+    document.getElementById('exportMenu').classList.toggle('active');
+  },
+  doExport: function(el) {
+    var format = el.getAttribute('data-format');
+    document.getElementById('exportMenu').classList.remove('active');
+    exportConversation(format);
+  },
+  toggleViewMenu: function() {
+    document.getElementById('viewMenu').classList.toggle('active');
+  },
+  openView: function(el) {
+    document.getElementById('viewMenu').classList.remove('active');
+    var v = el.getAttribute('data-view');
+    switchTab(v);
+  },
+  toggleMoreComposer: function() {
+    document.getElementById('moreComposerMenu').classList.toggle('active');
+  },
+  togglePermCatalog: function() {
+    var wrap = document.getElementById('permCatalogWrap');
+    var chev = document.getElementById('permCatalogChevron');
+    if (wrap.style.display === 'none' || !wrap.style.display) {
+      wrap.style.display = 'block';
+      chev.textContent = '▴';
+    } else {
+      wrap.style.display = 'none';
+      chev.textContent = '▾';
+    }
+  },
+  openCreateUser: function() { document.getElementById('createUserModal').classList.add('active'); },
+  pickUserRole: function(el) {
+    var role = el.getAttribute('data-role');
+    var cards = document.querySelectorAll('#createUserModal .template-card');
+    for (var i=0; i<cards.length; i++) cards[i].classList.remove('selected');
+    el.classList.add('selected');
+    if (role === 'custom') return;
+    var presets = {
+      standard: ['login', 'mobile', 'edit-profile', 'post-public', 'post-private', 'edit-own', 'delete-own', 'react', 'thread', 'dm-anyone', 'group-dm', 'at-user', 'voice', 'video', 'upload', 'poll', 'audio', 'export-dm'],
+      manager:  ['login', 'mobile', 'edit-profile', 'post-public', 'post-private', 'edit-own', 'delete-own', 'react', 'thread', 'dm-anyone', 'group-dm', 'at-user', 'at-here', 'voice', 'video', 'screen', 'upload', 'poll', 'audio', 'video-clip', 'create-public', 'join-any', 'be-manager', 'view-analytics', 'export-dm', 'export-channel'],
+      director: ['login', '2fa', 'mobile', 'edit-profile', 'post-public', 'post-private', 'post-announce', 'edit-own', 'delete-own', 'react', 'thread', 'dm-anyone', 'dm-exec', 'group-dm', 'at-user', 'at-here', 'at-channel', 'voice', 'video', 'screen', 'record', 'upload', 'upload-large', 'poll', 'audio', 'video-clip', 'create-public', 'create-private', 'invite-guest', 'join-any', 'be-manager', 'view-analytics', 'export-dm', 'export-channel'],
+      executive:['login', '2fa', 'mobile', 'edit-profile', 'post-public', 'post-private', 'post-announce', 'edit-own', 'delete-own', 'react', 'thread', 'dm-anyone', 'dm-exec', 'group-dm', 'at-user', 'at-here', 'at-channel', 'at-everyone', 'voice', 'video', 'screen', 'record', 'invite-external', 'upload', 'upload-large', 'poll', 'audio', 'video-clip', 'create-public', 'create-private', 'invite-guest', 'join-any', 'be-manager', 'view-analytics', 'export-dm', 'export-channel', 'search-history'],
+      guest:    ['login', 'post-public', 'react', 'thread', 'dm-anyone', 'upload', 'export-dm']
+    };
+    var set = presets[role] || [];
+    var checks = document.querySelectorAll('#createUserModal input[type="checkbox"]:not([disabled])');
+    for (var j=0; j<checks.length; j++) {
+      var p = checks[j].getAttribute('data-perm');
+      if (p) checks[j].checked = set.indexOf(p) !== -1;
+    }
+  },
+  saveNewUser: function() {
+    var name = document.getElementById('nuName').value || 'New User';
+    var email = document.getElementById('nuEmail').value || '';
+    var checks = document.querySelectorAll('#createUserModal input[type="checkbox"]:not([disabled]):checked');
+    var count = checks.length;
+    closeModal(null, 'createUserModal');
+    showToast('✅ ' + name + ' created · ' + count + ' permissions granted · welcome email sent to ' + email);
+  },
+  openAdmin: function() {
+    document.getElementById('adminPanel').classList.add('active');
+    document.querySelector('.chat-area').style.display = 'none';
+    document.getElementById('rightPanel').classList.remove('active');
+    switchAdminTab('dashboard');
+  },
+  closeAdmin: function() {
+    document.getElementById('adminPanel').classList.remove('active');
+    document.querySelector('.chat-area').style.display = '';
+  },
+  switchAdminTab: function(el) { switchAdminTab(el.getAttribute('data-atab')); },
+  openCreateChannel: function() { document.getElementById('createChannelModal').classList.add('active'); },
+  saveNewChannel: function() {
+    var name = document.getElementById('ncName').value || 'new-channel';
+    closeModal(null, 'createChannelModal');
+    showToast('✅ Channel #' + name + ' created · assign a manager next');
+    setTimeout(function() {
+      document.getElementById('amChannelName').textContent = '#' + name;
+      document.getElementById('assignManagerModal').classList.add('active');
+    }, 600);
+  },
+  openAssignManager: function(el) {
+    var ch = el.getAttribute('data-ch') || 'marketing-updates';
+    document.getElementById('amChannelName').textContent = '#' + ch;
+    document.getElementById('assignManagerModal').classList.add('active');
+  },
+  pickTemplate: function(el) {
+    var tpl = el.getAttribute('data-tpl');
+    var cards = document.querySelectorAll('.template-card');
+    for (var i=0; i<cards.length; i++) cards[i].classList.remove('selected');
+    el.classList.add('selected');
+    var checks = document.querySelectorAll('#permChecklist input:not([disabled])');
+    var checklist = document.getElementById('permChecklist');
+    if (tpl === 'custom') {
+      checklist.classList.add('active');
+    } else {
+      checklist.classList.remove('active');
+      var presets = {
+        full: ['add', 'remove', 'pin', 'edit', 'delete'],
+        poster: ['post'],
+        moderator: ['pin', 'delete']
+      };
+      var set = presets[tpl] || [];
+      for (var j=0; j<checks.length; j++) {
+        var p = checks[j].getAttribute('data-perm');
+        checks[j].checked = set.indexOf(p) !== -1;
+      }
+    }
+  },
+  saveManager: function() {
+    var user = document.getElementById('amUser');
+    var userName = user.options[user.selectedIndex].text.split(' · ')[0];
+    var chName = document.getElementById('amChannelName').textContent;
+    closeModal(null, 'assignManagerModal');
+    showToast('🔑 ' + userName + ' assigned as Channel Manager for ' + chName);
+  },
+  deactivateUser: function(el) {
+    var n = el.getAttribute('data-name');
+    if (confirm('Deactivate ' + n + '? Their account will be locked, but all message history is preserved for compliance.')) {
+      showToast('⚠️ ' + n + ' deactivated · audit log entry created');
+    }
+  },
+  resetPass: function(el) {
+    showToast('📧 Password reset link sent to ' + el.getAttribute('data-name'));
+  },
+  forceLogout: function(el) {
+    showToast('🚪 All sessions terminated for ' + el.getAttribute('data-name'));
+  },
+  sendBroadcast: function() {
+    var t = document.getElementById('broadcastMsg').value;
+    if (!t.trim()) { showToast('Write your broadcast first'); return; }
+    showToast('📣 Broadcast sent to all 487 users · logged in audit trail');
+    document.getElementById('broadcastMsg').value = '';
+    document.getElementById('broadcastPreview').style.display = 'none';
+  },
+  previewBroadcast: function() {
+    var t = document.getElementById('broadcastMsg').value.trim();
+    var p = document.getElementById('broadcastPreview');
+    if (t) {
+      document.getElementById('broadcastBody').textContent = t;
+      p.style.display = 'flex';
+    } else { p.style.display = 'none'; }
+  },
+  focusSearch: function() {
+    document.getElementById('searchInput').focus();
+    document.getElementById('searchBar').classList.add('focused');
+    renderSearchDropdown('');
+    document.getElementById('searchDropdown').classList.add('active');
+  },
+  showToast: function(el) { showToast(el.getAttribute('data-msg') || ''); }
+};
+
+// ============================================================
+// ADMIN PANEL
+// ============================================================
+
+function switchAdminTab(tab) {
+  var tabs = document.querySelectorAll('.admin-tab');
+  for (var i=0; i<tabs.length; i++) tabs[i].classList.remove('active');
+  var el = document.querySelector('.admin-tab[data-atab="' + tab + '"]');
+  if (el) el.classList.add('active');
+  var content = document.getElementById('adminContent');
+  if (tab === 'dashboard') content.innerHTML = renderAdminDashboard();
+  else if (tab === 'users') content.innerHTML = renderAdminUsers();
+  else if (tab === 'channels') content.innerHTML = renderAdminChannels() + '<div style="margin-top:24px;"><div style="font-size:14px; font-weight:700; margin-bottom:12px;">🔑 Active Channel Manager delegations</div>' + renderAdminPermissionsBody() + '</div>';
+  else if (tab === 'audit') content.innerHTML = renderAdminAudit();
+  else if (tab === 'broadcast') content.innerHTML = renderAdminBroadcast();
+  else if (tab === 'security') content.innerHTML = renderAdminSecurity() + '<div style="margin-top:24px;">' + renderAdminRetention() + '</div>';
+}
+
+function renderAdminDashboard() {
+  var h = '';
+  h += '<div class="kpi-grid">';
+  h += '<div class="kpi"><div class="label">Total users</div><div class="value">487</div><div class="delta">+12 this month</div></div>';
+  h += '<div class="kpi"><div class="label">Active today</div><div class="value">312</div><div class="delta">64% engagement</div></div>';
+  h += '<div class="kpi"><div class="label">Messages / 24h</div><div class="value">2,847</div><div class="delta">+18% vs yesterday</div></div>';
+  h += '<div class="kpi"><div class="label">Channels</div><div class="value">11</div><div class="delta">3 announcement · 8 team</div></div>';
+  h += '<div class="kpi"><div class="label">Files uploaded</div><div class="value">342</div><div class="delta">14.2 GB storage</div></div>';
+  h += '<div class="kpi"><div class="label">Calls / week</div><div class="value">89</div><div class="delta">Avg 12 min</div></div>';
+  h += '<div class="kpi"><div class="label">Not logged in 14d</div><div class="value">23</div><div class="delta down">Flag to HR</div></div>';
+  h += '<div class="kpi"><div class="label">Pending approvals</div><div class="value">2</div><div class="delta">Guest access requests</div></div>';
+  h += '</div>';
+
+  h += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">';
+  h += '<div style="background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px;">';
+  h += '<div style="font-size:14px; font-weight:700; margin-bottom:12px;">🔥 Most active channels this week</div>';
+  var top = [
+    { n: '#ceo-announcements', c: 47, r: 3820 },
+    { n: '#ehub', c: 89, r: 2140 },
+    { n: '#procurement', c: 156, r: 890 },
+    { n: '#general', c: 234, r: 720 },
+    { n: '#digital-transformation', c: 78, r: 640 }
+  ];
+  for (var i=0; i<top.length; i++) {
+    h += '<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px;">';
+    h += '<span style="font-weight:600;">' + top[i].n + '</span>';
+    h += '<span style="color:var(--text-dim);">' + top[i].c + ' msgs · ' + top[i].r + ' reactions</span>';
+    h += '</div>';
+  }
+  h += '</div>';
+
+  h += '<div style="background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px;">';
+  h += '<div style="font-size:14px; font-weight:700; margin-bottom:12px;">⚡ Recent admin actions</div>';
+  var recent = [
+    { i: '➕', a: 'You created channel #procurement-alerts', t: '5 min ago' },
+    { i: '🔑', a: 'You assigned Karim Sobhy as Manager for #ceo-announcements', t: '1h ago' },
+    { i: '⚠️', a: 'Mai Hassan deactivated (leaver process)', t: '2h ago' },
+    { i: '📣', a: 'System broadcast: ERP maintenance tonight', t: '3h ago' },
+    { i: '🔐', a: '2FA enforced for all directors', t: 'Yesterday' }
+  ];
+  for (var j=0; j<recent.length; j++) {
+    h += '<div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px;">';
+    h += '<span style="font-size:16px;">' + recent[j].i + '</span>';
+    h += '<span style="flex:1;">' + recent[j].a + '</span>';
+    h += '<span style="color:var(--text-mute); font-size:11px;">' + recent[j].t + '</span>';
+    h += '</div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function renderAdminUsers() {
+  var extras = [
+    { name: 'Farah Nasser', email: 'farah.nasser@edara.com.eg', dept: 'HR', role: 'user', status: 'active', last: 'Just now', avatar: 'FN', color: 'linear-gradient(135deg,#EC4899,#BE185D)' },
+    { name: 'Ziad Amr', email: 'ziad.amr@edara.com.eg', dept: 'IT', role: 'user', status: 'active', last: '2 min ago', avatar: 'ZA', color: 'linear-gradient(135deg,#3B82F6,#1D4ED8)' },
+    { name: 'Layla Kamal', email: 'layla.kamal@edara.com.eg', dept: 'Marketing', role: 'user', status: 'active', last: '18 min ago', avatar: 'LK', color: 'linear-gradient(135deg,#F97316,#C2410C)' }
+  ];
+  var all = [];
+  for (var i=0; i<members.length; i++) {
+    var m = members[i];
+    all.push({
+      name: m.name, email: m.name.toLowerCase().replace(' ', '.') + '@edara.com.eg',
+      dept: m.role.indexOf('CEO') !== -1 ? 'Executive' : m.role.indexOf('HR') !== -1 ? 'HR' :
+            m.role.indexOf('IT') !== -1 ? 'IT' : m.role.indexOf('Procurement') !== -1 ? 'Procurement' :
+            m.role.indexOf('Security') !== -1 ? 'Security' : m.role.indexOf('Finance') !== -1 ? 'Finance' :
+            m.role.indexOf('Warehouse') !== -1 ? 'Operations' : m.role.indexOf('Community') !== -1 ? 'Operations' :
+            m.role.indexOf('Marketing') !== -1 ? 'Marketing' : 'Operations',
+      role: m.id === 'jasmine' ? 'sa' : 'user',
+      status: m.presence === 'offline' ? 'inactive' : 'active',
+      last: m.presence === 'online' ? 'Now' : m.presence === 'away' ? '15 min ago' : '2 days ago',
+      avatar: m.avatar, color: m.color, textColor: m.text
+    });
+  }
+  all = all.concat(extras);
+
+  var h = '';
+  h += '<div class="admin-toolbar">';
+  h += '<input class="admin-search-inp" placeholder="Search users by name, email, or department…">';
+  h += '<button class="admin-btn-ghost">📥 Import from HR CSV</button>';
+  h += '<button class="admin-btn-primary" data-fn="openCreateUser">+ Create user</button>';
+  h += '</div>';
+
+  h += '<div style="font-size:12px; color:var(--text-dim); margin-bottom:10px;">Showing ' + all.length + ' of 487 users · <a style="color:var(--emerald); cursor:pointer;">View all</a></div>';
+
+  h += '<table class="admin-table"><thead><tr>';
+  h += '<th>User</th><th>Department</th><th>Role</th><th>Status</th><th>Last active</th><th>Actions</th>';
+  h += '</tr></thead><tbody>';
+  for (var k=0; k<all.length; k++) {
+    var u = all[k];
+    h += '<tr><td><div class="user-cell">';
+    h += '<div class="avatar" style="background:' + u.color + '; color:' + (u.textColor || 'white') + '">' + u.avatar + '</div>';
+    h += '<div class="info"><div class="n">' + u.name + '</div><div class="e">' + u.email + '</div></div>';
+    h += '</div></td>';
+    h += '<td>' + u.dept + '</td>';
+    h += '<td><span class="status-pill role-' + u.role + '">' + (u.role === 'sa' ? 'SUPERADMIN' : 'USER') + '</span></td>';
+    h += '<td><span class="status-pill ' + u.status + '">' + (u.status === 'active' ? 'Active' : 'Inactive') + '</span></td>';
+    h += '<td style="color:var(--text-dim); font-size:12px;">' + u.last + '</td>';
+    h += '<td><div class="actions">';
+    h += '<button class="icon-btn" data-fn="resetPass" data-name="' + u.name + '" title="Reset password">🔑</button>';
+    h += '<button class="icon-btn" data-fn="forceLogout" data-name="' + u.name + '" title="Force logout">🚪</button>';
+    h += '<button class="icon-btn" data-fn="showToast" data-msg="Edit ' + u.name + '" title="Edit">✏️</button>';
+    if (u.role !== 'sa') h += '<button class="admin-btn-danger" data-fn="deactivateUser" data-name="' + u.name + '">Deactivate</button>';
+    h += '</div></td></tr>';
+  }
+  h += '</tbody></table>';
+  return h;
+}
+
+function renderAdminChannels() {
+  var chList = [
+    { n: 'ceo-announcements', t: 'announce', m: 487, mgr: 'Karim Sobhy', ret: 'Forever', msgs: 47 },
+    { n: 'announcements', t: 'announce', m: 487, mgr: 'Mariam Adel (HR)', ret: 'Forever', msgs: 89 },
+    { n: 'ehub', t: 'public', m: 487, mgr: 'Nourhan Ahmed', ret: '7 years', msgs: 2140 },
+    { n: 'general', t: 'public', m: 487, mgr: '—', ret: '3 years', msgs: 720 },
+    { n: 'procurement', t: 'public', m: 32, mgr: 'Wessam Youssef', ret: '7 years', msgs: 890 },
+    { n: 'warehouse', t: 'public', m: 24, mgr: 'Ahmed Fathy', ret: '3 years', msgs: 340 },
+    { n: 'digital-transformation', t: 'private', m: 18, mgr: 'Jasmine Ali', ret: 'Forever', msgs: 640 },
+    { n: 'hr-updates', t: 'announce', m: 156, mgr: 'Mariam Adel', ret: 'Forever', msgs: 124 },
+    { n: 'it-support', t: 'public', m: 42, mgr: 'Omar Khaled', ret: '3 years', msgs: 512 },
+    { n: 'security-ops', t: 'private', m: 68, mgr: 'Youssef Ibrahim', ret: 'Forever', msgs: 289 },
+    { n: 'community-management', t: 'public', m: 47, mgr: 'Nourhan Ahmed', ret: '3 years', msgs: 445 }
+  ];
+  var h = '';
+  h += '<div class="admin-toolbar">';
+  h += '<input class="admin-search-inp" placeholder="Search channels…">';
+  h += '<button class="admin-btn-ghost">📤 Export list</button>';
+  h += '<button class="admin-btn-primary" data-fn="openCreateChannel">+ Create channel</button>';
+  h += '</div>';
+
+  h += '<table class="admin-table"><thead><tr>';
+  h += '<th>Channel</th><th>Type</th><th>Members</th><th>Channel Manager</th><th>Retention</th><th>Messages</th><th>Actions</th>';
+  h += '</tr></thead><tbody>';
+  for (var i=0; i<chList.length; i++) {
+    var c = chList[i];
+    var typeLabel = c.t === 'announce' ? '📢 Announcement' : c.t === 'private' ? '🔒 Private' : '🌐 Public';
+    h += '<tr><td style="font-weight:600;">#' + c.n + '</td>';
+    h += '<td><span class="status-pill type-' + c.t + '">' + typeLabel + '</span></td>';
+    h += '<td>' + c.m + '</td>';
+    h += '<td>' + c.mgr + '</td>';
+    h += '<td style="color:var(--text-dim);">' + c.ret + '</td>';
+    h += '<td>' + c.msgs.toLocaleString() + '</td>';
+    h += '<td><div class="actions">';
+    h += '<button class="icon-btn" data-fn="openAssignManager" data-ch="' + c.n + '" title="Assign manager">🔑</button>';
+    h += '<button class="icon-btn" data-fn="showToast" data-msg="Edit #' + c.n + '" title="Edit">✏️</button>';
+    h += '<button class="icon-btn" data-fn="showToast" data-msg="Export #' + c.n + ' history" title="Export">⬇</button>';
+    h += '<button class="icon-btn" data-fn="showToast" data-msg="Archive #' + c.n + '" title="Archive">🗄️</button>';
+    h += '</div></td></tr>';
+  }
+  h += '</tbody></table>';
+  return h;
+}
+
+function renderAdminPermissions() {
+  var h = '';
+  h += '<div style="background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px;">';
+  h += '<div style="font-size:14px; font-weight:700; margin-bottom:6px;">🔑 Permission model</div>';
+  h += '<div style="font-size:13px; color:var(--text-dim); line-height:1.6;">Two roles only: <b style="color:var(--emerald);">Superadmin</b> (you) with full control, and <b>User</b> for everyone else. Channel-level rights are delegated per user per channel using templates or custom checkboxes — you can revoke anytime.</div>';
+  h += '</div>';
+
+  h += '<div style="font-size:14px; font-weight:700; margin-bottom:12px;">Active Channel Manager assignments</div>';
+  var assigns = [
+    { u: 'Karim Sobhy', ch: '#ceo-announcements', tpl: 'Poster Only', perms: ['post', 'pin', 'edit topic'], when: 'Yesterday' },
+    { u: 'Mariam Adel', ch: '#announcements', tpl: 'Full Manager', perms: ['add', 'remove', 'pin', 'edit', 'delete'], when: '2 weeks ago' },
+    { u: 'Mariam Adel', ch: '#hr-updates', tpl: 'Full Manager', perms: ['add', 'remove', 'pin', 'edit', 'delete'], when: '2 weeks ago' },
+    { u: 'Nourhan Ahmed', ch: '#ehub', tpl: 'Full Manager', perms: ['add', 'remove', 'pin', 'edit', 'delete'], when: '3 weeks ago' },
+    { u: 'Wessam Youssef', ch: '#procurement', tpl: 'Full Manager', perms: ['add', 'remove', 'pin', 'edit', 'delete'], when: 'Last month' },
+    { u: 'Omar Khaled', ch: '#it-support', tpl: 'Moderator', perms: ['pin', 'delete'], when: 'Last month' },
+    { u: 'Ahmed Fathy', ch: '#warehouse', tpl: 'Custom', perms: ['add', 'pin'], when: 'Last month' }
+  ];
+  h += '<table class="admin-table"><thead><tr>';
+  h += '<th>User</th><th>Channel</th><th>Template</th><th>Permissions granted</th><th>Assigned</th><th>Actions</th>';
+  h += '</tr></thead><tbody>';
+  for (var i=0; i<assigns.length; i++) {
+    var a = assigns[i];
+    h += '<tr>';
+    h += '<td style="font-weight:600;">' + a.u + '</td>';
+    h += '<td style="color:var(--emerald);">' + a.ch + '</td>';
+    h += '<td><span class="status-pill" style="background:var(--emerald-glow); color:var(--emerald);">' + a.tpl + '</span></td>';
+    h += '<td style="font-size:12px; color:var(--text-dim);">' + a.perms.join(' · ') + '</td>';
+    h += '<td style="color:var(--text-dim); font-size:12px;">' + a.when + '</td>';
+    h += '<td><div class="actions">';
+    h += '<button class="icon-btn" data-fn="showToast" data-msg="Editing permissions" title="Edit">✏️</button>';
+    h += '<button class="admin-btn-danger" data-fn="showToast" data-msg="Revoked ' + a.u + ' from ' + a.ch + '">Revoke</button>';
+    h += '</div></td></tr>';
+  }
+  h += '</tbody></table>';
+  return h;
+}
+
+function renderAdminPermissionsBody() {
+  var assigns = [
+    { u: 'Karim Sobhy', ch: '#ceo-announcements', tpl: 'Poster Only', perms: ['post', 'pin', 'edit topic'], when: 'Yesterday' },
+    { u: 'Mariam Adel', ch: '#announcements', tpl: 'Full Manager', perms: ['add', 'remove', 'pin', 'edit', 'delete'], when: '2 weeks ago' },
+    { u: 'Mariam Adel', ch: '#hr-updates', tpl: 'Full Manager', perms: ['add', 'remove', 'pin', 'edit', 'delete'], when: '2 weeks ago' },
+    { u: 'Nourhan Ahmed', ch: '#ehub', tpl: 'Full Manager', perms: ['add', 'remove', 'pin', 'edit', 'delete'], when: '3 weeks ago' },
+    { u: 'Wessam Youssef', ch: '#procurement', tpl: 'Full Manager', perms: ['add', 'remove', 'pin', 'edit', 'delete'], when: 'Last month' },
+    { u: 'Omar Khaled', ch: '#it-support', tpl: 'Moderator', perms: ['pin', 'delete'], when: 'Last month' },
+    { u: 'Ahmed Fathy', ch: '#warehouse', tpl: 'Custom', perms: ['add', 'pin'], when: 'Last month' }
+  ];
+  var h = '<table class="admin-table"><thead><tr>';
+  h += '<th>User</th><th>Channel</th><th>Template</th><th>Permissions granted</th><th>Assigned</th><th>Actions</th>';
+  h += '</tr></thead><tbody>';
+  for (var i=0; i<assigns.length; i++) {
+    var a = assigns[i];
+    h += '<tr>';
+    h += '<td style="font-weight:600;">' + a.u + '</td>';
+    h += '<td style="color:var(--emerald);">' + a.ch + '</td>';
+    h += '<td><span class="status-pill" style="background:var(--emerald-glow); color:var(--emerald);">' + a.tpl + '</span></td>';
+    h += '<td style="font-size:12px; color:var(--text-dim);">' + a.perms.join(' · ') + '</td>';
+    h += '<td style="color:var(--text-dim); font-size:12px;">' + a.when + '</td>';
+    h += '<td><div class="actions">';
+    h += '<button class="icon-btn" data-fn="showToast" data-msg="Editing permissions" title="Edit">✏️</button>';
+    h += '<button class="admin-btn-danger" data-fn="showToast" data-msg="Revoked ' + a.u + ' from ' + a.ch + '">Revoke</button>';
+    h += '</div></td></tr>';
+  }
+  h += '</tbody></table>';
+  return h;
+}
+
+function renderAdminAudit() {
+  var log = [
+    { i: '➕', t: 'normal', a: 'Superadmin <b>Jasmine Ali</b> created channel <b>#procurement-alerts</b>', m: 'Type: public · Retention: 7 years · Initial members: 32', when: '5 minutes ago · IP 10.0.4.87' },
+    { i: '🔑', t: 'normal', a: '<b>Jasmine Ali</b> assigned <b>Karim Sobhy</b> as Channel Manager for <b>#ceo-announcements</b>', m: 'Template: Poster Only · Permissions: post, pin, edit topic', when: '1 hour ago · IP 10.0.4.87' },
+    { i: '⚠️', t: 'warn', a: '<b>Mai Hassan</b> account deactivated by <b>Jasmine Ali</b>', m: 'Reason: Leaver process · Messages preserved · Data retained per policy', when: '2 hours ago · IP 10.0.4.87' },
+    { i: '📣', t: 'normal', a: 'System broadcast sent by <b>Jasmine Ali</b> to <b>487 users</b>', m: 'Message: "ERP maintenance tonight 10PM-12AM"', when: '3 hours ago · IP 10.0.4.87' },
+    { i: '🗑️', t: 'warn', a: '<b>Karim Sobhy</b> deleted a message in <b>#procurement</b>', m: 'Original preserved in audit log · Reason: duplicate post', when: '4 hours ago · IP 10.0.4.55' },
+    { i: '🔐', t: 'normal', a: '<b>Jasmine Ali</b> enforced 2FA for all users with Director role or higher', m: '18 users affected · Enrollment deadline: 7 days', when: 'Yesterday · IP 10.0.4.87' },
+    { i: '🔒', t: 'danger', a: 'Legal hold placed on <b>Wessam Youssef</b> conversations by <b>Jasmine Ali</b>', m: 'Case ID: HR-2026-014 · Requested by: HR Director · All exports frozen', when: '2 days ago · IP 10.0.4.87' },
+    { i: '📥', t: 'normal', a: '<b>Jasmine Ali</b> exported <b>#ceo-announcements</b> conversation history', m: 'Format: PDF · 47 messages · Watermark: CONFIDENTIAL', when: '3 days ago · IP 10.0.4.87' },
+    { i: '👤', t: 'normal', a: '<b>Jasmine Ali</b> created new user account <b>Farah Nasser</b>', m: 'Department: HR · Role: User · SSO enabled', when: '3 days ago · IP 10.0.4.87' },
+    { i: '🚪', t: 'normal', a: '<b>Jasmine Ali</b> force-logged-out all sessions for <b>Ahmed Fathy</b>', m: 'Reason: suspected credential leak · Password reset triggered', when: 'Last week · IP 10.0.4.87' }
+  ];
+  var h = '';
+  h += '<div class="admin-toolbar">';
+  h += '<input class="admin-search-inp" placeholder="Search actions, users, IPs…">';
+  h += '<select class="admin-search-inp" style="max-width:180px; flex:0 0 auto;"><option>All action types</option><option>User management</option><option>Channel management</option><option>Message deletions</option><option>Legal holds</option><option>Exports</option></select>';
+  h += '<button class="admin-btn-ghost">📤 Export audit log</button>';
+  h += '</div>';
+  h += '<div style="background:var(--panel-2); padding:10px 14px; border-radius:8px; font-size:12px; color:var(--text-dim); margin-bottom:12px;">🔒 <b>Immutable log</b> — every superadmin action is recorded permanently. Even Superadmin cannot delete audit entries. Retention: forever.</div>';
+  for (var i=0; i<log.length; i++) {
+    h += '<div class="audit-item ' + log[i].t + '">';
+    h += '<div class="a-icon">' + log[i].i + '</div>';
+    h += '<div class="a-body">';
+    h += '<div class="a-action">' + log[i].a + '</div>';
+    h += '<div class="a-meta">' + log[i].m + '</div>';
+    h += '<div class="a-meta" style="margin-top:4px; color:var(--text-mute);">' + log[i].when + '</div>';
+    h += '</div></div>';
+  }
+  return h;
+}
+
+function renderAdminBroadcast() {
+  var h = '';
+  h += '<div style="background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px;">';
+  h += '<div style="font-size:14px; font-weight:700; margin-bottom:6px;">📣 System-wide broadcast</div>';
+  h += '<div style="font-size:13px; color:var(--text-dim); margin-bottom:16px;">Push a banner notification to all 487 users. Use for emergencies, policy updates, or mandatory acknowledgments. Bypasses Do Not Disturb only when marked urgent.</div>';
+  h += '<div class="form-row">';
+  h += '<div class="form-field"><label>Broadcast type</label><select><option>📢 Informational</option><option>⚠️ Important (bypasses DND)</option><option>🚨 Emergency (mandatory acknowledgment)</option></select></div>';
+  h += '<div class="form-field"><label>Recipients</label><select><option>All 487 users</option><option>Directors only (18)</option><option>HR + Operations (156)</option><option>Custom group…</option></select></div>';
+  h += '</div>';
+  h += '<div class="form-field"><label>Message</label>';
+  h += '<textarea id="broadcastMsg" oninput="actions.previewBroadcast()" rows="3" placeholder="Type your broadcast message here..." style="width:100%; padding:10px 12px; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:inherit; font-size:14px; resize:vertical; outline:none;"></textarea>';
+  h += '</div>';
+  h += '<div id="broadcastPreview" class="broadcast-preview" style="display:none;">';
+  h += '<div class="icon">📣</div><div class="info"><div class="head">Preview · This is how users will see it</div><div class="body" id="broadcastBody"></div></div>';
+  h += '</div>';
+  h += '<div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">';
+  h += '<button class="admin-btn-ghost">📅 Schedule for later</button>';
+  h += '<button class="admin-btn-primary" data-fn="sendBroadcast">🚀 Send now</button>';
+  h += '</div>';
+  h += '</div>';
+
+  h += '<div style="font-size:14px; font-weight:700; margin-bottom:12px;">Recent broadcasts</div>';
+  var past = [
+    { i: '📢', m: 'ERP maintenance tonight 10PM-12AM. Expect brief downtime.', r: '487 users', ack: '312 read (64%)', when: '3 hours ago' },
+    { i: '🚨', m: 'Fire drill scheduled Thursday 11 AM. All staff to assemble at meeting point A.', r: '487 users', ack: '487 acknowledged (100%)', when: '2 days ago' },
+    { i: '📢', m: 'New Ramadan working hours policy published — please read #hr-updates', r: '487 users', ack: '419 read (86%)', when: 'Last week' }
+  ];
+  for (var i=0; i<past.length; i++) {
+    var b = past[i];
+    h += '<div class="audit-item">';
+    h += '<div class="a-icon">' + b.i + '</div>';
+    h += '<div class="a-body">';
+    h += '<div class="a-action">' + b.m + '</div>';
+    h += '<div class="a-meta">' + b.r + ' · ' + b.ack + ' · ' + b.when + '</div>';
+    h += '</div></div>';
+  }
+  return h;
+}
+
+function renderAdminRetention() {
+  var h = '';
+  h += '<div style="background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px;">';
+  h += '<div style="font-size:14px; font-weight:700; margin-bottom:6px;">🗄️ Message retention & legal hold</div>';
+  h += '<div style="font-size:13px; color:var(--text-dim);">Set how long messages are kept per channel type. Deleted messages remain in the audit log for the retention period. Legal hold overrides retention — frozen conversations are preserved indefinitely.</div>';
+  h += '</div>';
+
+  h += '<div style="background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px;">';
+  h += '<div style="font-size:14px; font-weight:700; margin-bottom:14px;">Default policies by channel type</div>';
+  var policies = [
+    { n: 'CEO Announcements', s: 'Top-down official communications', p: 'Forever', a: 'Legally required' },
+    { n: 'HR Announcements', s: 'Policies, benefits, mandatory reads', p: 'Forever', a: 'Compliance mandate' },
+    { n: 'Public work channels', s: 'General departmental work', p: '7 years', a: 'Default for compliance' },
+    { n: 'Team casual channels', s: '#general, #ehub, water cooler', p: '3 years', a: 'Standard retention' },
+    { n: 'Private channels', s: 'Sensitive projects, executive discussions', p: 'Forever', a: 'Audit sensitivity' },
+    { n: 'Direct messages', s: '1-on-1 conversations', p: '5 years', a: 'Balance privacy & compliance' },
+    { n: 'Group DMs', s: 'Small group chats', p: '5 years', a: 'Same as DMs' }
+  ];
+  for (var i=0; i<policies.length; i++) {
+    var p = policies[i];
+    h += '<div class="retention-row">';
+    h += '<div><div class="rname">' + p.n + '</div><div class="rsub">' + p.s + '</div></div>';
+    h += '<select class="admin-search-inp" style="padding:6px 10px;"><option>Forever</option><option>7 years</option><option>5 years</option><option>3 years</option><option>1 year</option></select>';
+    h += '<div style="font-size:11px; color:var(--text-mute);">' + p.a + '</div>';
+    h += '</div>';
+  }
+  h += '</div>';
+
+  h += '<div style="background:var(--panel); border:1px solid rgba(239, 68, 68, 0.3); border-radius:12px; padding:20px;">';
+  h += '<div style="font-size:14px; font-weight:700; margin-bottom:6px; color:var(--danger);">🔒 Active legal holds</div>';
+  h += '<div style="font-size:13px; color:var(--text-dim); margin-bottom:14px;">Legal holds freeze all conversations for a user — nothing can be deleted, expired, or exported without unfreezing.</div>';
+  h += '<div class="audit-item danger">';
+  h += '<div class="a-icon">🔒</div>';
+  h += '<div class="a-body">';
+  h += '<div class="a-action"><b>Wessam Youssef</b> · All conversations frozen</div>';
+  h += '<div class="a-meta">Case ID: HR-2026-014 · Placed by Jasmine Ali · 2 days ago</div>';
+  h += '</div>';
+  h += '<button class="admin-btn-ghost">Manage</button>';
+  h += '</div>';
+  h += '<button class="admin-btn-primary" style="margin-top:12px;">+ Place new legal hold</button>';
+  h += '</div>';
+  return h;
+}
+
+function renderAdminSecurity() {
+  var h = '';
+  h += '<div class="kpi-grid">';
+  h += '<div class="kpi"><div class="label">2FA enrollment</div><div class="value">72%</div><div class="delta">352 of 487 users</div></div>';
+  h += '<div class="kpi"><div class="label">Failed logins (24h)</div><div class="value">14</div><div class="delta">Normal range</div></div>';
+  h += '<div class="kpi"><div class="label">Active sessions</div><div class="value">312</div><div class="delta">Across 456 devices</div></div>';
+  h += '<div class="kpi"><div class="label">SSO status</div><div class="value" style="color:var(--text-mute); font-size:20px;">—</div><div class="delta">Not yet configured</div></div>';
+  h += '</div>';
+
+  var sections = [
+    {
+      t: '🔐 Authentication',
+      items: [
+        { l: 'Single Sign-On (SSO)', s: 'Configure your identity provider — SAML, OIDC, or LDAP', v: 'Not configured', on: false },
+        { l: 'Two-Factor Authentication', s: 'Required for all Directors and Superadmins', v: 'Enforced for 18 users', on: true },
+        { l: 'Email + password login', s: 'Standard authentication with strong password policy', v: 'Enabled', on: true },
+        { l: 'Guest access', s: 'Temporary accounts for vendors and consultants', v: '3 active guests', on: true }
+      ]
+    },
+    {
+      t: '📱 Sessions & devices',
+      items: [
+        { l: 'Auto-logout on idle', s: 'Sign users out after X minutes of inactivity', v: '30 minutes', on: true },
+        { l: 'Max concurrent devices', s: 'How many devices one user can be signed in from', v: '3 devices', on: true },
+        { l: 'Force logout on password change', s: 'Terminate all sessions when password changes', v: 'Enabled', on: true },
+        { l: 'Mobile app allowed', s: 'iOS and Android access', v: 'Enabled', on: true }
+      ]
+    },
+    {
+      t: '🌐 Network & access',
+      items: [
+        { l: 'IP allowlist', s: 'Restrict access to specific IP ranges', v: 'Disabled (remote work allowed)', on: false },
+        { l: 'VPN required for admin panel', s: 'Superadmin actions only from Edara network', v: 'Enabled', on: true },
+        { l: 'Country restrictions', s: 'Block sign-ins from specific countries', v: 'None', on: false }
+      ]
+    },
+    {
+      t: '🛡️ Content protection',
+      items: [
+        { l: 'Sensitive keyword flagging', s: 'Auto-flag messages containing salary, patient names, etc.', v: '14 keywords tracked', on: true },
+        { l: 'File type restrictions', s: 'Block .exe, .bat, .vbs uploads', v: 'Enabled', on: true },
+        { l: 'Max file size', s: 'Per-file upload limit', v: '100 MB', on: true },
+        { l: 'External link warnings', s: 'Warn users before clicking non-Edara URLs', v: 'Enabled', on: true }
+      ]
+    }
+  ];
+  for (var s=0; s<sections.length; s++) {
+    var sec = sections[s];
+    h += '<div style="background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px;">';
+    h += '<div style="font-size:14px; font-weight:700; margin-bottom:14px;">' + sec.t + '</div>';
+    for (var j=0; j<sec.items.length; j++) {
+      var it = sec.items[j];
+      h += '<div style="display:flex; align-items:center; gap:16px; padding:12px 0; border-bottom:' + (j === sec.items.length - 1 ? 'none' : '1px solid var(--border)') + ';">';
+      h += '<div style="flex:1;"><div style="font-weight:600; font-size:13px;">' + it.l + '</div><div style="font-size:12px; color:var(--text-dim); margin-top:2px;">' + it.s + '</div></div>';
+      h += '<div style="font-size:12px; color:' + (it.on ? 'var(--online)' : 'var(--text-mute)') + '; font-weight:600;">' + it.v + '</div>';
+      h += '<button class="admin-btn-ghost" style="padding:6px 12px; font-size:12px;">Configure</button>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+  return h;
+}
+
+// ============================================================
+// EXPORT / DOWNLOAD
+// ============================================================
+function getCurrentMessages() {
+  if (currentChannel.indexOf('dm-') === 0) {
+    return { msgs: dmMessages[currentChannel.substring(3)] || [], name: currentChannel.substring(3), isDM: true };
+  }
+  return { msgs: messagesByChannel[currentChannel] || [], name: currentChannel, isDM: false };
+}
+
+function stripHtml(s) {
+  return s.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ');
+}
+
+function nowStamp() {
+  var d = new Date();
+  var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + '_' +
+         pad(d.getHours()) + '-' + pad(d.getMinutes());
+}
+
+function downloadBlob(content, filename, mime) {
+  var blob = new Blob([content], { type: mime });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 100);
+}
+
+function exportConversation(format) {
+  var data = getCurrentMessages();
+  var msgs = data.msgs;
+  var chName = data.isDM ? 'DM_' + data.name : data.name;
+  var exportedAt = new Date().toLocaleString();
+  var exporter = 'Jasmine Ali';
+  var stamp = nowStamp();
+
+  if (format === 'txt') {
+    var out = '';
+    out += '============================================\n';
+    out += 'ETeams — Conversation Export\n';
+    out += '============================================\n';
+    out += 'Channel: ' + (data.isDM ? 'Direct Message with ' + data.name : '#' + chName) + '\n';
+    out += 'Exported by: ' + exporter + '\n';
+    out += 'Exported at: ' + exportedAt + '\n';
+    out += 'Total messages: ' + msgs.length + '\n';
+    out += '============================================\n\n';
+    for (var i=0; i<msgs.length; i++) {
+      var m = msgs[i];
+      var member = findMember(m.author);
+      out += '[' + m.time + '] ' + member.name + (m.badge ? ' (' + m.badge + ')' : '') + '\n';
+      out += stripHtml(m.text) + '\n';
+      if (m.attachment) out += '  📎 Attachment: ' + (m.attachment.name || m.attachment.label || 'Image') + '\n';
+      if (m.reactions) {
+        var rx = m.reactions.map(function(r) { return r.e + ' ' + r.count; }).join('  ');
+        out += '  Reactions: ' + rx + '\n';
+      }
+      if (m.edited) out += '  (edited)\n';
+      out += '\n';
+    }
+    out += '\n--- End of export ---\n';
+    out += 'This document is an official record of communication on ETeams (EDARA IFM).\n';
+    downloadBlob(out, 'ETeams_' + chName + '_' + stamp + '.txt', 'text/plain;charset=utf-8');
+    showToast('Downloaded: ETeams_' + chName + '_' + stamp + '.txt');
+  }
+
+  else if (format === 'csv') {
+    var esc = function(s) { return '"' + String(s).replace(/"/g, '""') + '"'; };
+    var out = 'Timestamp,Author,Role,Badge,Message,Attachment,Reactions,Edited\n';
+    for (var i=0; i<msgs.length; i++) {
+      var m = msgs[i];
+      var member = findMember(m.author);
+      var rx = m.reactions ? m.reactions.map(function(r) { return r.e + ':' + r.count; }).join(' ') : '';
+      var att = m.attachment ? (m.attachment.name || m.attachment.label || 'Image') : '';
+      out += [
+        esc(m.time), esc(member.name), esc(member.role),
+        esc(m.badge || ''), esc(stripHtml(m.text)),
+        esc(att), esc(rx), esc(m.edited ? 'Yes' : 'No')
+      ].join(',') + '\n';
+    }
+    out += '\n';
+    out += 'Export metadata\n';
+    out += 'Channel,' + esc(chName) + '\n';
+    out += 'Exported by,' + esc(exporter) + '\n';
+    out += 'Exported at,' + esc(exportedAt) + '\n';
+    out += 'Total messages,' + msgs.length + '\n';
+    downloadBlob('\uFEFF' + out, 'ETeams_' + chName + '_' + stamp + '.csv', 'text/csv;charset=utf-8');
+    showToast('Downloaded: ETeams_' + chName + '_' + stamp + '.csv');
+  }
+
+  else if (format === 'html' || format === 'pdf') {
+    var body = '';
+    body += '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ETeams Export — ' + chName + '</title>';
+    body += '<style>';
+    body += 'body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:820px;margin:20px auto;padding:24px;color:#111;background:#fff;line-height:1.55;}';
+    body += '.hdr{border-bottom:3px solid #3BA7D6;padding-bottom:16px;margin-bottom:24px;}';
+    body += '.hdr h1{color:#3BA7D6;margin:0 0 4px;font-size:22px;}';
+    body += '.hdr .brand{font-size:11px;color:#666;letter-spacing:2px;text-transform:uppercase;}';
+    body += '.meta{background:#F1F5F9;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;}';
+    body += '.meta div{margin:2px 0;}';
+    body += '.meta b{color:#111;}';
+    body += '.watermark{position:fixed;top:40%;left:0;right:0;text-align:center;font-size:70px;color:rgba(59,167,214,0.06);font-weight:900;transform:rotate(-25deg);pointer-events:none;z-index:0;letter-spacing:8px;}';
+    body += '.msg{padding:10px 0;border-bottom:1px solid #E2E8F0;position:relative;z-index:1;}';
+    body += '.msg .h{margin-bottom:4px;}';
+    body += '.msg .a{font-weight:700;color:#111;}';
+    body += '.msg .role{color:#64748B;font-size:12px;margin-inline-start:6px;}';
+    body += '.msg .badge{background:#FCD34D;color:#4A3600;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-inline-start:6px;}';
+    body += '.msg .badge.hr{background:#3B82F6;color:white;}';
+    body += '.msg .badge.admin{background:#3BA7D6;color:white;}';
+    body += '.msg .t{color:#94A3B8;font-size:11px;margin-inline-start:6px;}';
+    body += '.msg .body{margin-inline-start:0;color:#1E293B;}';
+    body += '.msg .att{margin-top:6px;padding:8px 10px;background:#F1F5F9;border-radius:6px;font-size:12px;color:#475569;}';
+    body += '.msg .rx{margin-top:4px;font-size:12px;color:#64748B;}';
+    body += '.msg .ed{font-size:10px;color:#94A3B8;margin-inline-start:6px;}';
+    body += '.mention{background:rgba(59,167,214,0.15);color:#3BA7D6;padding:1px 4px;border-radius:3px;font-weight:600;}';
+    body += '.channel-link{color:#3BA7D6;font-weight:500;}';
+    body += '.foot{margin-top:32px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:11px;color:#94A3B8;text-align:center;line-height:1.6;}';
+    body += '@media print { .watermark{color:rgba(59,167,214,0.09);} body{margin:0;} }';
+    body += '</style></head><body>';
+    body += '<div class="watermark">CONFIDENTIAL</div>';
+    body += '<div class="hdr"><div class="brand">ETeams · EDARA IFM · A SODIC Company</div>';
+    body += '<h1>' + (data.isDM ? 'Direct Message with ' + data.name : '#' + chName) + '</h1></div>';
+    body += '<div class="meta">';
+    body += '<div><b>Channel:</b> ' + (data.isDM ? 'DM · ' + data.name : '#' + chName) + '</div>';
+    body += '<div><b>Exported by:</b> ' + exporter + ' (Digital Transformation Director)</div>';
+    body += '<div><b>Exported at:</b> ' + exportedAt + '</div>';
+    body += '<div><b>Total messages:</b> ' + msgs.length + '</div>';
+    body += '<div><b>Purpose:</b> Official record · retain for compliance</div>';
+    body += '</div>';
+
+    for (var i=0; i<msgs.length; i++) {
+      var m = msgs[i];
+      var member = findMember(m.author);
+      body += '<div class="msg">';
+      body += '<div class="h"><span class="a">' + member.name + '</span>';
+      body += '<span class="role">' + member.role + '</span>';
+      if (m.badge) body += '<span class="badge ' + (m.badge==='HR'?'hr':m.badge==='ADMIN'?'admin':'') + '">' + m.badge + '</span>';
+      body += '<span class="t">' + m.time + '</span>';
+      if (m.edited) body += '<span class="ed">(edited)</span>';
+      body += '</div>';
+      body += '<div class="body">' + m.text + '</div>';
+      if (m.attachment) {
+        body += '<div class="att">📎 ' + (m.attachment.name || 'Image attachment') + (m.attachment.meta ? ' · ' + m.attachment.meta : '') + '</div>';
+      }
+      if (m.reactions) {
+        var rxs = m.reactions.map(function(r) { return r.e + ' ' + r.count; }).join('   ');
+        body += '<div class="rx">Reactions: ' + rxs + '</div>';
+      }
+      body += '</div>';
+    }
+
+    body += '<div class="foot">';
+    body += 'This document was generated by <b>ETeams</b>, the internal communication platform of EDARA IFM (A SODIC Company).<br>';
+    body += 'It is an official record of communication and may be used for compliance, audit, or legal purposes.<br>';
+    body += 'Document ID: ETEAMS-' + chName.toUpperCase() + '-' + stamp + '  ·  Exported by: ' + exporter + '  ·  ' + exportedAt;
+    body += '</div>';
+    body += '

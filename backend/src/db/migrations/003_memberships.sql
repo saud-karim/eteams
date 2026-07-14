@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS memberships (
+  id          CHAR(36) PRIMARY KEY,
+  channel_id  CHAR(36) NOT NULL,
+  user_id     CHAR(36) NOT NULL,
+  is_manager  TINYINT(1) NOT NULL DEFAULT 0,
+  can_post    TINYINT(1) NOT NULL DEFAULT 1,
+  can_add_members     TINYINT(1) NOT NULL DEFAULT 0,
+  can_remove_members  TINYINT(1) NOT NULL DEFAULT 0,
+  can_pin_messages    TINYINT(1) NOT NULL DEFAULT 0,
+  can_edit_topic      TINYINT(1) NOT NULL DEFAULT 0,
+  can_delete_messages TINYINT(1) NOT NULL DEFAULT 0,
+  last_read_at        DATETIME DEFAULT NULL,
+  notification_pref   ENUM('all', 'mentions', 'none') NOT NULL DEFAULT 'all',
+  joined_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_channel_user (channel_id, user_id),
+  INDEX idx_user (user_id),
+  INDEX idx_channel (channel_id),
+  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
