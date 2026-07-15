@@ -5,7 +5,7 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 export default function Login() {
   const { login } = useAuth();
   const { t, toggleLang } = useLanguage();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -13,7 +13,7 @@ export default function Login() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setError(''); setBusy(true);
-    try { await login(email, password); }
+    try { await login(username, password); }
     catch (err) { setError(err.message); }
     finally { setBusy(false); }
   };
@@ -37,8 +37,8 @@ export default function Login() {
         <div className="login-sub">{t('signInSub')}</div>
         <form onSubmit={onSubmit}>
           <div className="login-field">
-            <label>{t('workEmail')}</label>
-            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+            <label>{t('username')}</label>
+            <input type="text" required value={username} onChange={e => setUsername(e.target.value)} />
           </div>
           <div className="login-field">
             <label>{t('password')}</label>

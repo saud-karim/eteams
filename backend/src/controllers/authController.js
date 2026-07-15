@@ -6,12 +6,12 @@ const AuditLog = require('../models/AuditLog');
 const { signAccess, signRefresh } = require('../utils/token');
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  username: z.string().min(1).max(191),
   password: z.string().min(1),
 });
 
 const registerSchema = z.object({
-  email: z.string().email(),
+  username: z.string().min(3).max(191),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   name: z.string().min(2).max(100),
   department: z.string().max(60).optional(),
@@ -19,7 +19,7 @@ const registerSchema = z.object({
 });
 
 const signupSchema = z.object({
-  email: z.string().email(),
+  username: z.string().min(3).max(191),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   name: z.string().min(2).max(100),
   department: z.string().max(60).optional(),
@@ -30,8 +30,8 @@ const signupSchema = z.object({
 
 async function login(req, res, next) {
   try {
-    const { email, password } = loginSchema.parse(req.body);
-    const user = await User.findByEmail(email);
+    const { username, password } = loginSchema.parse(req.body);
+    const user = await User.findByUsername(username);
     if (!user || !user.is_active) return res.status(401).json({ error: 'Invalid credentials' });
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
@@ -50,8 +50,8 @@ async function login(req, res, next) {
 async function register(req, res, next) {
   try {
     const data = registerSchema.parse(req.body);
-    const existing = await User.findByEmail(data.email);
-    if (existing) return res.status(409).json({ error: 'Email already registered' });
+    const existing = await User.findByUsername(data.username);
+    if (existing) return res.status(409).json({ error: 'Username already registered' });
 
     const password_hash = await bcrypt.hash(data.password, 10);
     const initials = data.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
@@ -60,7 +60,7 @@ async function register(req, res, next) {
 
     const user = await User.create({
       id: uuidv4(),
-      email: data.email,
+      username: data.username,
       password_hash,
       name: data.name,
       avatar_initials: initials,
@@ -82,8 +82,8 @@ async function register(req, res, next) {
 async function signup(req, res, next) {
   try {
     const data = signupSchema.parse(req.body);
-    const existing = await User.findByEmail(data.email);
-    if (existing) return res.status(409).json({ error: 'Email already registered' });
+    const existing = await User.findByUsername(data.username);
+    if (existing) return res.status(409).json({ error: 'Username already registered' });
 
     const password_hash = await bcrypt.hash(data.password, 10);
     const initials = data.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
@@ -92,7 +92,7 @@ async function signup(req, res, next) {
 
     const user = await User.create({
       id: uuidv4(),
-      email: data.email,
+      username: data.username,
       password_hash,
       name: data.name,
       avatar_initials: initials,
@@ -108,7 +108,7 @@ async function signup(req, res, next) {
 
     await AuditLog.log(user.id, 'user.signup', 'user', user.id, { status: 'pending_approval' }, req.ip);
 
-    res.status(201).json({ message: 'Signup successful. Pending admin approval.', user: { id: user.id, email: user.email, name: user.name, approval_status: user.approval_status } });
+    res.status(201).json({ message: 'Signup successful. Pending admin approval.', user: { id: user.id, username: user.username, name: user.name, approval_status: user.approval_status } });
   } catch (err) { next(err); }
 }
 

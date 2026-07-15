@@ -12,7 +12,12 @@ export function SocketProvider({ children }) {
   useEffect(() => {
     if (!user) return;
     const token = localStorage.getItem('accessToken');
-    const s = io(SOCKET_URL, { auth: { token }, transports: ['websocket', 'polling'] });
+    const socketPath = import.meta.env.VITE_SOCKET_PATH || '/socket.io/';
+    const s = io(SOCKET_URL, { 
+      auth: { token }, 
+      transports: ['websocket', 'polling'],
+      path: socketPath
+    });
     s.on('connect', () => console.log('[socket] connected'));
     s.on('connect_error', (err) => console.error('[socket] error', err.message));
     setSocket(s);

@@ -51,12 +51,11 @@ export default function AdminPanel({ onClose }) {
 
   const [showUserModal, setShowUserModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteLink, setInviteLink] = useState('');
+    const [inviteLink, setInviteLink] = useState('');
   const [editingUser, setEditingUser] = useState(null);
   const [showPermCatalog, setShowPermCatalog] = useState(false);
   const [userForm, setUserForm] = useState({ 
-    name: '', email: '', department: '', role: 'user', password: '',
+    name: '', username: '', department: '', role: 'user', password: '',
     job_title: '', reports_to: '', employment_type: 'Full-time employee', 
     role_preset: 'standard', permissions: { ...defaultPermissions },
     initial_channels: []
@@ -164,8 +163,8 @@ export default function AdminPanel({ onClose }) {
   };
 
   const handleExportUsers = () => {
-    const headers = ['ID', 'Name', 'Email', 'Department', 'Role'];
-    const rows = localUsers.map(u => [u.id, `"${u.name}"`, `"${u.email}"`, `"${u.department || ''}"`, u.role]);
+    const headers = ['ID', 'Name', 'Username', 'Department', 'Role'];
+    const rows = localUsers.map(u => [u.id, `"${u.name}"`, `"${u.username}"`, `"${u.department || ''}"`, u.role]);
     exportCSV('users_export.csv', headers, rows);
   };
 
@@ -190,8 +189,8 @@ export default function AdminPanel({ onClose }) {
         const text = evt.target.result;
         const lines = text.split('\n').filter(l => l.trim().length > 0);
         const parsedUsers = lines.slice(1).map(l => {
-          const [name, email, department, jobTitle] = l.split(',').map(s => s?.trim().replace(/^"|"$/g, '') || '');
-          return { name, email, department, jobTitle };
+          const [name, username, department, jobTitle] = l.split(',').map(s => s?.trim().replace(/^"|"$/g, '') || '');
+          return { name, username, department, jobTitle };
         });
         if (parsedUsers.length === 0) return alert('No valid users found in CSV');
         
@@ -269,7 +268,7 @@ export default function AdminPanel({ onClose }) {
   const openCreateUser = () => {
     setEditingUser(null);
     setUserForm({ 
-      name: '', email: '', department: '', role: 'user', password: '',
+      name: '', username: '', department: '', role: 'user', password: '',
       job_title: '', reports_to: '', employment_type: 'Full-time employee', 
       role_preset: 'standard', permissions: { ...defaultPermissions },
       initial_channels: localChannels.filter(c => c.is_mandatory).map(c => c.id)
@@ -302,16 +301,13 @@ export default function AdminPanel({ onClose }) {
   };
 
   const openInviteModal = () => {
-    setInviteEmail('');
-    setInviteLink('');
+        setInviteLink('');
     setShowInviteModal(true);
   };
 
   const submitInviteGuest = async () => {
-    if (!inviteEmail.trim()) return alert('Please enter an email address');
-    try {
-      const res = await api.admin.inviteGuest(inviteEmail);
-      setInviteLink(res.inviteLink);
+        try {
+            setInviteLink(res.inviteLink);
     } catch(e) { alert(e.error || 'Failed to invite guest'); }
   };
 
@@ -328,7 +324,7 @@ export default function AdminPanel({ onClose }) {
     }
 
     setUserForm({ 
-      name: u.name, email: u.email, department: u.department || '', role: u.role, password: '',
+      name: u.name, username: u.username, department: u.department || '', role: u.role, password: '',
       job_title: u.job_title || '', reports_to: u.reports_to || '', employment_type: u.employment_type || 'Full-time employee',
       role_preset: u.role_preset || 'standard', permissions: typeof u.permissions === 'string' ? JSON.parse(u.permissions) : (u.permissions || { ...defaultPermissions }),
       initial_channels: userChannels
@@ -572,8 +568,8 @@ export default function AdminPanel({ onClose }) {
                 <input type="text" placeholder="e.g. John Doe" value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} />
               </div>
               <div className="form-field">
-                <label>Work email <span style={{ color: 'var(--danger)' }}>*</span></label>
-                <input type="email" placeholder="john@company.com" value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} />
+                <label>Username <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <input type="text" placeholder="john_doe" value={userForm.username} onChange={e => setUserForm({...userForm, username: e.target.value})} />
               </div>
             </div>
 
@@ -852,7 +848,7 @@ export default function AdminPanel({ onClose }) {
               <label>Select User</label>
               <select value={managerForm.userId} onChange={e => setManagerForm({...managerForm, userId: e.target.value})}>
                 <option value="">-- Choose User --</option>
-                {localUsers.map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+                {localUsers.map(u => <option key={u.id} value={u.id}>{u.name} ({u.username})</option>)}
               </select>
             </div>
 
@@ -1101,9 +1097,7 @@ export default function AdminPanel({ onClose }) {
             <div style={{ color: 'var(--text-dim)', fontSize: '13px', marginBottom: '16px' }}>Generate a secure invitation link to allow an external guest to join ETeams.</div>
             
             <div className="form-field">
-              <label>Guest Email Address</label>
-              <input type="email" placeholder="guest@example.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
-            </div>
+                                        </div>
 
             {inviteLink && (
               <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--emerald)', borderRadius: '8px', padding: '16px', marginTop: '16px' }}>

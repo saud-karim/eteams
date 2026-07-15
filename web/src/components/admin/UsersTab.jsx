@@ -17,7 +17,7 @@ export default function UsersTab({
     <div>
       <h2 style={{ marginBottom: '20px' }}>User Management</h2>
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-        <input type="text" className="admin-search-inp" placeholder="Search users by name, email, or department..." />
+        <input type="text" className="admin-search-inp" placeholder="Search users by name, username, or department..." />
         <label className="admin-btn-ghost" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
           Import from HR CSV
           <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImportCSV} />
@@ -51,7 +51,7 @@ export default function UsersTab({
                   <Avatar user={u} size={32} style={{ borderRadius: '50%' }} />
                   <div>
                     <div style={{ fontWeight: '500', fontSize: '14px' }}>{u.name}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{u.email}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{u.username}</div>
                   </div>
                 </div>
               </td>

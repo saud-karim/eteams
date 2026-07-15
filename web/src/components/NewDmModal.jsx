@@ -27,7 +27,7 @@ export default function NewDmModal({ onClose, onDMCreated }) {
   const filteredUsers = users.filter(u => {
     if (u.id === user?.id) return false;
     
-    const matchesSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.username.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
 
     const isUCEO = isCEO(u);

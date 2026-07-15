@@ -43,6 +43,7 @@ export default function ChannelPermissionsTab({
               if (perms.length === 5) tpl = 'Full Manager';
               else if (perms.includes('delete') && !perms.includes('manage members')) tpl = 'Moderator';
               else if (perms.length === 1 && perms[0] === 'post') tpl = 'Poster Only';
+              else if (perms.length === 0) tpl = 'Read-Only / Muted';
               
               return (
                 <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>

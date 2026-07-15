@@ -36,7 +36,7 @@ export default function PendingTab({ pendingUsers, openReviewUser, handleApprove
                     <Avatar user={u} name={u.name} initials={u.avatar_initials} color={u.avatar_color} size={32} style={{ borderRadius: '50%' }} />
                     <div>
                       <div style={{ fontWeight: '500', fontSize: '14px' }}>{u.name}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{u.email}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{u.username}</div>
                     </div>
                   </div>
                 </td>

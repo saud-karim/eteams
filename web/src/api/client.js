@@ -24,7 +24,7 @@ async function request(path, { method = 'GET', body, headers = {}, responseType 
 
 export const api = {
   auth: {
-    login: (email, password) => request('/auth/login', { method: 'POST', body: { email, password } }),
+    login: (username, password) => request('/auth/login', { method: 'POST', body: { username, password } }),
     register: (data) => request('/auth/register', { method: 'POST', body: data }),
     signup: (data) => request('/auth/signup', { method: 'POST', body: data }),
     getManagers: () => request('/auth/managers'),
@@ -107,8 +107,7 @@ export const api = {
     getRolePresets: () => request('/admin/role-presets'),
     createRolePreset: (data) => request('/admin/role-presets', { method: 'POST', body: data }),
     updateRolePreset: (id, data) => request(`/admin/role-presets/${id}`, { method: 'PUT', body: data }),
-    deleteRolePreset: (id) => request(`/admin/role-presets/${id}`, { method: 'DELETE' }),
-    inviteGuest: (email) => request(`/admin/invite`, { method: 'POST', body: { email } }),
+    deleteRolePreset: (id) => request(`/admin/role-presets/${id}`, { method: 'DELETE' })
   },
   broadcasts: {
     send: (data) => request('/broadcasts', { method: 'POST', body: data }),

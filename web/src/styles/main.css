@@ -1428,3 +1428,62 @@
   padding-top: 0; 
   margin-top: 0; 
 }
+
+
+/* Mobile Responsiveness for Admin Panel */
+@media (max-width: 768px) {
+  .admin-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .admin-topbar button {
+    align-self: flex-start;
+  }
+  .admin-title {
+    font-size: 16px;
+  }
+  .admin-sub {
+    font-size: 11px;
+    flex-wrap: wrap;
+    line-height: 1.4;
+  }
+  .admin-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    padding-bottom: 4px;
+  }
+  .admin-tab {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  .admin-content {
+    padding: 16px;
+  }
+  .admin-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .admin-search-inp {
+    width: 100%;
+  }
+  .admin-toolbar > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .admin-toolbar > div button {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+  }
+  .admin-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

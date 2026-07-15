@@ -147,7 +147,7 @@ export default function ChannelInfoPanel({ channel, onClose, onLeft }) {
               >
                 <option value="">-- Choose --</option>
                 {allUsers.filter(u => !members.find(m => m.id === u.id)).map(u => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                  <option key={u.id} value={u.id}>{u.name} ({u.username})</option>
                 ))}
               </select>
               <button onClick={handleAddMember} style={{ background: 'var(--emerald)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>Add</button>

@@ -84,7 +84,7 @@ async function getUsers(req, res, next) {
   try {
     if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { db } = require('../db/connection');
-    const [rows] = await db.query('SELECT id, email, name, avatar_initials, avatar_color, role, department, job_title, presence, status_text, last_seen_at, is_active, reports_to, employment_type, role_preset, permissions, approval_status FROM users WHERE approval_status = "approved" ORDER BY name ASC');
+    const [rows] = await db.query('SELECT id, username, name, avatar_initials, avatar_color, role, department, job_title, presence, status_text, last_seen_at, is_active, reports_to, employment_type, role_preset, permissions, approval_status FROM users WHERE approval_status = "approved" ORDER BY name ASC');
     res.json({ users: rows });
   } catch (err) {
     next(err);
@@ -211,12 +211,12 @@ async function resetUserPassword(req, res, next) {
 async function createUser(req, res, next) {
   try {
     if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
-    const { name, email, department, role, password, job_title, reports_to, employment_type, role_preset, permissions, initial_channels } = req.body;
+    const { name, username, department, role, password, job_title, reports_to, employment_type, role_preset, permissions, initial_channels } = req.body;
     
-    if (!name || !email || !password) return res.status(400).json({ error: 'Name, email, and password are required' });
+    if (!name || !username || !password) return res.status(400).json({ error: 'Name, username, and password are required' });
     
-    const existing = await User.findByEmail(email);
-    if (existing) return res.status(400).json({ error: 'Email already exists' });
+    const existing = await User.findByUsername(username);
+    if (existing) return res.status(400).json({ error: 'Username already exists' });
     
     const password_hash = await bcrypt.hash(password, 10);
     const id = uuidv4();
@@ -224,7 +224,7 @@ async function createUser(req, res, next) {
     const avatar_color = 'var(--emerald)'; // Default color
     
     const user = await User.create({
-      id, email, password_hash, name, avatar_initials, avatar_color, role: role || 'user', department: department || '', job_title: job_title || '',
+      id, username, password_hash, name, avatar_initials, avatar_color, role: role || 'user', department: department || '', job_title: job_title || '',
       reports_to: reports_to || null, employment_type: employment_type || 'Full-time employee', role_preset: role_preset || 'standard', permissions: permissions || null
     });
 
@@ -235,7 +235,7 @@ async function createUser(req, res, next) {
       }
     }
     
-    await AuditLog.log(req.user.id, 'user.create', 'user', id, { email, role_preset }, req.ip);
+    await AuditLog.log(req.user.id, 'user.create', 'user', id, { username, role_preset }, req.ip);
     
     res.json({ success: true, user });
   } catch (err) {
@@ -259,9 +259,9 @@ async function updateUser(req, res, next) {
   try {
     if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
-    const { name, email, department, role, job_title, reports_to, employment_type, role_preset, permissions, initial_channels } = req.body;
+    const { name, username, department, role, job_title, reports_to, employment_type, role_preset, permissions, initial_channels } = req.body;
     
-    const user = await User.update(id, { name, email, department, role, job_title: job_title || '', reports_to: reports_to || null, employment_type: employment_type || 'Full-time employee', role_preset: role_preset || 'standard', permissions: permissions || null });
+    const user = await User.update(id, { name, username, department, role, job_title: job_title || '', reports_to: reports_to || null, employment_type: employment_type || 'Full-time employee', role_preset: role_preset || 'standard', permissions: permissions || null });
     
     if (Array.isArray(initial_channels)) {
       const Channel = require('../models/Channel');
@@ -276,7 +276,7 @@ async function updateUser(req, res, next) {
       for (const cId of toRemove) await Channel.removeMember(cId, id);
     }
 
-    await AuditLog.log(req.user.id, 'user.update', 'user', id, { name, email, department, role }, req.ip);
+    await AuditLog.log(req.user.id, 'user.update', 'user', id, { name, username, department, role }, req.ip);
 
     emitToUser(id, 'user:permissions_updated', { role, permissions, role_preset });
     
@@ -296,15 +296,15 @@ async function importUsers(req, res, next) {
     const createdUsers = [];
     
     for (const u of users) {
-      if (!u.email || !u.name) continue;
-      const existing = await User.findByEmail(u.email);
+      if (!u.username || !u.name) continue;
+      const existing = await User.findByUsername(u.username);
       if (existing) continue;
       
       const id = uuidv4();
       const avatar_initials = u.name.substring(0, 2).toUpperCase();
       const avatar_color = 'var(--blue)';
       const user = await User.create({
-        id, email: u.email, password_hash, name: u.name, 
+        id, username: u.username, password_hash, name: u.name, 
         avatar_initials, avatar_color, role: 'user', 
         department: u.department || '', job_title: u.jobTitle || ''
       });
@@ -356,6 +356,7 @@ async function getChannelManagers(req, res, next) {
          OR m.can_delete_messages = 1
          OR m.can_edit_topic = 1
          OR (c.is_readonly = 1 AND m.can_post = 1)
+         OR (c.is_readonly = 0 AND m.can_post = 0)
       ORDER BY m.joined_at DESC
     `);
     res.json({ managers: rows });
@@ -502,27 +503,6 @@ async function deleteRolePreset(req, res, next) {
   } catch (err) { next(err); }
 }
 
-async function inviteGuest(req, res, next) {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'Email is required' });
-
-    const perms = req.user.permissions || {};
-    if (!perms['invite-guest'] && req.user.role !== 'superadmin') {
-      return res.status(403).json({ error: 'Missing invite-guest permission' });
-    }
-
-    // In a real application, we would generate a token, save it to DB, and send an email via SMTP.
-    // For this demo, we generate a mock token and return a join link.
-    const token = Math.random().toString(36).substring(2, 15);
-    const inviteLink = `http://localhost:5173/join?token=${token}&email=${encodeURIComponent(email)}`;
-    
-    await AuditLog.log(req.user.id, 'user.invite_guest', 'system', null, { email }, req.ip);
-
-    res.json({ success: true, inviteLink });
-  } catch (err) { next(err); }
-}
-
 module.exports = {
   getAuditLogs,
   getStats,
@@ -547,6 +527,5 @@ module.exports = {
   getRolePresets,
   createRolePreset,
   updateRolePreset,
-  deleteRolePreset,
-  inviteGuest
+  deleteRolePreset
 };

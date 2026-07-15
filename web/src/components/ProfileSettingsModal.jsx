@@ -84,8 +84,8 @@ export default function ProfileSettingsModal({ onClose, user }) {
         </div>
         
         <div className="form-field" style={{ marginTop: '16px' }}>
-          <label>{t('email')}</label>
-          <input type="email" defaultValue={user?.email || ''} readOnly style={{ opacity: 0.6 }} />
+          <label>{t('username')}</label>
+          <input type="text" defaultValue={user?.username || ''} readOnly style={{ opacity: 0.6 }} />
         </div>
 
         <div className="form-field" style={{ marginTop: '4px' }}>

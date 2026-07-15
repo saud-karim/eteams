@@ -22,7 +22,7 @@ router.post('/users', adminController.createUser);
 router.put('/users/:id', adminController.updateUser);
 router.post('/users/import', adminController.importUsers);
 
-router.post('/invite', adminController.inviteGuest);
+
 
 
 // Channels

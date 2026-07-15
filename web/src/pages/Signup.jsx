@@ -9,7 +9,7 @@ export default function Signup() {
   
   const [form, setForm] = useState({
     name: '',
-    email: '',
+    username: '',
     password: '',
     department: '',
     employment_type: 'Full-time employee',
@@ -80,8 +80,8 @@ export default function Signup() {
                 <input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. John Doe" />
               </div>
               <div className="login-field">
-                <label>Work Email</label>
-                <input type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="john@company.com" />
+                <label>Username</label>
+                <input type="text" required value={form.username} onChange={e => setForm({...form, username: e.target.value})} placeholder="john_doe" />
               </div>
             </div>
             

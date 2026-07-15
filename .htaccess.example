@@ -1,0 +1,18 @@
+Options -MultiViews
+RewriteEngine On
+RewriteBase /your-folder-name/
+
+# Proxy Socket.IO websocket upgrade requests
+RewriteCond %{HTTP:Upgrade} =websocket [NC]
+RewriteRule ^socket.io/(.*)$ ws://localhost:4000/socket.io/$1 [P,L]
+
+# Proxy Socket.IO HTTP polling fallback
+RewriteRule ^socket.io/(.*)$ http://localhost:4000/socket.io/$1 [P,L]
+
+# Proxy API and uploads to Node.js backend
+RewriteRule ^api/(.*)$ http://localhost:4000/api/$1 [P,L]
+RewriteRule ^uploads/(.*)$ http://localhost:4000/uploads/$1 [P,L]
+
+# React SPA — all other requests go to index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.html [QSA,L]
