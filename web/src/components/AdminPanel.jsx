@@ -112,9 +112,7 @@ export default function AdminPanel({ onClose }) {
 
   const loadPresets = async () => {
     try {
-      const res = await api.admin.getRolePresets(),
-      api.admin.getDepartments(),
-      api.admin.getJobTitles();
+      const res = await api.admin.getRolePresets();
       setRolePresets(res.presets || []);
     } catch (err) { console.error('Failed to load presets', err); }
   };

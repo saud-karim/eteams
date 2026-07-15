@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Building, Edit, Trash2, Plus, X, Check } from 'lucide-react';
 import { api } from '../../api/client';
 import { useConfirm } from '../../context/ConfirmContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -101,153 +100,111 @@ export default function DepartmentsTab() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-400">Loading...</div>;
+    return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)' }}>Loading...</div>;
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div>
+      <h2 style={{ marginBottom: '20px' }}>Departments & Job Titles</h2>
+
+      <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
         
         {/* Departments Section */}
-        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden flex flex-col">
-          <div className="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg">
-                <Building className="w-5 h-5" />
-              </div>
-              <h3 className="text-lg font-semibold text-white">Departments</h3>
-            </div>
+        <div style={{ flex: '1', minWidth: '300px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '500' }}>Departments</h3>
             <button 
+              className="admin-btn-primary" 
               onClick={() => { setDeptForm({ id: null, name: '' }); setShowDeptModal(true); }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
             >
-              <Plus className="w-4 h-4" /> Add
+              + Add Department
             </button>
           </div>
-          <div className="p-0 overflow-y-auto max-h-[500px]">
-            <table className="w-full text-left text-sm text-gray-300">
-              <thead className="bg-white/5 text-gray-400 sticky top-0">
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', background: 'var(--panel-2)', borderRadius: '12px', overflow: 'hidden' }}>
+            <thead style={{ background: 'var(--panel)' }}>
+              <tr>
+                <th style={{ padding: '12px', fontSize: '12px', color: 'var(--text-mute)' }}>Name</th>
+                <th style={{ padding: '12px', fontSize: '12px', color: 'var(--text-mute)', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {departments.length === 0 ? (
                 <tr>
-                  <th className="px-5 py-3 font-medium">Name</th>
-                  <th className="px-5 py-3 font-medium text-right">Actions</th>
+                  <td colSpan="2" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)' }}>No departments found</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {departments.length === 0 ? (
-                  <tr>
-                    <td colSpan="2" className="px-5 py-8 text-center text-gray-500">No departments found</td>
-                  </tr>
-                ) : departments.map(d => (
-                  <tr key={d.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-5 py-3 text-white font-medium">{d.name}</td>
-                    <td className="px-5 py-3 text-right space-x-2">
-                      <button 
-                        onClick={() => { setDeptForm(d); setShowDeptModal(true); }}
-                        className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteDept(d.id, d.name)}
-                        className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ) : departments.map(d => (
+                <tr key={d.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '12px', color: 'var(--text-main)', fontWeight: '500' }}>{d.name}</td>
+                  <td style={{ padding: '12px', textAlign: 'right' }}>
+                    <button className="admin-btn-ghost" onClick={() => { setDeptForm(d); setShowDeptModal(true); }} style={{ padding: '4px 8px', fontSize: '11px', marginRight: '5px' }}>Edit</button>
+                    <button className="admin-btn-danger" onClick={() => handleDeleteDept(d.id, d.name)} style={{ padding: '4px 8px', fontSize: '11px' }}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {/* Job Titles Section */}
-        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden flex flex-col">
-          <div className="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg">
-                <Briefcase className="w-5 h-5" />
-              </div>
-              <h3 className="text-lg font-semibold text-white">Job Titles</h3>
-            </div>
+        <div style={{ flex: '1', minWidth: '300px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '500' }}>Job Titles</h3>
             <button 
+              className="admin-btn-primary" 
               onClick={() => { setTitleForm({ id: null, name: '' }); setShowTitleModal(true); }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium"
             >
-              <Plus className="w-4 h-4" /> Add
+              + Add Job Title
             </button>
           </div>
-          <div className="p-0 overflow-y-auto max-h-[500px]">
-            <table className="w-full text-left text-sm text-gray-300">
-              <thead className="bg-white/5 text-gray-400 sticky top-0">
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', background: 'var(--panel-2)', borderRadius: '12px', overflow: 'hidden' }}>
+            <thead style={{ background: 'var(--panel)' }}>
+              <tr>
+                <th style={{ padding: '12px', fontSize: '12px', color: 'var(--text-mute)' }}>Name</th>
+                <th style={{ padding: '12px', fontSize: '12px', color: 'var(--text-mute)', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobTitles.length === 0 ? (
                 <tr>
-                  <th className="px-5 py-3 font-medium">Name</th>
-                  <th className="px-5 py-3 font-medium text-right">Actions</th>
+                  <td colSpan="2" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)' }}>No job titles found</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {jobTitles.length === 0 ? (
-                  <tr>
-                    <td colSpan="2" className="px-5 py-8 text-center text-gray-500">No job titles found</td>
-                  </tr>
-                ) : jobTitles.map(t => (
-                  <tr key={t.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-5 py-3 text-white font-medium">{t.name}</td>
-                    <td className="px-5 py-3 text-right space-x-2">
-                      <button 
-                        onClick={() => { setTitleForm(t); setShowTitleModal(true); }}
-                        className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteTitle(t.id, t.name)}
-                        className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ) : jobTitles.map(t => (
+                <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '12px', color: 'var(--text-main)', fontWeight: '500' }}>{t.name}</td>
+                  <td style={{ padding: '12px', textAlign: 'right' }}>
+                    <button className="admin-btn-ghost" onClick={() => { setTitleForm(t); setShowTitleModal(true); }} style={{ padding: '4px 8px', fontSize: '11px', marginRight: '5px' }}>Edit</button>
+                    <button className="admin-btn-danger" onClick={() => handleDeleteTitle(t.id, t.name)} style={{ padding: '4px 8px', fontSize: '11px' }}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
       </div>
 
       {/* Dept Modal */}
       {showDeptModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-[#111111] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex justify-between items-center p-6 border-b border-white/10">
-              <h2 className="text-xl font-semibold text-white">
-                {deptForm.id ? 'Edit Department' : 'New Department'}
-              </h2>
-              <button onClick={() => setShowDeptModal(false)} className="text-gray-400 hover:text-white transition-colors">
-                <X className="w-5 h-5" />
-              </button>
+        <div className="admin-modal-overlay" onClick={() => setShowDeptModal(false)}>
+          <div className="admin-modal" onClick={e => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>{deptForm.id ? 'Edit Department' : 'New Department'}</h3>
+              <button className="close-btn" onClick={() => setShowDeptModal(false)}>&times;</button>
             </div>
-            <form onSubmit={handleSaveDept} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1.5">Department Name</label>
+            <form onSubmit={handleSaveDept} className="admin-modal-body">
+              <div className="form-field">
+                <label>Department Name <span style={{color:'var(--danger)'}}>*</span></label>
                 <input 
-                  type="text"
+                  type="text" 
+                  required
                   value={deptForm.name}
                   onChange={e => setDeptForm({...deptForm, name: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-black border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500"
                   placeholder="e.g. Engineering"
-                  autoFocus
-                  required
                 />
               </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => setShowDeptModal(false)} className="px-4 py-2 text-gray-400 hover:text-white transition-colors">
-                  Cancel
-                </button>
-                <button type="submit" className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors font-medium flex items-center gap-2">
-                  <Check className="w-4 h-4" /> Save
-                </button>
+              <div className="admin-modal-footer">
+                <button type="button" className="admin-btn-ghost" onClick={() => setShowDeptModal(false)}>Cancel</button>
+                <button type="submit" className="admin-btn-primary">Save</button>
               </div>
             </form>
           </div>
@@ -256,36 +213,26 @@ export default function DepartmentsTab() {
 
       {/* Title Modal */}
       {showTitleModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-[#111111] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex justify-between items-center p-6 border-b border-white/10">
-              <h2 className="text-xl font-semibold text-white">
-                {titleForm.id ? 'Edit Job Title' : 'New Job Title'}
-              </h2>
-              <button onClick={() => setShowTitleModal(false)} className="text-gray-400 hover:text-white transition-colors">
-                <X className="w-5 h-5" />
-              </button>
+        <div className="admin-modal-overlay" onClick={() => setShowTitleModal(false)}>
+          <div className="admin-modal" onClick={e => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>{titleForm.id ? 'Edit Job Title' : 'New Job Title'}</h3>
+              <button className="close-btn" onClick={() => setShowTitleModal(false)}>&times;</button>
             </div>
-            <form onSubmit={handleSaveTitle} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1.5">Job Title Name</label>
+            <form onSubmit={handleSaveTitle} className="admin-modal-body">
+              <div className="form-field">
+                <label>Job Title Name <span style={{color:'var(--danger)'}}>*</span></label>
                 <input 
-                  type="text"
+                  type="text" 
+                  required
                   value={titleForm.name}
                   onChange={e => setTitleForm({...titleForm, name: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-black border border-white/10 rounded-xl text-white focus:outline-none focus:border-purple-500"
                   placeholder="e.g. Senior Developer"
-                  autoFocus
-                  required
                 />
               </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => setShowTitleModal(false)} className="px-4 py-2 text-gray-400 hover:text-white transition-colors">
-                  Cancel
-                </button>
-                <button type="submit" className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-colors font-medium flex items-center gap-2">
-                  <Check className="w-4 h-4" /> Save
-                </button>
+              <div className="admin-modal-footer">
+                <button type="button" className="admin-btn-ghost" onClick={() => setShowTitleModal(false)}>Cancel</button>
+                <button type="submit" className="admin-btn-primary">Save</button>
               </div>
             </form>
           </div>
