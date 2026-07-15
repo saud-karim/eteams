@@ -107,7 +107,15 @@ export const api = {
     getRolePresets: () => request('/admin/role-presets'),
     createRolePreset: (data) => request('/admin/role-presets', { method: 'POST', body: data }),
     updateRolePreset: (id, data) => request(`/admin/role-presets/${id}`, { method: 'PUT', body: data }),
-    deleteRolePreset: (id) => request(`/admin/role-presets/${id}`, { method: 'DELETE' })
+    deleteRolePreset: (id) => request(`/admin/role-presets/${id}`, { method: 'DELETE' }),
+    getDepartments: () => request('/admin/departments'),
+    createDepartment: (data) => request('/admin/departments', { method: 'POST', body: data }),
+    updateDepartment: (id, data) => request(`/admin/departments/${id}`, { method: 'PUT', body: data }),
+    deleteDepartment: (id) => request(`/admin/departments/${id}`, { method: 'DELETE' }),
+    getJobTitles: () => request('/admin/job-titles'),
+    createJobTitle: (data) => request('/admin/job-titles', { method: 'POST', body: data }),
+    updateJobTitle: (id, data) => request(`/admin/job-titles/${id}`, { method: 'PUT', body: data }),
+    deleteJobTitle: (id) => request(`/admin/job-titles/${id}`, { method: 'DELETE' })
   },
   broadcasts: {
     send: (data) => request('/broadcasts', { method: 'POST', body: data }),

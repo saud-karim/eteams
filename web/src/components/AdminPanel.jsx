@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { 
   Shield, ArrowLeft, BarChart2, Users, Hash, FileText, Radio, Lock,
   Search, Download, Info, AlertTriangle, XCircle, Clock, Archive, CheckCircle, Megaphone, X,
-  User, Briefcase, Settings, ChevronDown, ChevronUp, UserCheck, MessageSquare
+  User, Briefcase, Settings, ChevronDown, ChevronUp, UserCheck, MessageSquare, Building
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useWorkspace } from '../context/WorkspaceContext';
@@ -21,6 +21,7 @@ import ChannelPermissionsTab from './admin/ChannelPermissionsTab';
 import AuditTab from './admin/AuditTab';
 import BroadcastTab from './admin/BroadcastTab';
 import PendingTab from './admin/PendingTab';
+import DepartmentsTab from './admin/DepartmentsTab';
 
 import { defaultPermissions } from '../constants/permissions';
 
@@ -74,6 +75,8 @@ export default function AdminPanel({ onClose }) {
 
   // Presets State
   const [rolePresets, setRolePresets] = useState([]);
+  const [departmentsList, setDepartmentsList] = useState([]);
+  const [jobTitlesList, setJobTitlesList] = useState([]);
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [editingPreset, setEditingPreset] = useState(null);
   const [presetForm, setPresetForm] = useState({ name: '', description: '', icon: 'Shield', permissions: { ...defaultPermissions } });
@@ -109,7 +112,9 @@ export default function AdminPanel({ onClose }) {
 
   const loadPresets = async () => {
     try {
-      const res = await api.admin.getRolePresets();
+      const res = await api.admin.getRolePresets(),
+      api.admin.getDepartments(),
+      api.admin.getJobTitles();
       setRolePresets(res.presets || []);
     } catch (err) { console.error('Failed to load presets', err); }
   };
@@ -118,8 +123,12 @@ export default function AdminPanel({ onClose }) {
     Promise.all([
       api.admin.listUsers(),
       api.admin.getChannels(),
-      api.admin.getRolePresets()
-    ]).then(([usersRes, channelsRes, presetsRes]) => {
+      api.admin.getRolePresets(),
+      api.admin.getDepartments(),
+      api.admin.getJobTitles()
+    ]).then(([usersRes, channelsRes, presetsRes, deptsRes, titlesRes]) => {
+      setDepartmentsList(deptsRes?.departments || []);
+      setJobTitlesList(titlesRes?.job_titles || []);
       setLocalUsers(usersRes.users || []);
       setLocalChannels(channelsRes.channels || []);
       setRolePresets(presetsRes.presets || []);
@@ -529,6 +538,9 @@ export default function AdminPanel({ onClose }) {
         <div className={`admin-tab ${activeTab === 'presets' ? 'active' : ''}`} onClick={() => setActiveTab('presets')}>
           <Settings size={16} /><span>Role Presets</span>
         </div>
+        <div className={`admin-tab ${activeTab === 'departments' ? 'active' : ''}`} onClick={() => setActiveTab('departments')}>
+          <Building size={16} /><span>Depts & Titles</span>
+        </div>
         <div className={`admin-tab ${activeTab === 'channels' ? 'active' : ''}`} onClick={() => setActiveTab('channels')}>
           <Hash size={16} /><span>Channels</span>
         </div>
@@ -578,19 +590,15 @@ export default function AdminPanel({ onClose }) {
                 <label>Department</label>
                 <select value={userForm.department} onChange={e => setUserForm({...userForm, department: e.target.value})}>
                   <option value="">Select department...</option>
-                  <option value="Engineering">Engineering</option>
-                  <option value="Product">Product</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="Sales">Sales</option>
-                  <option value="HR">HR</option>
-                  <option value="Finance">Finance</option>
-                  <option value="Executive">Executive</option>
-                  <option value="CEO">CEO</option>
+                  {departmentsList.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
                 </select>
               </div>
               <div className="form-field">
                 <label>Job title</label>
-                <input type="text" placeholder="e.g. Senior Frontend Engineer" value={userForm.job_title} onChange={e => setUserForm({...userForm, job_title: e.target.value})} />
+                <select value={userForm.job_title} onChange={e => setUserForm({...userForm, job_title: e.target.value})}>
+                  <option value="">Select job title...</option>
+                  {jobTitlesList.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                </select>
               </div>
             </div>
 
@@ -993,6 +1001,10 @@ export default function AdminPanel({ onClose }) {
             setAuditActionFilter={setAuditActionFilter}
             filteredAuditLogs={filteredAuditLogs}
           />
+        )}
+
+        {activeTab === 'departments' && (
+          <DepartmentsTab />
         )}
 
         {/* BROADCAST */}

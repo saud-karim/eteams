@@ -39,4 +39,14 @@ router.post('/role-presets', adminController.createRolePreset);
 router.put('/role-presets/:id', adminController.updateRolePreset);
 router.delete('/role-presets/:id', adminController.deleteRolePreset);
 
+router.get('/departments', adminController.getDepartments);
+router.post('/departments', adminController.createDepartment);
+router.put('/departments/:id', adminController.updateDepartment);
+router.delete('/departments/:id', adminController.deleteDepartment);
+
+router.get('/job-titles', adminController.getJobTitles);
+router.post('/job-titles', adminController.createJobTitle);
+router.put('/job-titles/:id', adminController.updateJobTitle);
+router.delete('/job-titles/:id', adminController.deleteJobTitle);
+
 module.exports = router;
