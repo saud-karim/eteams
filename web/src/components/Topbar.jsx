@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Moon, Sun, Bell, HelpCircle, MessageSquare, LogOut, Settings, User, Menu } from 'lucide-react';
+import { Search, Moon, Sun, Bell, MessageSquare, LogOut, Settings, User, Menu } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -183,9 +183,6 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
             )}
           </div>
 
-          <button className="topbar-btn" title="Help">
-            <HelpCircle size={16} />
-          </button>
 
           {/* Avatar + status menu */}
           <div style={{ position: 'relative' }}>

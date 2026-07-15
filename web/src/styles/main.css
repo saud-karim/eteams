@@ -1487,3 +1487,36 @@
     -webkit-overflow-scrolling: touch;
   }
 }
+
+
+/* Topbar Responsive */
+@media (max-width: 768px) {
+  .topbar {
+    padding: 10px;
+    gap: 8px;
+  }
+  .topbar-brand {
+    width: auto;
+  }
+  .topbar-brand .brand-text {
+    display: none;
+  }
+  .topbar-actions {
+    width: auto;
+    gap: 2px;
+  }
+  .search-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+  .search-bar input {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .search-shortcut {
+    display: none;
+  }
+  .lang-toggle {
+    display: none;
+  }
+}
