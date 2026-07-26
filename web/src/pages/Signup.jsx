@@ -56,13 +56,9 @@ export default function Signup() {
         <button onClick={toggleLang} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}>
           {t('langToggle') || 'عربي'}
         </button>
-        <div className="login-brand" style={{ marginBottom: '16px' }}>
-          <div className="login-logo-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <path d="M4 6h16M4 12h16M4 18h10" stroke="white" strokeWidth="3" strokeLinecap="round"/>
-            </svg>
-          </div>
-          <div className="login-brand-name"><span className="accent">E</span>Teams</div>
+        <div className="edara-logo-container">
+          <div className="edara-logo-mark"><span className="edara-lm1"></span><span className="edara-lm2"></span><span className="edara-lm3"></span></div>
+          <div className="edara-logo-text"><div className="edara-lt1">EDARA</div><div className="edara-lt2">A SODIC Company</div><div className="edara-logo-mod">ETeams</div></div>
         </div>
         <div className="login-title">Create an Account</div>
         <div className="login-sub">Sign up for your workspace. Accounts require admin approval.</div>

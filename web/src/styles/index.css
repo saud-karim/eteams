@@ -144,7 +144,7 @@
   .theme-corner button:hover { color: var(--emerald); border-color: var(--emerald); }
 
   /* ============ WORKSPACE ============ */
-  .workspace { display: none; height: 100vh; flex-direction: column; }
+  .workspace { display: none; height: 100%; flex-direction: column; overflow: hidden; }
   .workspace.active { display: flex; }
 
   /* Top bar */

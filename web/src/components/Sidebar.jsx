@@ -84,7 +84,7 @@ export default function Sidebar({ activeView, activeChannel, setActiveChannel, i
           <div id="sec-announcements">
             {announcementChannels.map(ch => (
               <div key={ch.id} className={`nav-item ${!isAdminActive && activeView === 'chat' && activeChannel === ch.slug ? 'active' : ''}`} onClick={() => setActiveChannel(ch.slug)}>
-                <span className="icon"><ChannelIcon type="announcement" size={14} /></span>
+                <span className="icon"><ChannelIcon type="announcement" name={ch.name} color={ch.color} size={14} /></span>
                 <span className="name">{ch.name}</span>
                 <UnreadBadge channelId={ch.id} />
               </div>
@@ -103,7 +103,7 @@ export default function Sidebar({ activeView, activeChannel, setActiveChannel, i
           <div id="sec-channels">
             {publicPrivateChannels.map(ch => (
               <div key={ch.id} className={`nav-item ${!isAdminActive && activeView === 'chat' && activeChannel === ch.slug ? 'active' : ''}`} onClick={() => setActiveChannel(ch.slug)}>
-                <span className="icon"><ChannelIcon type={ch.type} size={14} /></span>
+                <span className="icon"><ChannelIcon type={ch.type} name={ch.name} color={ch.color} size={14} /></span>
                 <span className="name">{ch.name}</span>
                 <UnreadBadge channelId={ch.id} />
               </div>
@@ -129,17 +129,18 @@ export default function Sidebar({ activeView, activeChannel, setActiveChannel, i
                 const otherIds = ids.filter(id => id !== user?.id?.toString());
                 if (otherIds.length > 0) {
                   const otherUsers = otherIds.map(id => users?.find(u => u.id?.toString() === id)).filter(Boolean);
-                  if (otherUsers.length > 0) {
-                    otherName = otherUsers.map(u => u.name).join(', ');
-                    if (otherUsers.length === 1) {
-                      otherUser = otherUsers[0];
-                    }
+                  if (ch.type === 'dm' || otherUsers.length === 1) {
+                    otherUser = otherUsers[0] || null;
+                    if (otherUser) otherName = otherUser.name;
+                  } else {
+                    // group_dm
+                    otherName = ch.name; 
                   }
                 }
               }
               
               // Fallback
-              if (!otherUser && !otherName.includes(', ')) {
+              if (!otherUser && ch.type === 'dm') {
                 otherName = ch.name.split(', ').find(n => n !== user?.name) || ch.name;
                 otherUser = users?.find(u => u.name === otherName);
               }

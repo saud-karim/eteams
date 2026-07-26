@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { api } from '../api/client';
+import { requestFirebaseNotificationPermission } from '../firebase';
 import Avatar from './Avatar';
 
 export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToChannel, onGlobalSearch }) {
@@ -18,6 +19,7 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
   const [unreadCount, setUnreadCount] = useState(0);
   const [showPreferences, setShowPreferences] = useState(false);
   const [notifSound, setNotifSound] = useState(() => localStorage.getItem('notifSound') !== 'off');
+  const [desktopNotif, setDesktopNotif] = useState(() => typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted');
   
   const { lang, toggleLang, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
@@ -40,7 +42,7 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
 
   useEffect(() => {
     if (!socket) return;
-    const handleMention = () => {
+    const handleMention = (payload) => {
       setUnreadCount(prev => prev + 1);
       if (notifSound) {
         const audio = new Audio('/notif.mp3');
@@ -91,10 +93,10 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
           <button className="mobile-menu-btn" onClick={onToggleSidebar} style={{ display: 'none', background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
             <Menu size={20} />
           </button>
-          <div className="logo-mark">
-            <MessageSquare color="white" size={18} />
+          <div className="edara-logo-container" style={{ marginBottom: 0, justifyContent: 'flex-start', transform: 'scale(0.8)', transformOrigin: 'left center' }}>
+            <div className="edara-logo-mark"><span className="edara-lm1" style={{ height: '8px' }}></span><span className="edara-lm2"></span><span className="edara-lm3"></span></div>
+            <div className="edara-logo-text"><div className="edara-lt1" style={{ fontSize: '18px' }}>EDARA</div><div className="edara-lt2" style={{ color: 'var(--text-dim)' }}>A SODIC Company</div><div className="edara-logo-mod">ETeams</div></div>
           </div>
-          <div className="brand-text">{t('workspaceName')}</div>
         </div>
 
         <div className="search-wrap" style={{ position: 'relative' }}>
@@ -154,7 +156,7 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
               {unreadCount > 0 && <span className="dot" style={{ background: 'var(--dnd)' }}></span>}
             </button>
             {showNotifications && (
-              <div style={{ position: 'absolute', top: '40px', right: 0, width: '340px', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: 'var(--shadow)', zIndex: 200, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              <div style={{ position: 'absolute', top: '40px', ...(lang === 'ar' ? { left: 0 } : { right: 0 }), width: '340px', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: 'var(--shadow)', zIndex: 200, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
                 <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>🔔 Mentions & Notifications</span>
                   <button onClick={() => setShowNotifications(false)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '16px' }}>×</button>
@@ -196,7 +198,7 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
 
             {statusOpen && (
               <div
-                style={{ position: 'absolute', top: '40px', right: 0, minWidth: '260px', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: '10px', boxShadow: 'var(--shadow)', zIndex: 200, overflow: 'hidden' }}
+                style={{ position: 'absolute', top: '40px', ...(lang === 'ar' ? { left: 0 } : { right: 0 }), minWidth: '260px', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: '10px', boxShadow: 'var(--shadow)', zIndex: 200, overflow: 'hidden' }}
                 onClick={e => e.stopPropagation()}
               >
                 <div className="status-me-head">
@@ -263,7 +265,7 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: '14px' }}>Notification Sound</div>
+                <div style={{ fontWeight: 600, fontSize: '14px' }}>Notification Sounds</div>
                 <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '2px' }}>Play a sound when you receive a message</div>
               </div>
               <button
@@ -271,6 +273,41 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
                 style={{ background: notifSound ? 'var(--emerald)' : 'var(--panel-2)', color: notifSound ? 'white' : 'var(--text-dim)', border: '1px solid var(--border)', borderRadius: '20px', padding: '4px 18px', cursor: 'pointer', fontWeight: 700, fontSize: '13px', transition: 'all 0.2s' }}
               >
                 {notifSound ? 'ON' : 'OFF'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '14px' }}>Desktop Notifications</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '2px' }}>Show native notifications in background</div>
+              </div>
+              <button
+                onClick={async () => {
+                  if ('Notification' in window) {
+                    if (Notification.permission === 'denied') {
+                      alert("You have blocked notifications in your browser settings. Please click the lock icon in the address bar to allow them.");
+                      return;
+                    }
+                    const token = await requestFirebaseNotificationPermission();
+                    if (token) {
+                      try {
+                        await api.users.saveFcmToken(token);
+                        setDesktopNotif(true);
+                        new Notification("Enabled", { body: "You will now receive desktop notifications!" });
+                      } catch (err) {
+                        console.error('Error saving FCM token:', err);
+                        alert("Failed to save notification token. Please try again.");
+                      }
+                    } else {
+                      alert("Please allow notifications in your browser settings.");
+                    }
+                  } else {
+                    alert("Your browser does not support desktop notifications.");
+                  }
+                }}
+                style={{ background: desktopNotif ? 'var(--emerald)' : 'var(--panel-2)', color: desktopNotif ? 'white' : 'var(--text-dim)', border: '1px solid var(--border)', borderRadius: '20px', padding: '4px 18px', cursor: 'pointer', fontWeight: 700, fontSize: '13px', transition: 'all 0.2s' }}
+              >
+                {desktopNotif ? 'ON' : 'OFF'}
               </button>
             </div>
 

@@ -15,7 +15,9 @@ import GlobalSavedView from '../components/GlobalSavedView';
 import GlobalSearchView from '../components/GlobalSearchView';
 import CallModal from '../components/CallModal';
 import GlobalBanner from '../components/GlobalBanner';
+import NotificationPromptModal from '../components/NotificationPromptModal';
 import { api } from '../api/client';
+import { requestFirebaseNotificationPermission } from '../firebase';
 
 export default function Workspace() {
   const { user, setUser } = useAuth();
@@ -50,10 +52,27 @@ export default function Workspace() {
   
   useEffect(() => { userRef.current = user; }, [user]);
   
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
+
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
+    const initNotifications = async () => {
+      if (!('Notification' in window)) return;
+      
+      if (Notification.permission === 'granted') {
+        // Automatically fetch and update token on load if already granted
+        const token = await requestFirebaseNotificationPermission();
+        if (token) {
+          api.users.saveFcmToken(token).catch(e => console.error('Auto FCM Error:', e));
+        }
+      } else if (Notification.permission === 'default') {
+        // Prompt new users with our custom modal once
+        const hasPrompted = localStorage.getItem('hasPromptedNotifications');
+        if (!hasPrompted) {
+          setShowNotifPrompt(true);
+        }
+      }
+    };
+    initNotifications();
   }, []);
 
   const [activeView, setActiveView] = useState(() => localStorage.getItem('eteams_view') || 'chat'); // 'chat', 'threads', 'saved', 'search'
@@ -137,9 +156,19 @@ export default function Workspace() {
                         (mObj.special && (mObj.special.includes('channel') || mObj.special.includes('everyone')));
         } catch(e) {}
         const msgChannelObj = currentChannels.find(c => c.id === msg.channel_id);
-        if (isMentioned || msgChannelObj?.type === 'direct') {
+        const isHidden = document.hidden;
+        const isOtherChannel = activeChannelObj?.id !== msg.channel_id;
+
+        // Firebase Cloud Messaging automatically shows notifications when the app is in the background (hidden).
+        // To prevent duplicate notifications, we only show native notifications manually if the app is in the foreground
+        // (not hidden) BUT the user is in a different channel.
+        if (!isHidden && isOtherChannel && (isMentioned || msgChannelObj?.type === 'direct')) {
           if ('Notification' in window && Notification.permission === 'granted') {
-             const title = isMentioned ? `New mention in #${msgChannelObj?.name || 'channel'}` : `New DM from ${msg.author_name || 'someone'}`;
+             let title = `New message from ${msg.author_name || 'someone'}`;
+             if (isMentioned) title = `New mention in #${msgChannelObj?.name || 'channel'}`;
+             else if (msgChannelObj?.type === 'direct') title = `New DM from ${msg.author_name || 'someone'}`;
+             else title = `New message in #${msgChannelObj?.name || 'channel'}`;
+
              new Notification(title, {
                body: msg.body ? msg.body.substring(0, 100) : 'Sent an attachment',
              });
@@ -266,6 +295,15 @@ export default function Workspace() {
         onClose={() => setCallActive(false)} 
         channel={channels?.find(c => c.slug === activeChannel)}
       />
+      
+      {showNotifPrompt && (
+        <NotificationPromptModal 
+          onClose={() => {
+            localStorage.setItem('hasPromptedNotifications', 'true');
+            setShowNotifPrompt(false);
+          }} 
+        />
+      )}
     </div>
   );
 }

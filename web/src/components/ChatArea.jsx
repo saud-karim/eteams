@@ -179,7 +179,7 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
   }, [socket, channelObj?.id]);
 
   const getChannelIcon = () => {
-    return <ChannelIcon type={channelObj?.type} size={18} />;
+    return <ChannelIcon type={channelObj?.type} name={channelObj?.name} color={channelObj?.color} size={18} />;
   };
 
   const mainMessages = messages.filter(m => !m.parent_id);

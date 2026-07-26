@@ -144,7 +144,7 @@
   .theme-corner button:hover { color: var(--emerald); border-color: var(--emerald); }
 
   /* ============ WORKSPACE ============ */
-  .workspace { display: none; height: 100vh; flex-direction: column; }
+  .workspace { display: none; height: 100%; flex-direction: column; overflow: hidden; }
   .workspace.active { display: flex; }
 
   /* Top bar */
@@ -179,6 +179,7 @@
   .search-bar input {
     flex: 1; background: transparent; border: none; outline: none;
     color: var(--text); font-size: 13px;
+    min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
   }
   .search-bar input::placeholder { color: var(--text-dim); }
   .search-shortcut {
@@ -1512,6 +1513,8 @@
   .search-bar input {
     padding: 6px 12px;
     font-size: 12px;
+    min-width: 0;
+    text-overflow: ellipsis;
   }
   .search-shortcut {
     display: none;
@@ -1520,3 +1523,94 @@
     display: none;
   }
 }
+
+.edara-logo-container { display:flex; align-items:center; gap:10px; justify-content: center; margin-bottom: 20px; }
+.edara-logo-mark { display:flex; flex-direction:column; gap:3px; flex-shrink:0; }
+.edara-logo-mark span { display:block; background:#4aafd6; border-radius:2px; }
+.edara-lm1 { width:28px; height:12px; }
+.edara-lm2 { width:28px; height:6px; opacity:0.7; }
+.edara-lm3 { width:28px; height:4px; opacity:0.5; }
+.edara-logo-text { display:flex; flex-direction:column; align-items:flex-start; }
+.edara-lt1 { font-size:16px; font-weight:800; letter-spacing:0.12em; color:#4aafd6; line-height: 1; margin:0; }
+.edara-lt2 { font-size:8.5px; letter-spacing:0.18em; color:#4a6080; text-transform:uppercase; font-weight:500; margin-top: 3px; line-height: 1; }
+.edara-logo-mod { font-size:10px; letter-spacing:0.06em; color:#4aafd6; background:rgba(74,175,214,0.15); border:1px solid rgba(74,175,214,0.25); border-radius:4px; padding:2px 7px; margin-top:4px; display:inline-block; font-weight:600; line-height: 1; }
+
+
+@media (max-width: 768px) { .topbar .edara-logo-text { display: none !important; } }
+
+
+@media (max-width: 768px) { .topbar .edara-logo-container { display: none !important; } }
+
+/* ============ LOADING SCREEN ============ */
+.loading-screen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loader-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.spinner {
+  width: 180px;
+  height: 180px;
+  border: 4px solid rgba(74, 175, 214, 0.08);
+  border-top: 4px solid #4aafd6;
+  border-radius: 50%;
+  animation: spin 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+  position: absolute;
+}
+
+.spinner::before {
+  content: '';
+  position: absolute;
+  top: 6px; left: 6px; right: 6px; bottom: 6px;
+  border: 4px solid transparent;
+  border-top: 4px solid var(--accent);
+  border-radius: 50%;
+  animation: spin-reverse 1.8s linear infinite;
+}
+
+.loading-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.loading-text {
+  color: var(--text-dim);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  animation: pulse-soft 2s ease-in-out infinite;
+  margin-top: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes spin-reverse {
+  0% { transform: rotate(360deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.98); }
+}
+

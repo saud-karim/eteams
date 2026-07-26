@@ -7,5 +7,7 @@ router.get('/', ctrl.list);
 router.put('/me', ctrl.updateMe);
 router.put('/me/presence', ctrl.updateMyPresence);
 router.put('/me/password', ctrl.updateMyPassword);
+router.post('/fcm-token', ctrl.saveFcmToken);
+
 
 module.exports = router;

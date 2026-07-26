@@ -3,10 +3,22 @@ import { useAuth } from './context/AuthContext.jsx';
 import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
 import Workspace from './pages/Workspace.jsx';
+import { useLanguage } from './context/LanguageContext.jsx';
 
 export default function App() {
   const { user, loading } = useAuth();
-  if (loading) return <div className="loading-screen">Loading…</div>;
+  const { t } = useLanguage();
+  if (loading) return (
+    <div className="loading-screen">
+      <div className="loader-container">
+        <div className="spinner"></div>
+        <div className="loading-logo">
+          <div className="edara-lt1">EDARA</div>
+          <div className="edara-logo-mod" style={{ marginTop: '8px' }}>ETeams</div>
+        </div>
+      </div>
+    </div>
+  );
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />

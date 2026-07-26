@@ -19,7 +19,10 @@ export default function CreateChannelModal({ onClose }) {
   const [type, setType] = useState(canCreatePublic ? 'public' : (canCreatePrivate ? 'private' : 'announce'));
   const [isReadonly, setIsReadonly] = useState(false);
   const [isMandatory, setIsMandatory] = useState(false);
+  const [color, setColor] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const CHANNEL_COLORS = ['#EF4444', '#F97316', '#F59E0B', '#10B981', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#D946EF', '#F43F5E'];
 
   const handleCreate = async () => {
     if (!name.trim()) return;
@@ -30,7 +33,8 @@ export default function CreateChannelModal({ onClose }) {
         description,
         type: type === 'announce' ? 'announcement' : type,
         is_readonly: isReadonly,
-        is_mandatory: isMandatory
+        is_mandatory: isMandatory,
+        color: color || undefined
       });
       setChannels(prev => [...prev, res.channel]);
       onClose();
@@ -65,6 +69,23 @@ export default function CreateChannelModal({ onClose }) {
         <div className="form-field">
           <label>{t('descriptionLabel')}</label>
           <input type="text" placeholder={t('descriptionPlaceholder')} value={description} onChange={e => setDescription(e.target.value)} />
+        </div>
+
+        <div className="form-field">
+          <label>Channel Color (Optional)</label>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+            {CHANNEL_COLORS.map(c => (
+              <div 
+                key={c}
+                onClick={() => setColor(color === c ? '' : c)}
+                style={{
+                  width: '24px', height: '24px', borderRadius: '50%', backgroundColor: c,
+                  cursor: 'pointer', border: color === c ? '2px solid var(--text)' : '2px solid transparent',
+                  boxShadow: color === c ? '0 0 0 2px var(--bg)' : 'none'
+                }}
+              />
+            ))}
+          </div>
         </div>
         
         <div className="form-row">

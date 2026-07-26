@@ -149,9 +149,11 @@ async function send(req, res, next) {
     emitToChannel(data.channelId, 'message:new', msg);
     
     // Notifications logic
-    if (mentions.users.length > 0 || mentions.special.length > 0) {
-      const channelObj = await Channel.findById(data.channelId);
-      const members = await Channel.listMembers(data.channelId);
+    const channelObj = await Channel.findById(data.channelId);
+    const members = await Channel.listMembers(data.channelId);
+    const offlineUserIds = [];
+
+    if (mentions.users.length > 0 || mentions.special.length > 0 || channelObj.type === 'direct') {
       for (const m of members) {
         if (m.id === req.user.id) continue;
         let shouldNotify = false;
@@ -165,11 +167,56 @@ async function send(req, res, next) {
         } else if (mentions.special.includes('here') && m.presence === 'online') {
           shouldNotify = true;
           noteText = `${req.user.name} used @here`;
+        } else if (channelObj.type === 'direct') {
+          shouldNotify = true;
+          noteText = `New DM from ${req.user.name}`;
         }
         
         if (shouldNotify) {
           emitToUser(m.id, 'notification:mention', { id: msg.id, channel_slug: channelObj.slug, body: noteText });
+          
+          // Collect for push notification if they are offline or we just want to push to all devices
+          if (m.presence === 'offline' || m.presence === 'away' || m.presence === 'dnd' || true) {
+            offlineUserIds.push({ id: m.id, noteText });
+          }
         }
+      }
+    }
+
+    // Send Web Push Notifications
+    if (offlineUserIds.length > 0) {
+      const { db } = require('../db/connection');
+      const { messaging } = require('../firebaseAdmin');
+      
+      // We group by user to get their tokens
+      for (const u of offlineUserIds) {
+        db.query('SELECT token FROM fcm_tokens WHERE user_id = ?', [u.id])
+          .then(([rows]) => {
+            const tokens = rows.map(r => r.token);
+            if (tokens.length > 0 && messaging) {
+              const payload = {
+                notification: {
+                  title: channelObj.name ? `#${channelObj.name}` : 'New Message',
+                  body: u.noteText
+                }
+              };
+              messaging.sendEachForMulticast({ tokens, ...payload })
+                .then(response => {
+                  const failedTokens = [];
+                  response.responses.forEach((resp, idx) => {
+                    if (!resp.success && resp.error && resp.error.code === 'messaging/registration-token-not-registered') {
+                      failedTokens.push(tokens[idx]);
+                    }
+                  });
+                  if (failedTokens.length > 0) {
+                    const placeholders = failedTokens.map(() => '?').join(',');
+                    db.query(`DELETE FROM fcm_tokens WHERE token IN (${placeholders})`, failedTokens).catch(e => console.error('Error cleaning up tokens:', e));
+                  }
+                })
+                .catch(e => console.error('FCM Error:', e));
+            }
+          })
+          .catch(e => console.error('DB Error getting FCM tokens:', e));
       }
     }
 
@@ -302,7 +349,7 @@ async function getMentions(req, res, next) {
   try {
     const { db } = require('../db/connection');
     const [rows] = await db.query(
-      `SELECT m.*, u.name AS author_name, u.avatar_initials, u.avatar_color, c.slug AS channel_slug, c.name AS channel_name
+      `SELECT m.*, u.name AS author_name, u.avatar_initials, u.avatar_color, c.slug AS channel_slug, c.name AS channel_name, c.type AS channel_type
        FROM messages m
        JOIN users u ON u.id = m.user_id
        JOIN channels c ON c.id = m.channel_id

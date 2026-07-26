@@ -41,7 +41,7 @@ export default function Message({ message, author, currentUser, onReply, canPin 
   useEffect(() => { setLocalIsPinned(null); }, [message.is_pinned]);
 
   const isMine = message.user_id === currentUser.id;
-  const isCEO = author?.role === 'superadmin';
+  const isCEO = author?.company_rank === 'ceo';
   const canReact = currentUser.role === 'superadmin' || currentUser.permissions?.['react'];
 
   const react = async (emoji) => {

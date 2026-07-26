@@ -57,7 +57,7 @@ export default function AdminPanel({ onClose }) {
   const [showPermCatalog, setShowPermCatalog] = useState(false);
   const [userForm, setUserForm] = useState({ 
     name: '', username: '', department: '', role: 'user', password: '',
-    job_title: '', reports_to: '', employment_type: 'Full-time employee', 
+    job_title: '', company_rank: 'employee', reports_to: '', employment_type: 'Full-time employee', 
     role_preset: 'standard', permissions: { ...defaultPermissions },
     initial_channels: []
   });
@@ -276,7 +276,7 @@ export default function AdminPanel({ onClose }) {
     setEditingUser(null);
     setUserForm({ 
       name: '', username: '', department: '', role: 'user', password: '',
-      job_title: '', reports_to: '', employment_type: 'Full-time employee', 
+      job_title: '', company_rank: 'employee', reports_to: '', employment_type: 'Full-time employee', 
       role_preset: 'standard', permissions: { ...defaultPermissions },
       initial_channels: localChannels.filter(c => c.is_mandatory).map(c => c.id)
     });
@@ -332,7 +332,7 @@ export default function AdminPanel({ onClose }) {
 
     setUserForm({ 
       name: u.name, username: u.username, department: u.department || '', role: u.role, password: '',
-      job_title: u.job_title || '', reports_to: u.reports_to || '', employment_type: u.employment_type || 'Full-time employee',
+      job_title: u.job_title || '', company_rank: u.company_rank || 'employee', reports_to: u.reports_to || '', employment_type: u.employment_type || 'Full-time employee',
       role_preset: u.role_preset || 'standard', permissions: typeof u.permissions === 'string' ? JSON.parse(u.permissions) : (u.permissions || { ...defaultPermissions }),
       initial_channels: userChannels
     });
@@ -602,6 +602,18 @@ export default function AdminPanel({ onClose }) {
 
             <div className="form-row">
               <div className="form-field">
+                <label>Hierarchical Rank</label>
+                <select value={userForm.company_rank} onChange={e => setUserForm({...userForm, company_rank: e.target.value})}>
+                  <option value="employee">Employee</option>
+                  <option value="executive">Executive</option>
+                  <option value="ceo">Chief Executive Officer (CEO)</option>
+                </select>
+              </div>
+              <div className="form-field"></div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-field">
                 <label>Reports to (Manager)</label>
                 <select value={userForm.reports_to} onChange={e => setUserForm({...userForm, reports_to: e.target.value})}>
                   <option value="">None / N/A</option>
@@ -710,7 +722,7 @@ export default function AdminPanel({ onClose }) {
                         onChange={() => toggleInitialChannel(c.id)} 
                       />
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <ChannelIcon type={c.type} size={12} color="var(--text-mute)" />
+                        <ChannelIcon type={c.type} name={c.name} color={c.color || "var(--text-mute)"} size={12} />
                         {c.name} {c.is_mandatory ? <span style={{ color: 'var(--emerald)', fontSize: '10px' }}>(Mandatory)</span> : ''}
                       </span>
                     </label>

@@ -43,8 +43,8 @@ async function adminListAll() {
 
 async function create(data) {
   await db.query(
-    `INSERT INTO channels (id, slug, name, description, type, is_mandatory, is_readonly, created_by)
-     VALUES (:id, :slug, :name, :description, :type, :is_mandatory, :is_readonly, :created_by)`,
+    `INSERT INTO channels (id, slug, name, description, type, is_mandatory, is_readonly, created_by, color)
+     VALUES (:id, :slug, :name, :description, :type, :is_mandatory, :is_readonly, :created_by, :color)`,
     data
   );
   return findById(data.id);

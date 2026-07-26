@@ -100,7 +100,8 @@ const translations = {
     adminTotalUsers: 'Total Users',
     adminActiveChannels: 'Active Channels',
     adminMessagesSent: 'Messages Sent',
-    adminUnderDev: 'This module is currently under development.'
+    adminUnderDev: 'This module is currently under development.',
+    initializingWorkspace: 'Initializing workspace...'
   },
   ar: {
     workspaceName: 'إدارة IFM',
@@ -201,7 +202,8 @@ const translations = {
     adminTotalUsers: 'إجمالي المستخدمين',
     adminActiveChannels: 'القنوات النشطة',
     adminMessagesSent: 'الرسائل المرسلة',
-    adminUnderDev: 'هذه الوحدة قيد التطوير حالياً.'
+    adminUnderDev: 'هذه الوحدة قيد التطوير حالياً.',
+    initializingWorkspace: 'جاري تهيئة بيئة العمل...'
   }
 };
 

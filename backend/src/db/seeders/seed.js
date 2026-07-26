@@ -42,11 +42,24 @@ async function reset() {
   await db.query('TRUNCATE TABLE audit_log');
   await db.query('TRUNCATE TABLE refresh_tokens');
   await db.query('TRUNCATE TABLE users');
+  await db.query('TRUNCATE TABLE departments');
+  await db.query('TRUNCATE TABLE job_titles');
   await db.query('SET FOREIGN_KEY_CHECKS = 1');
 }
 
 async function seed() {
   await reset();
+
+  console.log('→ seeding departments and job titles...');
+  const uniqueDepts = [...new Set(seedUsers.map(u => u.dept).filter(Boolean))];
+  const uniqueTitles = [...new Set(seedUsers.map(u => u.title).filter(Boolean))];
+
+  for (const dept of uniqueDepts) {
+    await db.query(`INSERT INTO departments (id, name) VALUES (:id, :name)`, { id: uuidv4(), name: dept });
+  }
+  for (const title of uniqueTitles) {
+    await db.query(`INSERT INTO job_titles (id, name) VALUES (:id, :name)`, { id: uuidv4(), name: title });
+  }
 
   console.log('→ seeding users...');
   const password_hash = await bcrypt.hash('Password123!', 10);

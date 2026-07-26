@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { useConfirm } from '../../context/ConfirmContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { X } from 'lucide-react';
+import Pagination from './Pagination';
 
 export default function DepartmentsTab() {
   const { t } = useLanguage();
@@ -10,6 +12,11 @@ export default function DepartmentsTab() {
   const [jobTitles, setJobTitles] = useState([]);
   
   const [loading, setLoading] = useState(true);
+
+  // Pagination states
+  const [deptPage, setDeptPage] = useState(1);
+  const [titlePage, setTitlePage] = useState(1);
+  const itemsPerPage = 10;
 
   // Form states
   const [showDeptModal, setShowDeptModal] = useState(false);
@@ -103,6 +110,9 @@ export default function DepartmentsTab() {
     return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)' }}>Loading...</div>;
   }
 
+  const paginatedDepts = departments.slice((deptPage - 1) * itemsPerPage, deptPage * itemsPerPage);
+  const paginatedTitles = jobTitles.slice((titlePage - 1) * itemsPerPage, titlePage * itemsPerPage);
+
   return (
     <div>
       <h2 style={{ marginBottom: '20px' }}>Departments & Job Titles</h2>
@@ -128,11 +138,11 @@ export default function DepartmentsTab() {
               </tr>
             </thead>
             <tbody>
-              {departments.length === 0 ? (
+              {paginatedDepts.length === 0 ? (
                 <tr>
                   <td colSpan="2" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)' }}>No departments found</td>
                 </tr>
-              ) : departments.map(d => (
+              ) : paginatedDepts.map(d => (
                 <tr key={d.id} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '12px', color: 'var(--text-main)', fontWeight: '500' }}>{d.name}</td>
                   <td style={{ padding: '12px', textAlign: 'right' }}>
@@ -143,6 +153,14 @@ export default function DepartmentsTab() {
               ))}
             </tbody>
           </table>
+          {departments.length > 0 && (
+            <Pagination 
+              currentPage={deptPage} 
+              totalItems={departments.length} 
+              itemsPerPage={itemsPerPage} 
+              onPageChange={setDeptPage} 
+            />
+          )}
         </div>
 
         {/* Job Titles Section */}
@@ -164,11 +182,11 @@ export default function DepartmentsTab() {
               </tr>
             </thead>
             <tbody>
-              {jobTitles.length === 0 ? (
+              {paginatedTitles.length === 0 ? (
                 <tr>
                   <td colSpan="2" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)' }}>No job titles found</td>
                 </tr>
-              ) : jobTitles.map(t => (
+              ) : paginatedTitles.map(t => (
                 <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '12px', color: 'var(--text-main)', fontWeight: '500' }}>{t.name}</td>
                   <td style={{ padding: '12px', textAlign: 'right' }}>
@@ -179,19 +197,30 @@ export default function DepartmentsTab() {
               ))}
             </tbody>
           </table>
+          {jobTitles.length > 0 && (
+            <Pagination 
+              currentPage={titlePage} 
+              totalItems={jobTitles.length} 
+              itemsPerPage={itemsPerPage} 
+              onPageChange={setTitlePage} 
+            />
+          )}
         </div>
 
       </div>
 
       {/* Dept Modal */}
       {showDeptModal && (
-        <div className="admin-modal-overlay" onClick={() => setShowDeptModal(false)}>
-          <div className="admin-modal" onClick={e => e.stopPropagation()}>
-            <div className="admin-modal-header">
-              <h3>{deptForm.id ? 'Edit Department' : 'New Department'}</h3>
-              <button className="close-btn" onClick={() => setShowDeptModal(false)}>&times;</button>
-            </div>
-            <form onSubmit={handleSaveDept} className="admin-modal-body">
+        <div className="modal-backdrop active" style={{ zIndex: 9999 }}>
+          <div className="big-modal" style={{ position: 'relative', width: '400px' }}>
+            <button 
+              onClick={() => setShowDeptModal(false)}
+              style={{ position: 'absolute', right: '16px', top: '16px', color: 'var(--text-dim)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              <X size={20} />
+            </button>
+            <h3 style={{ marginBottom: '20px' }}>{deptForm.id ? 'Edit Department' : 'New Department'}</h3>
+            <form onSubmit={handleSaveDept}>
               <div className="form-field">
                 <label>Department Name <span style={{color:'var(--danger)'}}>*</span></label>
                 <input 
@@ -202,9 +231,9 @@ export default function DepartmentsTab() {
                   placeholder="e.g. Engineering"
                 />
               </div>
-              <div className="admin-modal-footer">
-                <button type="button" className="admin-btn-ghost" onClick={() => setShowDeptModal(false)}>Cancel</button>
-                <button type="submit" className="admin-btn-primary">Save</button>
+              <div className="modal-footer" style={{ marginTop: '32px' }}>
+                <button type="button" className="btn-cancel" onClick={() => setShowDeptModal(false)}>Cancel</button>
+                <button type="submit" className="btn-primary">Save</button>
               </div>
             </form>
           </div>
@@ -213,13 +242,16 @@ export default function DepartmentsTab() {
 
       {/* Title Modal */}
       {showTitleModal && (
-        <div className="admin-modal-overlay" onClick={() => setShowTitleModal(false)}>
-          <div className="admin-modal" onClick={e => e.stopPropagation()}>
-            <div className="admin-modal-header">
-              <h3>{titleForm.id ? 'Edit Job Title' : 'New Job Title'}</h3>
-              <button className="close-btn" onClick={() => setShowTitleModal(false)}>&times;</button>
-            </div>
-            <form onSubmit={handleSaveTitle} className="admin-modal-body">
+        <div className="modal-backdrop active" style={{ zIndex: 9999 }}>
+          <div className="big-modal" style={{ position: 'relative', width: '400px' }}>
+            <button 
+              onClick={() => setShowTitleModal(false)}
+              style={{ position: 'absolute', right: '16px', top: '16px', color: 'var(--text-dim)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              <X size={20} />
+            </button>
+            <h3 style={{ marginBottom: '20px' }}>{titleForm.id ? 'Edit Job Title' : 'New Job Title'}</h3>
+            <form onSubmit={handleSaveTitle}>
               <div className="form-field">
                 <label>Job Title Name <span style={{color:'var(--danger)'}}>*</span></label>
                 <input 
@@ -230,9 +262,9 @@ export default function DepartmentsTab() {
                   placeholder="e.g. Senior Developer"
                 />
               </div>
-              <div className="admin-modal-footer">
-                <button type="button" className="admin-btn-ghost" onClick={() => setShowTitleModal(false)}>Cancel</button>
-                <button type="submit" className="admin-btn-primary">Save</button>
+              <div className="modal-footer" style={{ marginTop: '32px' }}>
+                <button type="button" className="btn-cancel" onClick={() => setShowTitleModal(false)}>Cancel</button>
+                <button type="submit" className="btn-primary">Save</button>
               </div>
             </form>
           </div>

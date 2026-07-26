@@ -10,6 +10,7 @@ const createSchema = z.object({
   description: z.string().max(500).optional(),
   type: z.enum(['public', 'private', 'announcement']).default('public'),
   is_mandatory: z.boolean().optional().default(false),
+  color: z.string().max(20).optional().nullable(),
 });
 
 async function myChannels(req, res, next) {
@@ -57,6 +58,7 @@ async function create(req, res, next) {
       is_mandatory: data.is_mandatory ? 1 : 0,
       is_readonly: data.type === 'announcement' ? 1 : 0,
       created_by: req.user.id,
+      color: data.color || null,
     });
     
     // Add the creator as a manager
@@ -98,7 +100,12 @@ async function createDM(req, res, next) {
       return res.status(403).json({ error: 'Missing dm-anyone permission' });
     }
     
-    const hasExec = targets.some(t => t.role_preset === 'executive' || t.role === 'superadmin' || t.department?.toLowerCase() === 'executive');
+    const hasCEO = targets.some(t => t.company_rank === 'ceo');
+    if (hasCEO && !perms['dm-ceo'] && req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'You do not have permission to message the CEO directly.' });
+    }
+
+    const hasExec = targets.some(t => t.company_rank === 'executive' || t.company_rank === 'ceo');
     if (hasExec && !perms['dm-exec'] && req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'You do not have permission to message executives directly.' });
     }
@@ -112,13 +119,15 @@ async function createDM(req, res, next) {
     }
 
     const allNames = [req.user.name, ...targets.map(t => t.name)].join(', ');
+    const providedName = req.body.name;
+    const channelName = (ids.length > 1 && providedName) ? providedName : allNames;
 
     const id = uuidv4();
     ch = await Channel.create({
       id, slug,
-      name: allNames.length > 100 ? allNames.substring(0, 97) + '...' : allNames,
+      name: channelName.length > 100 ? channelName.substring(0, 97) + '...' : channelName,
       description: ids.length > 1 ? 'Group Direct Message' : 'Direct Message',
-      type: 'dm',
+      type: ids.length > 1 ? 'group_dm' : 'dm',
       is_mandatory: 0,
       is_readonly: 0,
       created_by: req.user.id,

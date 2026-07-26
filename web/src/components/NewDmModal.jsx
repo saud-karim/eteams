@@ -6,14 +6,15 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import Avatar from './Avatar';
 
-const isCEO = (u) => u.department?.toLowerCase() === 'ceo';
-const isExec = (u) => u.role_preset === 'executive' || u.role === 'superadmin' || u.department?.toLowerCase() === 'executive';
+const isCEO = (u) => u.company_rank === 'ceo';
+const isExec = (u) => u.company_rank === 'executive' || u.company_rank === 'ceo';
 
 export default function NewDmModal({ onClose, onDMCreated }) {
   const { t } = useLanguage();
   const { users } = useWorkspace();
   const { user } = useAuth();
   const [search, setSearch] = useState('');
+  const [groupName, setGroupName] = useState('');
   const [loading, setLoading] = useState(false);
 
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -62,7 +63,7 @@ export default function NewDmModal({ onClose, onDMCreated }) {
     setLoading(true);
     try {
       const targetUserIds = selectedUsers.map(u => u.id);
-      const res = await api.channels.createDM(targetUserIds);
+      const res = await api.channels.createDM(targetUserIds, selectedUsers.length > 1 ? groupName : null);
       onDMCreated(res.channel.slug);
       onClose();
     } catch (err) {
@@ -106,6 +107,18 @@ export default function NewDmModal({ onClose, onDMCreated }) {
               autoFocus
             />
           </div>
+          
+          {selectedUsers.length > 1 && (
+            <div style={{ padding: '16px', borderBottom: '1px solid var(--border)' }}>
+              <input 
+                type="text" 
+                placeholder="Group Name (Optional)" 
+                value={groupName}
+                onChange={e => setGroupName(e.target.value)}
+                style={{ width: '100%', background: 'var(--surface-container)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 16px', outline: 'none', color: 'var(--text)', fontSize: '14px' }}
+              />
+            </div>
+          )}
           
           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
             {filteredUsers.length === 0 ? (

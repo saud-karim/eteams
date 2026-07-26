@@ -78,8 +78,8 @@ export default function ChannelInfoPanel({ channel, onClose, onLeft }) {
     }
   };
 
-  const getIcon = (size = 18) => {
-    return <ChannelIcon type={channel?.type} size={size} />;
+  const getIcon = (size = 20) => {
+    return <ChannelIcon type={channel?.type} name={channel?.name} color={channel?.color} size={size} />;
   };
 
   const currentUserMem = members.find(m => m.id === user?.id);

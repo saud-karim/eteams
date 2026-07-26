@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import Pagination from './Pagination';
 
 export default function ChannelsTab({
   localChannels,
@@ -7,6 +8,10 @@ export default function ChannelsTab({
   openEditChannel,
   handleArchiveChannel
 }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const paginatedChannels = localChannels.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div>
       <h2 style={{ marginBottom: '20px' }}>Channels & Permissions</h2>
@@ -27,7 +32,7 @@ export default function ChannelsTab({
           </tr>
         </thead>
         <tbody>
-          {localChannels.map((c, idx) => (
+          {paginatedChannels.map((c, idx) => (
             <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
               <td style={{ padding: '12px', fontWeight: 'bold', color: 'var(--accent)' }}>#{c.name}</td>
               <td style={{ padding: '12px' }}>
@@ -48,6 +53,14 @@ export default function ChannelsTab({
           ))}
         </tbody>
       </table>
+      {localChannels.length > 0 && (
+        <Pagination 
+          currentPage={currentPage} 
+          totalItems={localChannels.length} 
+          itemsPerPage={itemsPerPage} 
+          onPageChange={setCurrentPage} 
+        />
+      )}
     </div>
   );
 }

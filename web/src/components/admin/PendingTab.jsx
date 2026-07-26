@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { UserCheck, CheckCircle, XCircle } from 'lucide-react';
 import Avatar from '../Avatar';
+import Pagination from './Pagination';
 
 export default function PendingTab({ pendingUsers, openReviewUser, handleApproveUser, handleRejectUser }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const paginatedUsers = pendingUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -29,7 +34,7 @@ export default function PendingTab({ pendingUsers, openReviewUser, handleApprove
             </tr>
           </thead>
           <tbody>
-            {pendingUsers.map((u, idx) => (
+            {paginatedUsers.map((u, idx) => (
               <tr key={u.id} style={{ borderBottom: idx !== pendingUsers.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 <td style={{ padding: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -53,6 +58,14 @@ export default function PendingTab({ pendingUsers, openReviewUser, handleApprove
             ))}
           </tbody>
         </table>
+      )}
+      {pendingUsers.length > 0 && (
+        <Pagination 
+          currentPage={currentPage} 
+          totalItems={pendingUsers.length} 
+          itemsPerPage={itemsPerPage} 
+          onPageChange={setCurrentPage} 
+        />
       )}
     </div>
   );

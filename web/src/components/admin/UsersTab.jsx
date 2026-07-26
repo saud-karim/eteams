@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Avatar from '../Avatar';
+import Pagination from './Pagination';
 
 export default function UsersTab({
   enrichedUsers,
@@ -13,6 +14,10 @@ export default function UsersTab({
   handleDeactivate,
   handleReactivate
 }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const paginatedUsers = enrichedUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div>
       <h2 style={{ marginBottom: '20px' }}>User Management</h2>
@@ -28,9 +33,8 @@ export default function UsersTab({
         <button className="admin-btn-primary" onClick={openCreateUser}>+ Create user</button>
       </div>
       
-      <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '10px' }}>
-        Showing {enrichedUsers.length} of 487 users • <a style={{ color: 'var(--emerald)', cursor: 'pointer' }}>View all</a>
-      </div>
+      
+      {/* Replaced showing text with pagination later */}
 
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', background: 'var(--panel-2)', borderRadius: '12px', overflow: 'hidden' }}>
         <thead style={{ background: 'var(--panel)' }}>
@@ -44,7 +48,7 @@ export default function UsersTab({
           </tr>
         </thead>
         <tbody>
-          {enrichedUsers.map((u, idx) => (
+          {paginatedUsers.map((u, idx) => (
             <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
               <td style={{ padding: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -85,6 +89,12 @@ export default function UsersTab({
           ))}
         </tbody>
       </table>
+      <Pagination 
+        currentPage={currentPage} 
+        totalItems={enrichedUsers.length} 
+        itemsPerPage={itemsPerPage} 
+        onPageChange={setCurrentPage} 
+      />
     </div>
   );
 }

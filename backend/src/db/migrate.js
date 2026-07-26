@@ -20,16 +20,48 @@ async function run() {
     await db.query('SET FOREIGN_KEY_CHECKS = 1');
   }
 
+  // Ensure migrations_log table exists
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS migrations_log (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      migration_name VARCHAR(255) NOT NULL UNIQUE,
+      executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Get already executed migrations
+  const [executedRows] = await db.query('SELECT migration_name FROM migrations_log');
+  const executedMigrations = new Set(executedRows.map(r => r.migration_name));
+
+  let runCount = 0;
+
   for (const file of files) {
+    if (executedMigrations.has(file)) {
+      // Skip already executed migrations
+      continue;
+    }
+
+    console.log(`⏳ Running ${file}...`);
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
     const statements = sql.split(/;\s*$/m).map(s => s.trim()).filter(Boolean);
+    
+    // Execute all statements in the file
     for (const stmt of statements) {
       await db.query(stmt);
     }
-    console.log(`✓ ran ${file}`);
+    
+    // Log the migration as executed
+    await db.query('INSERT INTO migrations_log (migration_name) VALUES (?)', [file]);
+    console.log(`✓ successfully ran ${file}`);
+    runCount++;
   }
 
-  console.log('✓ Migrations complete');
+  if (runCount === 0) {
+    console.log('✓ Database is already up to date. No new migrations to run.');
+  } else {
+    console.log(`✓ Migrations complete. Ran ${runCount} new migration(s).`);
+  }
+  
   process.exit(0);
 }
 

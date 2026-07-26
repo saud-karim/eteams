@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Lock, Download, Info, AlertTriangle, XCircle } from 'lucide-react';
+import Pagination from './Pagination';
 
 export default function AuditTab({
   auditSearchQuery,
@@ -8,6 +9,10 @@ export default function AuditTab({
   setAuditActionFilter,
   filteredAuditLogs
 }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const paginatedLogs = filteredAuditLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div>
       <h2 style={{ marginBottom: '20px' }}>Immutable Audit Log</h2>
@@ -29,7 +34,7 @@ export default function AuditTab({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {filteredAuditLogs.length > 0 ? filteredAuditLogs.map((log, idx) => {
+        {paginatedLogs.length > 0 ? paginatedLogs.map((log, idx) => {
           let icon = <Info size={18} color="var(--emerald)" />;
           let cssClass = 'normal';
           if (log.action.includes('delete') || log.action.includes('force_logout') || log.action.includes('deactivate')) {
@@ -54,6 +59,12 @@ export default function AuditTab({
           );
         }) : <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)' }}>No audit logs found</div>}
       </div>
+      <Pagination 
+        currentPage={currentPage} 
+        totalItems={filteredAuditLogs.length} 
+        itemsPerPage={itemsPerPage} 
+        onPageChange={setCurrentPage} 
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ const RolePreset = require('../models/RolePreset');
 const { emitToUser, getIo } = require('../sockets');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
+const { db } = require('../db/connection');
 
 async function getAuditLogs(req, res, next) {
   try {
@@ -84,7 +85,7 @@ async function getUsers(req, res, next) {
   try {
     if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { db } = require('../db/connection');
-    const [rows] = await db.query('SELECT id, username, name, avatar_initials, avatar_color, role, department, job_title, presence, status_text, last_seen_at, is_active, reports_to, employment_type, role_preset, permissions, approval_status FROM users WHERE approval_status = "approved" ORDER BY name ASC');
+    const [rows] = await db.query('SELECT id, username, name, avatar_initials, avatar_color, role, department, job_title, company_rank, presence, status_text, last_seen_at, is_active, reports_to, employment_type, role_preset, permissions, approval_status FROM users WHERE approval_status = "approved" ORDER BY name ASC');
     res.json({ users: rows });
   } catch (err) {
     next(err);
@@ -211,7 +212,7 @@ async function resetUserPassword(req, res, next) {
 async function createUser(req, res, next) {
   try {
     if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
-    const { name, username, department, role, password, job_title, reports_to, employment_type, role_preset, permissions, initial_channels } = req.body;
+    const { name, username, department, role, password, job_title, company_rank, reports_to, employment_type, role_preset, permissions, initial_channels } = req.body;
     
     if (!name || !username || !password) return res.status(400).json({ error: 'Name, username, and password are required' });
     
@@ -224,7 +225,7 @@ async function createUser(req, res, next) {
     const avatar_color = 'var(--emerald)'; // Default color
     
     const user = await User.create({
-      id, username, password_hash, name, avatar_initials, avatar_color, role: role || 'user', department: department || '', job_title: job_title || '',
+      id, username, password_hash, name, avatar_initials, avatar_color, role: role || 'user', department: department || '', job_title: job_title || '', company_rank: company_rank || 'employee',
       reports_to: reports_to || null, employment_type: employment_type || 'Full-time employee', role_preset: role_preset || 'standard', permissions: permissions || null
     });
 
@@ -259,9 +260,9 @@ async function updateUser(req, res, next) {
   try {
     if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
-    const { name, username, department, role, job_title, reports_to, employment_type, role_preset, permissions, initial_channels } = req.body;
+    const { name, username, department, role, job_title, company_rank, reports_to, employment_type, role_preset, permissions, initial_channels } = req.body;
     
-    const user = await User.update(id, { name, username, department, role, job_title: job_title || '', reports_to: reports_to || null, employment_type: employment_type || 'Full-time employee', role_preset: role_preset || 'standard', permissions: permissions || null });
+    const user = await User.update(id, { name, username, department, role, job_title: job_title || '', company_rank: company_rank || 'employee', reports_to: reports_to || null, employment_type: employment_type || 'Full-time employee', role_preset: role_preset || 'standard', permissions: permissions || null });
     
     if (Array.isArray(initial_channels)) {
       const Channel = require('../models/Channel');

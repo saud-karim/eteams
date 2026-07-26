@@ -9,11 +9,11 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
-    if (!token) { setLoading(false); return; }
+    if (!token) { setTimeout(() => setLoading(false), 3000); return; }
     api.auth.me()
       .then(({ user }) => setUser(user))
       .catch(() => { localStorage.clear(); })
-      .finally(() => setLoading(false));
+      .finally(() => setTimeout(() => setLoading(false), 3000));
   }, []);
 
   const login = async (username, password) => {

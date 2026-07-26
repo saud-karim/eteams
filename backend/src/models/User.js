@@ -1,6 +1,6 @@
 const { db } = require('../db/connection');
 
-const PUBLIC_FIELDS = 'id, username, name, avatar_initials, avatar_color, role, department, job_title, presence, status_text, last_seen_at, is_active, reports_to, employment_type, role_preset, permissions, approval_status';
+const PUBLIC_FIELDS = 'id, username, name, avatar_initials, avatar_color, role, department, job_title, company_rank, presence, status_text, last_seen_at, is_active, reports_to, employment_type, role_preset, permissions, approval_status';
 
 async function findById(id) {
   const [rows] = await db.query(`SELECT ${PUBLIC_FIELDS} FROM users WHERE id = :id AND is_active = 1`, { id });
@@ -8,7 +8,7 @@ async function findById(id) {
 }
 
 async function findByUsername(username) {
-  const [rows] = await db.query(`SELECT id, username, name, password_hash, avatar_initials, avatar_color, role, department, job_title, presence, is_active, reports_to, employment_type, role_preset, permissions, approval_status FROM users WHERE username = :username`, { username });
+  const [rows] = await db.query(`SELECT id, username, name, password_hash, avatar_initials, avatar_color, role, department, job_title, company_rank, presence, is_active, reports_to, employment_type, role_preset, permissions, approval_status FROM users WHERE username = :username`, { username });
   return rows[0] || null;
 }
 
@@ -31,9 +31,9 @@ async function create(data) {
   const approval_status = data.approval_status || 'approved';
   const is_active = data.is_active !== undefined ? data.is_active : 1;
   await db.query(
-    `INSERT INTO users (id, username, password_hash, name, avatar_initials, avatar_color, role, department, job_title, reports_to, employment_type, role_preset, permissions, approval_status, is_active)
-     VALUES (:id, :username, :password_hash, :name, :avatar_initials, :avatar_color, :role, :department, :job_title, :reports_to, :employment_type, :role_preset, :permissions, :approval_status, :is_active)`,
-    { ...data, permissions: data.permissions ? JSON.stringify(data.permissions) : null, approval_status, is_active }
+    `INSERT INTO users (id, username, password_hash, name, avatar_initials, avatar_color, role, department, job_title, company_rank, reports_to, employment_type, role_preset, permissions, approval_status, is_active)
+     VALUES (:id, :username, :password_hash, :name, :avatar_initials, :avatar_color, :role, :department, :job_title, :company_rank, :reports_to, :employment_type, :role_preset, :permissions, :approval_status, :is_active)`,
+    { ...data, company_rank: data.company_rank || 'employee', permissions: data.permissions ? JSON.stringify(data.permissions) : null, approval_status, is_active }
   );
   return findByIdAnyStatus(data.id);
 }
@@ -55,8 +55,8 @@ async function update(id, data) {
     try { perms = JSON.parse(perms); } catch(e) {}
   }
   await db.query(
-    `UPDATE users SET name = :name, username = :username, department = :department, role = :role, job_title = :job_title, reports_to = :reports_to, employment_type = :employment_type, role_preset = :role_preset, permissions = :permissions WHERE id = :id`,
-    { id, ...data, permissions: perms ? JSON.stringify(perms) : null }
+    `UPDATE users SET name = :name, username = :username, department = :department, role = :role, job_title = :job_title, company_rank = :company_rank, reports_to = :reports_to, employment_type = :employment_type, role_preset = :role_preset, permissions = :permissions WHERE id = :id`,
+    { id, ...data, company_rank: data.company_rank || 'employee', permissions: perms ? JSON.stringify(perms) : null }
   );
   return findByIdAnyStatus(id);
 }

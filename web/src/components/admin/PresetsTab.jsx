@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import Pagination from './Pagination';
 
 export default function PresetsTab({
   rolePresets,
@@ -6,6 +7,10 @@ export default function PresetsTab({
   openEditPreset,
   handleDeletePreset
 }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const paginatedPresets = rolePresets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div>
       <h2 style={{ marginBottom: '20px' }}>Role Presets</h2>
@@ -29,7 +34,7 @@ export default function PresetsTab({
           </tr>
         </thead>
         <tbody>
-          {rolePresets.map((p, idx) => (
+          {paginatedPresets.map((p, idx) => (
             <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
               <td style={{ padding: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -53,6 +58,14 @@ export default function PresetsTab({
           ))}
         </tbody>
       </table>
+      {rolePresets.length > 0 && (
+        <Pagination 
+          currentPage={currentPage} 
+          totalItems={rolePresets.length} 
+          itemsPerPage={itemsPerPage} 
+          onPageChange={setCurrentPage} 
+        />
+      )}
     </div>
   );
 }

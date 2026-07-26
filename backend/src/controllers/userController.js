@@ -52,4 +52,17 @@ async function updateMyPassword(req, res, next) {
   } catch (e) { next(e); }
 }
 
-module.exports = { list, updateMyPresence, updateMe, updateMyPassword };
+async function saveFcmToken(req, res, next) {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'Token is required' });
+    const { db } = require('../db/connection');
+    await db.query(
+      'INSERT IGNORE INTO fcm_tokens (user_id, token) VALUES (:user_id, :token)',
+      { user_id: req.user.id, token }
+    );
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+}
+
+module.exports = { list, updateMyPresence, updateMe, updateMyPassword, saveFcmToken };
