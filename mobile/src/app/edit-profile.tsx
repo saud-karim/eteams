@@ -6,33 +6,66 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../api/client';
-
+import { useTranslation } from 'react-i18next';
+import { UserAvatar } from '../components/UserAvatar';
+import * as ImagePicker from 'expo-image-picker';
 export default function EditProfileScreen() {
   const { user, setUser } = useAuth();
   const { theme, colors } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t, i18n } = useTranslation();
 
   const [name, setName] = useState(user?.name || user?.username || '');
   const [jobTitle, setJobTitle] = useState(user?.job_title || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [phone, setPhone] = useState(user?.phone || '');
   const [statusText, setStatusText] = useState(user?.status_text || '');
   const [presence, setPresence] = useState(user?.presence || 'online');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handleAvatarPick = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets[0]) {
+      const asset = result.assets[0];
+      setAvatarUploading(true);
+      try {
+        const res = await api.users.updateAvatar(
+          asset.uri,
+          asset.mimeType || 'image/jpeg',
+          asset.fileName || 'avatar.jpg'
+        );
+        if (res.user) {
+          setUser({ ...res.user, presence });
+        }
+        Alert.alert(t('common.success'), t('profile.profile_updated'));
+      } catch (err: any) {
+        Alert.alert(t('common.error'), err.message || t('common.something_went_wrong'));
+      } finally {
+        setAvatarUploading(false);
+      }
+    }
+  };
 
   const styles = createStyles(colors);
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Name is required');
+      Alert.alert(t('common.error'), t('profile.name_required'));
       return;
     }
 
     setLoading(true);
     try {
       // Update basic profile
-      const res = await api.users.updateMe(name, jobTitle, statusText);
+      const res = await api.users.updateMe(name, jobTitle, statusText, email, phone);
       // Update presence
       await api.users.setPresence(presence, statusText);
 
@@ -40,22 +73,11 @@ export default function EditProfileScreen() {
         setUser({ ...res.user, presence });
       }
 
-      // If user wants to change password
-      if (newPassword) {
-        if (!currentPassword) {
-          Alert.alert('Error', 'Please enter your current password to set a new one.');
-          setLoading(false);
-          return;
-        }
-        await api.users.updatePassword(currentPassword, newPassword);
-        Alert.alert('Success', 'Profile and password updated successfully');
-      } else {
-        Alert.alert('Success', 'Profile updated successfully');
-      }
+      Alert.alert(t('common.success'), t('profile.profile_updated'));
 
       router.back();
     } catch (err: any) {
-      Alert.alert('Error updating profile', err.message || 'Something went wrong');
+      Alert.alert(t('profile.error_updating_profile'), err.message || t('common.something_went_wrong'));
     } finally {
       setLoading(false);
     }
@@ -79,40 +101,74 @@ export default function EditProfileScreen() {
     >
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+          <MaterialIcons name="arrow-back" size={24} color={colors.text} style={{ transform: [{ scaleX: i18n.dir() === 'rtl' ? -1 : 1 }] }} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={styles.headerTitle}>{t('profile.edit_title')}</Text>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading}>
-          {loading ? <ActivityIndicator size="small" color={colors.primary} /> : <Text style={styles.saveButtonText}>Save</Text>}
+          {loading ? <ActivityIndicator size="small" color={colors.primary} /> : <Text style={styles.saveButtonText}>{t('common.save')}</Text>}
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Name</Text>
+        <View style={{ alignItems: 'center', marginBottom: 24 }}>
+          <TouchableOpacity onPress={handleAvatarPick} disabled={avatarUploading} style={{ position: 'relative' }}>
+            <UserAvatar name={name} avatarUrl={user?.avatar} size={100} style={{ opacity: avatarUploading ? 0.5 : 1 }} />
+            <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: colors.primary, borderRadius: 16, padding: 6 }}>
+              <MaterialIcons name="photo-camera" size={16} color="#fff" />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.inputGroup, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]}>
+          <Text style={styles.label}>{t('auth.name')}</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left', width: '100%' }]}
             value={name}
             onChangeText={setName}
-            placeholder="Your name"
+            placeholder={t('auth.enter_name')}
             placeholderTextColor={colors.textDim}
           />
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Job Title</Text>
+        <View style={[styles.inputGroup, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]}>
+          <Text style={styles.label}>{t('profile.job_title')}</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left', width: '100%' }]}
             value={jobTitle}
             onChangeText={setJobTitle}
-            placeholder="e.g. Senior Developer"
+            placeholder={t('profile.job_placeholder')}
             placeholderTextColor={colors.textDim}
           />
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Presence Status</Text>
-          <View style={styles.presenceContainer}>
+        <View style={[styles.inputGroup, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]}>
+          <Text style={styles.label}>{t('profile.email_address', 'Email Address')}</Text>
+          <TextInput
+            style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left', width: '100%' }]}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="e.g. user@example.com"
+            placeholderTextColor={colors.textDim}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
+
+        <View style={[styles.inputGroup, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]}>
+          <Text style={styles.label}>{t('profile.phone_number', 'Phone Number')}</Text>
+          <TextInput
+            style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left', width: '100%' }]}
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="e.g. +1234567890"
+            placeholderTextColor={colors.textDim}
+            keyboardType="phone-pad"
+          />
+        </View>
+
+        <View style={[styles.inputGroup, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]}>
+          <Text style={styles.label}>{t('profile.presence')}</Text>
+          <View style={[styles.presenceContainer, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
             {['online', 'away', 'dnd', 'meeting', 'offline'].map(p => (
               <TouchableOpacity
                 key={p}
@@ -123,54 +179,26 @@ export default function EditProfileScreen() {
                 ]}
                 onPress={() => setPresence(p)}
               >
-                <View style={[styles.presenceDot, { backgroundColor: presence === p ? '#fff' : getPresenceColor(p) }]} />
+                <View style={[styles.presenceDot, { backgroundColor: presence === p ? '#fff' : getPresenceColor(p), marginLeft: i18n.dir() === 'rtl' ? 6 : 0, marginRight: i18n.dir() === 'rtl' ? 0 : 6 }]} />
                 <Text style={[styles.presenceChipText, presence === p && { color: '#fff' }]}>
-                  {p.charAt(0).toUpperCase() + p.slice(1)}
+                  {p === 'dnd' ? t('profile.dnd', 'Do Not Disturb') : p === 'away' ? t('profile.away', 'Away') : p === 'meeting' ? t('profile.meeting', 'In a Meeting') : p === 'offline' ? t('profile.offline', 'Offline') : t('profile.available', 'Available')}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Status Message</Text>
+        <View style={[styles.inputGroup, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]}>
+          <Text style={styles.label}>{t('profile.status_message')}</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[styles.input, styles.textArea, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left', width: '100%' }]}
             value={statusText}
             onChangeText={setStatusText}
-            placeholder="What are you working on?"
+            placeholder={t('profile.status_placeholder')}
             placeholderTextColor={colors.textDim}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
-          />
-        </View>
-
-        <View style={styles.divider} />
-
-        <Text style={styles.sectionTitle}>Change Password</Text>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Current Password</Text>
-          <TextInput
-            style={styles.input}
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-            placeholder="Required to change password"
-            placeholderTextColor={colors.textDim}
-            secureTextEntry
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>New Password</Text>
-          <TextInput
-            style={styles.input}
-            value={newPassword}
-            onChangeText={setNewPassword}
-            placeholder="Min 6 characters"
-            placeholderTextColor={colors.textDim}
-            secureTextEntry
           />
         </View>
       </ScrollView>
@@ -237,17 +265,6 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   textArea: {
     height: 100,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginVertical: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
   },
   presenceContainer: {
     flexDirection: 'row',

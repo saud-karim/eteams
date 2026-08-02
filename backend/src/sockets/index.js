@@ -60,10 +60,10 @@ function initSocket(server) {
       }
     });
 
-    socket.on('disconnect', async () => {
+    socket.on('disconnect', async (reason) => {
       await User.updatePresence(user.id, 'offline');
       io.emit('presence:update', { userId: user.id, presence: 'offline' });
-      console.log(`[socket] ${user.name} disconnected`);
+      console.log(`[socket] ${user.name} disconnected (Reason: ${reason})`);
     });
   });
 

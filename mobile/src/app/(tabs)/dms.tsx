@@ -9,6 +9,7 @@ import { API_BASE_URL, api } from '../../api/client';
 import { useRouter } from 'expo-router';
 import { TabHeader } from '../../components/TabHeader';
 import { UserAvatar } from '../../components/UserAvatar';
+import { useTranslation } from 'react-i18next';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,6 +18,7 @@ export default function DmsScreen() {
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors, insets);
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   
   const { user } = useAuth();
   const { channels, users, refreshWorkspace, refreshing } = useWorkspace();
@@ -91,19 +93,19 @@ export default function DmsScreen() {
 
   return (
     <View style={styles.container}>
-      <TabHeader title="Chats" showLogo={false} />
+      <TabHeader title={t('tabs.dms')} showLogo={false} />
 
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
         <MaterialIcons name="search" size={20} color={colors.iconDefault} style={styles.searchIcon} />
         <TextInput 
-          style={styles.searchInput}
-          placeholder="Find people or channels..."
+          style={[styles.searchInput, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
+          placeholder={t('dms.find_people')}
           placeholderTextColor={colors.iconDefault}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={{ position: 'absolute', right: 12, zIndex: 2 }}>
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
             <MaterialIcons name="close" size={20} color={colors.iconDefault} />
           </TouchableOpacity>
         )}
@@ -138,8 +140,8 @@ export default function DmsScreen() {
 
                 {selectedUsers.length > 1 && (
                   <TextInput
-                    style={styles.groupNameInput}
-                    placeholder="Group Name (Optional)"
+                    style={[styles.groupNameInput, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
+                    placeholder={t('dms.group_name')}
                     placeholderTextColor={colors.iconDefault}
                     value={groupName}
                     onChangeText={setGroupName}
@@ -154,29 +156,29 @@ export default function DmsScreen() {
                   {isCreating ? (
                     <ActivityIndicator color={colors.background} size="small" />
                   ) : (
-                    <Text style={styles.createButtonText}>Start Chat</Text>
+                    <Text style={styles.createButtonText}>{t('dms.start_chat')}</Text>
                   )}
                 </TouchableOpacity>
               </View>
             )}
 
-            <Text style={styles.sectionHeader}>MATCHING USERS</Text>
+            <Text style={[styles.sectionHeader, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}>{t('dms.matching_users')}</Text>
             {filteredUsers.length === 0 ? (
-              <Text style={{ color: colors.iconDefault, paddingHorizontal: 16 }}>No users found.</Text>
+              <Text style={{ color: colors.iconDefault, paddingHorizontal: 16, textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }}>{t('dms.no_users_found')}</Text>
             ) : (
               filteredUsers.map((u: any) => {
                 const isSelected = selectedUsers.some(su => su.id === u.id);
                 
                 return (
-                  <TouchableOpacity key={u.id} style={styles.userListItem} onPress={() => toggleUserSelection(u)}>
-                    <View style={styles.userListItemLeft}>
+                  <TouchableOpacity key={u.id} style={[styles.userListItem, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]} onPress={() => toggleUserSelection(u)}>
+                    <View style={[styles.userListItemLeft, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
                       <UserAvatar 
                         name={u.name || u.username}
                         avatarUrl={u.avatar}
                         size={40}
                         style={styles.chatAvatar}
                       />
-                      <Text style={styles.chatName}>{u.name || u.username}</Text>
+                      <Text style={[styles.chatName, { marginHorizontal: 12 }]}>{u.name || u.username}</Text>
                     </View>
                     <MaterialIcons 
                       name={isSelected ? "check-circle" : "radio-button-unchecked"} 
@@ -192,7 +194,7 @@ export default function DmsScreen() {
           <>
             {/* Favorites */}
             <View style={styles.section}>
-              <Text style={styles.sectionHeader}>FAVORITES</Text>
+              <Text style={[styles.sectionHeader, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}>{t('dms.favorites')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.favoritesContainer}>
                 {/* User 1 */}
                 <TouchableOpacity style={styles.favoriteItem} onPress={() => router.push('/chat/sarah')}>
@@ -234,10 +236,10 @@ export default function DmsScreen() {
 
             {/* Recent Messages */}
             <View style={styles.section}>
-              <Text style={styles.sectionHeader}>RECENT</Text>
+              <Text style={[styles.sectionHeader, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}>{t('dms.recent')}</Text>
               <View style={styles.recentList}>
                 {dmChannels.length === 0 ? (
-                  <Text style={{ color: colors.iconDefault, paddingHorizontal: 16 }}>No direct messages yet.</Text>
+                  <Text style={{ color: colors.iconDefault, paddingHorizontal: 16, textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }}>{t('dms.no_dms')}</Text>
                 ) : (
                   dmChannels.map((ch: any) => {
                     const { otherUser, displayName } = getDisplayInfo(ch);
@@ -246,7 +248,7 @@ export default function DmsScreen() {
                     const statusColor = isOnline ? '#22C55E' : '#889299';
 
                     return (
-                      <TouchableOpacity key={ch.id} style={styles.chatItem} onPress={() => router.push(`/chat/${ch.slug}`)}>
+                      <TouchableOpacity key={ch.id} style={[styles.chatItem, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]} onPress={() => router.push(`/chat/${ch.slug}`)}>
                         <View style={styles.chatAvatarContainer}>
                           <UserAvatar 
                             name={displayName}
@@ -256,8 +258,8 @@ export default function DmsScreen() {
                           />
                           <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
                         </View>
-                        <View style={styles.chatContent}>
-                          <View style={styles.chatHeader}>
+                        <View style={[styles.chatContent, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start', marginHorizontal: 12 }]}>
+                          <View style={[styles.chatHeader, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
                             <Text style={[styles.chatName, ch.unread_count > 0 && { fontWeight: '700', color: colors.text }]}>
                               {displayName}
                             </Text>
@@ -265,8 +267,8 @@ export default function DmsScreen() {
                               {ch.last_message_at ? new Date(ch.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                             </Text>
                           </View>
-                          <Text style={ch.unread_count > 0 ? styles.chatMessagePrimary : styles.chatMessage} numberOfLines={1}>
-                            {ch.last_message?.body || "Started a conversation"}
+                          <Text style={[ch.unread_count > 0 ? styles.chatMessagePrimary : styles.chatMessage, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]} numberOfLines={1}>
+                            {ch.last_message?.body || t('dms.started_conv')}
                           </Text>
                         </View>
                         {ch.unread_count > 0 && (
@@ -338,26 +340,24 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
     elevation: 4,
   },
   searchContainer: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: 12,
-    zIndex: 1,
-  },
-  searchInput: {
-    backgroundColor: colors.surfaceContainer,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 40,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingLeft: 40,
-    paddingRight: 36,
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
     color: colors.text,
-    fontSize: 14,
+    fontSize: 15,
   },
   scrollContent: {
     paddingBottom: 80,

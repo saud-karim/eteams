@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useTranslation } from 'react-i18next';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,6 +16,7 @@ export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors, insets);
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,14 +42,17 @@ export default function RegisterScreen() {
           
           <View style={styles.topBar}>
             <TouchableOpacity style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/')}>
-              <MaterialIcons name="arrow-back" size={24} color={colors.textDim} />
-              <Text style={styles.backText}>Back</Text>
+              <MaterialIcons name="arrow-back" size={24} color={colors.textDim} style={{ transform: [{ scaleX: i18n.dir() === 'rtl' ? -1 : 1 }] }} />
+              <Text style={styles.backText}>{t('common.back')}</Text>
             </TouchableOpacity>
             
-            <View style={styles.rightActions}>
-              <TouchableOpacity style={styles.langButton}>
+            <View style={[styles.rightActions, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
+              <TouchableOpacity style={styles.langButton} onPress={() => {
+                const newLang = i18n.language === 'en' ? 'ar' : 'en';
+                import('../../locales/i18n').then(({ changeLanguage }) => changeLanguage(newLang));
+              }}>
                 <MaterialIcons name="language" size={18} color={colors.textDim} />
-                <Text style={styles.langText}>EN</Text>
+                <Text style={styles.langText}>{i18n.language === 'en' ? 'EN' : 'AR'}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.themeButton} onPress={() => setThemeSetting(theme === 'dark' ? 'light' : 'dark')}>
                 <MaterialIcons name={theme === 'dark' ? 'light-mode' : 'dark-mode'} size={20} color={colors.textDim} />
@@ -60,18 +65,18 @@ export default function RegisterScreen() {
               <View style={styles.logoContainer}>
                 <MaterialIcons name="business" size={28} color="#fff" />
               </View>
-              <Text style={styles.title}>eTeams</Text>
-              <Text style={styles.subtitle}>Create your workspace account.</Text>
+              <Text style={styles.title}>Eteams</Text>
+              <Text style={styles.subtitle}>{t('auth.create_account')}</Text>
             </View>
 
             <View style={styles.form}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Full Name</Text>
+                <Text style={styles.label}>{t('auth.name')}</Text>
                 <View style={styles.inputWrapper}>
                   <MaterialIcons name="account-circle" size={20} color={colors.textDim} style={styles.inputIconLeft} />
                   <TextInput
-                    style={styles.input}
-                    placeholder="Enter your full name"
+                    style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
+                    placeholder={t('auth.enter_name')}
                     placeholderTextColor={colors.border}
                     value={name}
                     onChangeText={setName}
@@ -80,12 +85,12 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email Address</Text>
+                <Text style={styles.label}>{t('auth.email')}</Text>
                 <View style={styles.inputWrapper}>
                   <MaterialIcons name="email" size={20} color={colors.textDim} style={styles.inputIconLeft} />
                   <TextInput
-                    style={styles.input}
-                    placeholder="name@company.com"
+                    style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
+                    placeholder={t('auth.enter_email')}
                     placeholderTextColor={colors.border}
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -96,11 +101,11 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
+                <Text style={styles.label}>{t('auth.password')}</Text>
                 <View style={styles.inputWrapper}>
                   <MaterialIcons name="lock" size={20} color={colors.textDim} style={styles.inputIconLeft} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
                     placeholder="••••••••"
                     placeholderTextColor={colors.border}
                     secureTextEntry={!showPassword}
@@ -121,21 +126,21 @@ export default function RegisterScreen() {
                   <View style={[styles.checkbox, agree && styles.checkboxActive]}>
                     {agree && <MaterialIcons name="check" size={12} color={colors.background} />}
                   </View>
-                  <Text style={styles.rememberText}>I agree to the Terms & Conditions</Text>
+                  <Text style={styles.rememberText}>{t('auth.agree_terms')}</Text>
                 </TouchableOpacity>
               </View>
 
               <TouchableOpacity style={styles.loginButton} onPress={handleRegister}>
-                <Text style={styles.loginButtonText}>Sign Up</Text>
+                <Text style={styles.loginButtonText}>{t('auth.sign_up')}</Text>
                 <MaterialIcons name="person-add" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
           
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={styles.footerText}>{t('auth.has_account')}</Text>
             <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-              <Text style={styles.footerLink}>Sign In</Text>
+              <Text style={styles.footerLink}>{t('auth.sign_in')}</Text>
             </TouchableOpacity>
           </View>
 

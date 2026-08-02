@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useWorkspace } from '../context/WorkspaceContext.jsx';
 import { useSocket } from '../context/SocketContext.jsx';
 import Topbar from '../components/Topbar';
+import SidebarRail from '../components/SidebarRail';
 import Sidebar from '../components/Sidebar';
 import ChatArea from '../components/ChatArea';
 import CreateChannelModal from '../components/CreateChannelModal';
@@ -13,9 +14,9 @@ import NewDmModal from '../components/NewDmModal';
 import GlobalThreadsView from '../components/GlobalThreadsView';
 import GlobalSavedView from '../components/GlobalSavedView';
 import GlobalSearchView from '../components/GlobalSearchView';
-import CallModal from '../components/CallModal';
 import GlobalBanner from '../components/GlobalBanner';
 import NotificationPromptModal from '../components/NotificationPromptModal';
+import ActivityFeed from '../components/ActivityFeed';
 import { api } from '../api/client';
 import { requestFirebaseNotificationPermission } from '../firebase';
 
@@ -101,7 +102,6 @@ export default function Workspace() {
   };
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [callActive, setCallActive] = useState(false);
 
   // Auto-select first channel on load
   useEffect(() => {
@@ -245,6 +245,12 @@ export default function Workspace() {
       />
       
       <div className="main">
+        <SidebarRail 
+          activeView={activeView} 
+          setActiveView={setActiveView} 
+          onLogout={() => { localStorage.clear(); window.location.href = '/login'; }}
+          onOpenProfile={() => setShowProfileSettings(true)}
+        />
         <Sidebar 
           user={user} 
           activeView={activeView}
@@ -265,7 +271,6 @@ export default function Workspace() {
             <ChatArea 
               activeChannel={activeChannel} 
               targetMessageId={targetMessageId}
-              onStartCall={() => setCallActive(true)}
             />
           ) : activeView === 'threads' ? (
             <GlobalThreadsView />
@@ -276,6 +281,8 @@ export default function Workspace() {
               searchQuery={globalSearchQuery} 
               onJumpToChannel={(slug, msgId) => handleChannelSelect(slug, msgId)}
             />
+          ) : activeView === 'activity' ? (
+            <ActivityFeed />
           ) : null
         ) : (
           <AdminPanel onClose={() => setShowAdminPanel(false)} />
@@ -290,11 +297,6 @@ export default function Workspace() {
         />
       )}
       {showProfileSettings && <ProfileSettingsModal user={user} onClose={() => setShowProfileSettings(false)} />}
-      <CallModal 
-        isOpen={callActive} 
-        onClose={() => setCallActive(false)} 
-        channel={channels?.find(c => c.slug === activeChannel)}
-      />
       
       {showNotifPrompt && (
         <NotificationPromptModal 

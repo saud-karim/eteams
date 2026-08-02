@@ -6,6 +6,7 @@ const User = require('../models/User');
 const Reaction = require('../models/Reaction');
 const AuditLog = require('../models/AuditLog');
 const Attachment = require('../models/Attachment');
+const MessageRead = require('../models/MessageRead');
 const { parseMentions } = require('../utils/mentions');
 const { emitToChannel, emitToUser } = require('../sockets');
 
@@ -15,12 +16,36 @@ const sendSchema = z.object({
   parentId: z.string().uuid().nullable().optional(),
 });
 
-async function attachReactions(msgs) {
+async function attachReactions(msgs, authorId = null) {
   for (const m of msgs) {
     m.reactions = await Message.listReactions(m.id);
     m.attachments = await Attachment.listByMessage(m.id);
+    m.readers = await MessageRead.getReaders(m.id, authorId || m.user_id);
   }
   return msgs;
+}
+
+async function markRead(req, res, next) {
+  try {
+    const { messageIds } = req.body;
+    if (!Array.isArray(messageIds) || messageIds.length === 0) {
+      return res.status(400).json({ error: 'messageIds array required' });
+    }
+    await MessageRead.markManyRead(req.user.id, messageIds);
+    // Emit read receipts to the channel so other clients can update UI
+    const msg = await Message.findById(messageIds[messageIds.length - 1]);
+    if (msg) {
+      const readers = await MessageRead.getReaders(msg.id, msg.user_id);
+      emitToChannel(msg.channel_id, 'message:read', {
+        messageIds,
+        channelId: msg.channel_id,
+        reader: { id: req.user.id },
+        lastMessageId: msg.id,
+        readers
+      });
+    }
+    res.json({ ok: true });
+  } catch (e) { next(e); }
 }
 
 async function list(req, res, next) {
@@ -61,6 +86,26 @@ async function listReplies(req, res, next) {
     const msgs = await Message.listReplies(parentId, { limit, before, userId: req.user.id });
     await attachReactions(msgs);
     res.json({ messages: msgs });
+  } catch (e) { next(e); }
+}
+
+async function getById(req, res, next) {
+  try {
+    const msg = await Message.findById(req.params.id);
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+    
+    // Check channel access
+    const ch = await Channel.findById(msg.channel_id);
+    if (ch.type === 'private') {
+      if (!(await Channel.isMember(ch.id, req.user.id)) && req.user.role !== 'superadmin') {
+        return res.status(403).json({ error: 'Not a member' });
+      }
+    }
+    
+    // Attach reactions, attachments, and readers
+    await attachReactions([msg], req.user.id);
+    
+    res.json({ message: msg });
   } catch (e) { next(e); }
 }
 
@@ -152,8 +197,14 @@ async function send(req, res, next) {
     const channelObj = await Channel.findById(data.channelId);
     const members = await Channel.listMembers(data.channelId);
     const offlineUserIds = [];
+    
+    let parentMsg = null;
+    if (data.parentId) {
+      const Message = require('../models/Message');
+      parentMsg = await Message.findById(data.parentId);
+    }
 
-    if (mentions.users.length > 0 || mentions.special.length > 0 || channelObj.type === 'direct') {
+    if (mentions.users.length > 0 || mentions.special.length > 0 || channelObj.type === 'direct' || channelObj.type === 'dm' || parentMsg) {
       for (const m of members) {
         if (m.id === req.user.id) continue;
         let shouldNotify = false;
@@ -167,7 +218,10 @@ async function send(req, res, next) {
         } else if (mentions.special.includes('here') && m.presence === 'online') {
           shouldNotify = true;
           noteText = `${req.user.name} used @here`;
-        } else if (channelObj.type === 'direct') {
+        } else if (parentMsg && parentMsg.user_id === m.id) {
+          shouldNotify = true;
+          noteText = `${req.user.name} replied to your thread`;
+        } else if (channelObj.type === 'direct' || channelObj.type === 'dm') {
           shouldNotify = true;
           noteText = `New DM from ${req.user.name}`;
         }
@@ -345,6 +399,27 @@ async function getThreads(req, res, next) {
   }
 }
 
+async function getFiles(req, res, next) {
+  try {
+    const { db } = require('../db/connection');
+    const [rows] = await db.query(
+      `SELECT m.*, u.name AS author_name, u.avatar_initials, u.avatar_color, c.slug AS channel_slug, c.name AS channel_name, c.type AS channel_type
+       FROM messages m
+       JOIN users u ON u.id = m.user_id
+       JOIN channels c ON c.id = m.channel_id
+       JOIN memberships mem ON mem.channel_id = c.id AND mem.user_id = :userId
+       WHERE m.deleted_at IS NULL
+         AND m.attachments IS NOT NULL 
+         AND JSON_LENGTH(m.attachments) > 0
+       ORDER BY m.created_at DESC
+       LIMIT 50`,
+      { userId: req.user.id }
+    );
+    await attachReactions(rows);
+    res.json(rows);
+  } catch (err) { next(err); }
+}
+
 async function getMentions(req, res, next) {
   try {
     const { db } = require('../db/connection');
@@ -367,4 +442,5 @@ async function getMentions(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { list, listReplies, send, edit, remove, react, togglePin, search, toggleSave, getSavedMessages, getThreads, getMentions };
+module.exports = { list, listReplies, send, edit, remove, react, togglePin, search, toggleSave, getSavedMessages, getThreads, getMentions, markRead, getById, getFiles };
+

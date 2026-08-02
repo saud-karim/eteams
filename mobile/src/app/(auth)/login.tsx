@@ -6,6 +6,7 @@ import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,6 +18,7 @@ export default function LoginScreen() {
   const styles = createStyles(colors, insets);
   const router = useRouter();
   const { login } = useAuth();
+  const { t, i18n } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,7 +33,7 @@ export default function LoginScreen() {
       await login(username, password);
       router.replace('/(tabs)');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(err.message || t('auth.login_failed'));
     } finally {
       setLoading(false);
     }
@@ -50,9 +52,12 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           
           <View style={styles.topBar}>
-            <TouchableOpacity style={styles.langButton}>
+            <TouchableOpacity style={styles.langButton} onPress={() => {
+              const newLang = i18n.language === 'en' ? 'ar' : 'en';
+              import('../../locales/i18n').then(({ changeLanguage }) => changeLanguage(newLang));
+            }}>
               <MaterialIcons name="language" size={18} color={colors.textDim} />
-              <Text style={styles.langText}>EN</Text>
+              <Text style={styles.langText}>{i18n.language === 'en' ? 'EN' : 'AR'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.themeButton} onPress={() => setThemeSetting(theme === 'dark' ? 'light' : 'dark')}>
               <MaterialIcons name={theme === 'dark' ? 'light-mode' : 'dark-mode'} size={20} color={colors.textDim} />
@@ -64,18 +69,18 @@ export default function LoginScreen() {
               <View style={styles.logoContainer}>
                 <MaterialIcons name="business" size={28} color="#fff" />
               </View>
-              <Text style={styles.title}>eTeams</Text>
-              <Text style={styles.subtitle}>Welcome back to EDARA IFM.</Text>
+              <Text style={styles.title}>Eteams</Text>
+              <Text style={styles.subtitle}>{t('auth.welcome_back')}</Text>
             </View>
 
             <View style={styles.form}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Username</Text>
+                <Text style={styles.label}>{t('auth.username')}</Text>
                 <View style={styles.inputWrapper}>
                   <MaterialIcons name="person" size={20} color={colors.textDim} style={styles.inputIconLeft} />
                   <TextInput
-                    style={styles.input}
-                    placeholder="Enter your username"
+                    style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
+                    placeholder={t('auth.enter_username')}
                     placeholderTextColor={colors.border}
                     autoCapitalize="none"
                     value={username}
@@ -86,15 +91,15 @@ export default function LoginScreen() {
 
               <View style={styles.inputGroup}>
                 <View style={styles.passwordHeader}>
-                  <Text style={styles.label}>Password</Text>
+                  <Text style={styles.label}>{t('auth.password')}</Text>
                   <TouchableOpacity>
-                    <Text style={styles.forgotPassword}>Forgot Password?</Text>
+                    <Text style={styles.forgotPassword}>{t('auth.forgot_password')}</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={styles.inputWrapper}>
                   <MaterialIcons name="lock" size={20} color={colors.textDim} style={styles.inputIconLeft} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
                     placeholder="••••••••"
                     placeholderTextColor={colors.border}
                     secureTextEntry={!showPassword}
@@ -115,7 +120,7 @@ export default function LoginScreen() {
                   <View style={[styles.checkbox, remember && styles.checkboxActive]}>
                     {remember && <MaterialIcons name="check" size={12} color={colors.background} />}
                   </View>
-                  <Text style={styles.rememberText}>Remember Me</Text>
+                  <Text style={styles.rememberText}>{t('auth.remember_me')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -126,16 +131,16 @@ export default function LoginScreen() {
                 onPress={handleLogin}
                 disabled={loading}
               >
-                <Text style={styles.loginButtonText}>{loading ? 'Logging in...' : 'Login'}</Text>
-                {!loading && <MaterialIcons name="arrow-forward" size={20} color="#fff" />}
+                <Text style={styles.loginButtonText}>{loading ? t('auth.logging_in') : t('auth.login')}</Text>
+                {!loading && <MaterialIcons name="arrow-forward" size={20} color="#fff" style={{ transform: [{ scaleX: i18n.dir() === 'rtl' ? -1 : 1 }] }} />}
               </TouchableOpacity>
             </View>
           </View>
           
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={styles.footerText}>{t('auth.no_account')}</Text>
             <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-              <Text style={styles.footerLink}>Sign Up</Text>
+              <Text style={styles.footerLink}>{t('auth.sign_up')}</Text>
             </TouchableOpacity>
           </View>
 

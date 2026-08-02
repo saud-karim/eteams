@@ -6,14 +6,17 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '../../context/ThemeContext';
 import { Typography } from '@/constants/Typography';
+import { useTranslation } from 'react-i18next';
+import { i18n as i18nInstance } from '../../locales/i18n';
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { theme, colors } = useTheme();
+  const { t, i18n } = useTranslation();
   const styles = createStyles(colors);
 
   return (
-    <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+    <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 16), flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
       {state.routes.map((route: any, index: number) => {
         const { options } = descriptors[route.key];
         
@@ -21,12 +24,17 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           return null;
         }
 
-        const label =
+        let label =
           options.tabBarLabel !== undefined
             ? options.tabBarLabel
             : options.title !== undefined
             ? options.title
             : route.name;
+
+        if (route.name === 'index') label = t('tabs.home');
+        else if (route.name === 'dms') label = t('tabs.dms');
+        else if (route.name === 'activity') label = t('tabs.activity');
+        else if (route.name === 'profile') label = t('tabs.profile');
 
         const isFocused = state.index === index;
 

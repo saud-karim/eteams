@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Save, CheckCircle } from 'lucide-react';
+import { X, User, Save, CheckCircle, Camera } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
@@ -11,6 +11,8 @@ export default function ProfileSettingsModal({ onClose, user }) {
   const [form, setForm] = useState({
     name: user?.name || '',
     job_title: user?.job_title || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
     status_text: user?.status_text || '',
     currentPassword: '',
     newPassword: '',
@@ -18,13 +20,28 @@ export default function ProfileSettingsModal({ onClose, user }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const res = await api.users.updateAvatar(file);
+      setUser(prev => ({ ...prev, ...res.user }));
+    } catch (err) {
+      setError(err.message || 'Failed to upload avatar');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!form.name.trim()) return setError('Name cannot be empty');
     setSaving(true);
     setError('');
     try {
-      const res = await api.users.updateMe({ name: form.name, job_title: form.job_title, status_text: form.status_text });
+      const res = await api.users.updateMe({ name: form.name, job_title: form.job_title, status_text: form.status_text, email: form.email, phone: form.phone });
       setUser(prev => ({ ...prev, ...res.user }));
       
       if (form.currentPassword || form.newPassword) {
@@ -59,7 +76,17 @@ export default function ProfileSettingsModal({ onClose, user }) {
         <div className="msub">{t('profileSub')}</div>
         
         <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-          <Avatar user={{ ...user, name: form.name }} size={100} style={{ flexShrink: 0 }} />
+          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <Avatar user={{ ...user, name: form.name }} size={100} />
+            <label style={{ 
+              display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', 
+              color: 'var(--primary)', cursor: avatarUploading ? 'default' : 'pointer', opacity: avatarUploading ? 0.5 : 1 
+            }}>
+              <Camera size={14} />
+              {avatarUploading ? 'Uploading...' : 'Change'}
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} disabled={avatarUploading} />
+            </label>
+          </div>
           
           <div style={{ flex: 1 }}>
             <div className="form-field">
@@ -88,8 +115,29 @@ export default function ProfileSettingsModal({ onClose, user }) {
           <input type="text" defaultValue={user?.username || ''} readOnly style={{ opacity: 0.6 }} />
         </div>
 
+        <div style={{ display: 'flex', gap: '20px', marginTop: '16px' }}>
+          <div className="form-field" style={{ flex: 1 }}>
+            <label>{t('emailAddress', 'Email Address')}</label>
+            <input 
+              type="email" 
+              value={form.email} 
+              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              placeholder="e.g. user@example.com"
+            />
+          </div>
+          <div className="form-field" style={{ flex: 1 }}>
+            <label>{t('phoneNumber', 'Phone Number')}</label>
+            <input 
+              type="text" 
+              value={form.phone} 
+              onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+              placeholder="e.g. +1234567890"
+            />
+          </div>
+        </div>
+
         <div className="form-field" style={{ marginTop: '4px' }}>
-          <label>Status Message</label>
+          <label>{t('statusMessage', 'Status Message')}</label>
           <input 
             type="text" 
             value={form.status_text}
@@ -99,7 +147,7 @@ export default function ProfileSettingsModal({ onClose, user }) {
           />
         </div>
 
-        <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-dim)', marginTop: '24px', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Change Password (Optional)</div>
+        <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-dim)', marginTop: '24px', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('changePassword', 'Change Password (Optional)')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div className="form-field">
             <input 
@@ -127,7 +175,7 @@ export default function ProfileSettingsModal({ onClose, user }) {
 
         {saved && (
           <div style={{ color: 'var(--emerald)', fontSize: '13px', marginTop: '8px', padding: '8px 12px', background: 'rgba(59,167,214,0.1)', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <CheckCircle size={14} /> Profile saved successfully!
+            <CheckCircle size={14} /> {t('profileSaved', 'Profile saved successfully!')}
           </div>
         )}
         

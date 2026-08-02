@@ -19,7 +19,7 @@ const translations = {
     addTeammates: 'Add teammates',
     viewProfile: 'View profile',
     preferences: 'Preferences',
-    signOut: 'Sign out of ETeams',
+    signOut: 'Sign out of Eteams',
     // Channels
     channel_general: 'general',
     channel_procurement: 'procurement',
@@ -45,11 +45,6 @@ const translations = {
     publicChannel: '🌐 Public (all staff can join)',
     privateChannel: '🔒 Private (invite only)',
     announcementChannel: '📢 Announcement (read-only for members)',
-    retentionLabel: 'Retention policy',
-    forever: 'Forever (CEO/HR level)',
-    '7years': '7 years (compliance default)',
-    '3years': '3 years (general)',
-    '1year': '1 year (temporary)',
     createChannelButton: 'Create Channel',
     newMessageTip: 'New message',
     // Profile Settings
@@ -121,7 +116,7 @@ const translations = {
     addTeammates: 'إضافة زملاء',
     viewProfile: 'عرض الملف الشخصي',
     preferences: 'الإعدادات',
-    signOut: 'تسجيل الخروج من ETeams',
+    signOut: 'تسجيل الخروج من Eteams',
     // Channels
     channel_general: 'العام',
     channel_procurement: 'المشتريات',

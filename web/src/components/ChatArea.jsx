@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  Phone, Video, MoreHorizontal, Download, Lock, Hash, Megaphone, MessageSquare, Info, Settings, UserMinus
+  MoreHorizontal, Download, Lock, Hash, Megaphone, MessageSquare, Info, Settings, UserMinus
 } from 'lucide-react';
 import MessageInput from './MessageInput';
 import ThreadPanel from './ThreadPanel';
@@ -38,9 +38,12 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
 
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const messagesContainerRef = React.useRef(null);
-  const messagesEndRef = React.useRef(null);
-  const initialLoadRef = React.useRef(true);
+  const messagesContainerRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const initialLoadRef = useRef(true);
+  const observerRef = useRef(null);
+  const pendingReadIds = useRef(new Set());
+  const readFlushTimer = useRef(null);
 
   useEffect(() => {
     if (!channelObj?.id) return;
@@ -64,6 +67,50 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
     }).catch(console.error)
     .finally(() => setLoading(false));
   }, [channelObj?.id, channelObj?.slug]);
+
+  // Flush pending read IDs to the server
+  const flushReads = useCallback(() => {
+    if (pendingReadIds.current.size === 0) return;
+    const ids = [...pendingReadIds.current];
+    pendingReadIds.current.clear();
+    api.messages.markRead(ids).catch(console.error);
+  }, []);
+
+  // Set up IntersectionObserver to mark messages as read when they become visible
+  useEffect(() => {
+    if (!user) return;
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const msgId = entry.target.dataset.msgId;
+            const msgUserId = entry.target.dataset.userId;
+            // Don't mark own messages as read
+            if (msgId && msgUserId !== user.id) {
+              pendingReadIds.current.add(msgId);
+              // Debounce: flush after 800ms of no new entries
+              clearTimeout(readFlushTimer.current);
+              readFlushTimer.current = setTimeout(flushReads, 800);
+            }
+            observerRef.current.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+
+    // Observe existing messages
+    const els = messagesContainerRef.current?.querySelectorAll('[data-msg-id]');
+    els?.forEach(el => observerRef.current.observe(el));
+
+    return () => {
+      observerRef.current?.disconnect();
+      clearTimeout(readFlushTimer.current);
+      flushReads();
+    };
+  }, [messages, user?.id, flushReads]);
 
   const handleScroll = async (e) => {
     const { scrollTop, scrollHeight } = e.target;
@@ -161,12 +208,22 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
       });
     };
 
+    const handleReadReceipt = ({ messageIds, readers, lastMessageId }) => {
+      setMessages(prev => prev.map(m => {
+        if (messageIds.includes(m.id)) {
+          return { ...m, readers: readers };
+        }
+        return m;
+      }));
+    };
+
     socket.on('message:new', handleNewMessage);
     socket.on('message:updated', handleUpdateMessage);
     socket.on('message:deleted', handleDeleteMessage);
     socket.on('message:reactions', handleReactions);
     socket.on('typing:start', handleTypingStart);
     socket.on('typing:stop', handleTypingStop);
+    socket.on('message:read', handleReadReceipt);
     
     return () => {
       socket.off('message:new', handleNewMessage);
@@ -175,6 +232,7 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
       socket.off('message:reactions', handleReactions);
       socket.off('typing:start', handleTypingStart);
       socket.off('typing:stop', handleTypingStop);
+      socket.off('message:read', handleReadReceipt);
     };
   }, [socket, channelObj?.id]);
 
@@ -339,10 +397,11 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
               ) : messages.length === 0 ? (
                 <div style={{ padding: 20, color: 'var(--text-dim)', textAlign: 'center' }}>No messages yet.</div>
               ) : (
-                mainMessages.map(msg => {
+                mainMessages.map((msg, idx) => {
                   const author = users.find(u => u.id === msg.user_id) || { name: 'Unknown User' };
                   const canPin = user?.role === 'superadmin' || !!currentMem?.can_pin_messages || !!currentMem?.is_manager;
                   const canDeleteOthers = user?.role === 'superadmin' || !!currentMem?.can_delete_messages || !!currentMem?.is_manager;
+                  const isLast = idx === mainMessages.length - 1;
                   return (
                     <Message 
                       key={msg.id} 
@@ -352,6 +411,7 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
                       onReply={() => setActiveThreadMsg(msg)} 
                       canPin={canPin}
                       canDeleteOthers={canDeleteOthers}
+                      showReaders={isLast || msg.user_id === user?.id}
                     />
                   );
                 })

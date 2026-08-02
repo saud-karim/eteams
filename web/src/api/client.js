@@ -37,6 +37,18 @@ export const api = {
     updatePassword: (currentPassword, newPassword) => request('/users/me/password', { method: 'PUT', body: { currentPassword, newPassword } }),
     setPresence: (presence, statusText) => request('/users/me/presence', { method: 'PUT', body: { presence, statusText } }),
     saveFcmToken: (token) => request('/users/fcm-token', { method: 'POST', body: { token } }),
+    updateAvatar: async (file) => {
+      const fd = new FormData();
+      fd.append('avatar', file);
+      const token = getToken();
+      const res = await fetch(`${BASE}/api/users/me/avatar`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
   },
   channels: {
     mine: () => request('/channels'),
@@ -79,6 +91,7 @@ export const api = {
     react: (id, emoji) => request(`/messages/${id}/react`, { method: 'POST', body: { emoji } }),
     togglePin: (id, pinned) => request(`/messages/${id}/pin`, { method: 'POST', body: { pinned } }),
     toggleSave: (id, saved) => request(`/messages/${id}/save`, { method: 'POST', body: { saved } }),
+    markRead: (messageIds) => request('/messages/read', { method: 'POST', body: { messageIds } }),
   },
   broadcasts: {
     list: () => request('/broadcasts'),

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, Animated, RefreshControl } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { useAuth } from '../../context/AuthContext';
 import { TabHeader } from '../../components/TabHeader';
+import { useTranslation } from 'react-i18next';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { theme, colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t, i18n } = useTranslation();
   const styles = createStyles(colors, insets);
   
   const [announcementsExpanded, setAnnouncementsExpanded] = useState(true);
@@ -22,7 +24,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={{ color: '#94A3B8', padding: 16 }}>Loading workspace...</Text>
+        <Text style={{ color: '#94A3B8', padding: 16 }}>{t('home.loading_workspace')}</Text>
       </View>
     );
   }
@@ -55,21 +57,39 @@ export default function HomeScreen() {
     const b = parseInt(hex.substring(4, 6), 16);
     const bgColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
 
+    let iconName = isPrivate ? 'lock' : 'tag';
+    let isCommunityIcon = false;
+    
+    if (isAnnouncement) {
+      isCommunityIcon = true;
+      if (channel.icon === 'crown') iconName = 'crown';
+      else if (channel.icon === 'sparkles') iconName = 'shimmer';
+      else iconName = 'bullhorn';
+    }
+
     return (
       <TouchableOpacity 
         key={channel.id} 
-        style={styles.channelItem}
+        style={[styles.channelItem, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}
         onPress={() => router.push(`/chat/${channel.slug}`)}
       >
-        <View style={styles.channelItemLeft}>
+        <View style={[styles.channelItemLeft, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
           <View style={[styles.channelIconWrapper, { backgroundColor: bgColor }]}>
-            <MaterialIcons 
-              name={isAnnouncement ? 'campaign' : isPrivate ? 'lock' : 'tag'} 
-              size={16} 
-              color={color} 
-            />
+            {isCommunityIcon ? (
+              <MaterialCommunityIcons 
+                name={iconName as any} 
+                size={16} 
+                color={color} 
+              />
+            ) : (
+              <MaterialIcons 
+                name={iconName as any} 
+                size={16} 
+                color={color} 
+              />
+            )}
           </View>
-          <Text style={[styles.channelName, channel.unread_count > 0 && styles.channelNameUnread]}>
+          <Text style={[styles.channelName, channel.unread_count > 0 && styles.channelNameUnread, i18n.dir() === 'rtl' ? { marginRight: 8 } : { marginLeft: 8 }]}>
             {channel.name}
           </Text>
         </View>
@@ -87,18 +107,19 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       
-      <TabHeader title="eTeams" showLogo={true} />
+      <TabHeader title="Eteams" showLogo={true} />
 
-      {/* Global Search */}
-      <View style={styles.searchSection}>
-        <View style={styles.searchBar}>
-          <MaterialIcons name="search" size={20} color={colors.iconDefault} style={styles.searchIcon} />
-          <TextInput 
-            style={styles.searchInput}
-            placeholder="Jump to or search..."
-            placeholderTextColor="#889299"
-          />
-          <MaterialIcons name="mic" size={20} color={colors.iconDefault} style={styles.micIcon} />
+      <View style={[styles.searchSection, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
+        <View style={[styles.searchBar, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
+          <View style={{flex: 1, flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row', alignItems: 'center'}}>
+            <TouchableOpacity style={{flex: 1, flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row', alignItems: 'center'}} onPress={() => router.push('/search')}>
+              <MaterialIcons name="search" size={20} color={colors.iconDefault} style={styles.searchIcon} />
+              <Text style={[styles.searchInput, { color: '#889299', lineHeight: 20, textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}>{t('home.search_placeholder')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/search?listen=true')}>
+              <MaterialIcons name="mic" size={20} color={colors.iconDefault} style={styles.micIcon} />
+            </TouchableOpacity>
+          </View>
         </View>
         <TouchableOpacity style={styles.filterButton}>
           <MaterialIcons name="filter-list" size={20} color={colors.iconDefault} />
@@ -114,37 +135,37 @@ export default function HomeScreen() {
       >
         
         {/* Quick Actions (Horizontal Scroll) */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActions}>
-          <TouchableOpacity style={styles.actionCard}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.quickActions, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
+          <TouchableOpacity style={[styles.actionCard, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]} onPress={() => router.push('/catch-up')}>
             <View style={[styles.iconWrapper, { backgroundColor: 'rgba(129, 140, 248, 0.15)' }]}>
               <MaterialIcons name="auto-awesome" size={20} color="#818cf8" />
             </View>
-            <Text style={styles.actionTitle}>Catch up</Text>
-            <Text style={styles.actionSubtitle}>3 new</Text>
+            <Text style={styles.actionTitle}>{t('home.catch_up')}</Text>
+            <Text style={styles.actionSubtitle}>{t('home.catch_up_desc')}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity style={[styles.actionCard, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]} onPress={() => router.push('/threads-list')}>
             <View style={[styles.iconWrapper, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
               <MaterialIcons name="chat-bubble-outline" size={20} color="#38bdf8" />
             </View>
-            <Text style={styles.actionTitle}>Threads</Text>
-            <Text style={styles.actionSubtitle}>Caught up</Text>
+            <Text style={styles.actionTitle}>{t('home.threads')}</Text>
+            <Text style={styles.actionSubtitle}>{t('home.threads_desc')}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity style={[styles.actionCard, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]} onPress={() => router.push('/saved')}>
             <View style={[styles.iconWrapper, { backgroundColor: 'rgba(244, 114, 182, 0.15)' }]}>
-              <MaterialIcons name="bookmark-border" size={20} color="#f472b6" />
+              <MaterialIcons name="folder-open" size={20} color="#f472b6" />
             </View>
-            <Text style={styles.actionTitle}>Later</Text>
-            <Text style={styles.actionSubtitle}>2 items</Text>
+            <Text style={styles.actionTitle}>{t('home.later')}</Text>
+            <Text style={styles.actionSubtitle}>{t('home.later_desc')}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity style={[styles.actionCard, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]} onPress={() => router.push('/saved-messages')}>
             <View style={[styles.iconWrapper, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-              <MaterialIcons name="send" size={20} color="#10b981" />
+              <MaterialIcons name="bookmark-border" size={20} color="#10b981" />
             </View>
-            <Text style={styles.actionTitle}>Drafts</Text>
-            <Text style={styles.actionSubtitle}>0 drafts</Text>
+            <Text style={styles.actionTitle}>{t('home.drafts')}</Text>
+            <Text style={styles.actionSubtitle}>{t('home.drafts_desc')}</Text>
           </TouchableOpacity>
         </ScrollView>
         
@@ -155,15 +176,15 @@ export default function HomeScreen() {
         {announcementChannels.length > 0 && (
           <View style={styles.section}>
             <TouchableOpacity 
-              style={styles.sectionHeader}
+              style={[styles.sectionHeader, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}
               onPress={() => setAnnouncementsExpanded(!announcementsExpanded)}
             >
               <MaterialIcons 
-                name={announcementsExpanded ? 'keyboard-arrow-down' : 'keyboard-arrow-right'} 
+                name={announcementsExpanded ? 'keyboard-arrow-down' : (i18n.dir() === 'rtl' ? 'keyboard-arrow-left' : 'keyboard-arrow-right')} 
                 size={18} 
                 color="#d4e4fa" 
               />
-              <Text style={styles.sectionTitle}>Announcements</Text>
+              <Text style={[styles.sectionTitle, { marginHorizontal: 8 }]}>{t('home.announcements')}</Text>
             </TouchableOpacity>
             
             {announcementsExpanded && (
@@ -177,15 +198,15 @@ export default function HomeScreen() {
         {/* Channels Section */}
         <View style={styles.section}>
           <TouchableOpacity 
-            style={styles.sectionHeader}
+            style={[styles.sectionHeader, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}
             onPress={() => setActiveProjectsExpanded(!activeProjectsExpanded)}
           >
             <MaterialIcons 
-              name={activeProjectsExpanded ? 'keyboard-arrow-down' : 'keyboard-arrow-right'} 
+              name={activeProjectsExpanded ? 'keyboard-arrow-down' : (i18n.dir() === 'rtl' ? 'keyboard-arrow-left' : 'keyboard-arrow-right')} 
               size={18} 
               color="#d4e4fa" 
             />
-            <Text style={styles.sectionTitle}>Channels</Text>
+            <Text style={[styles.sectionTitle, { marginHorizontal: 8 }]}>{t('home.channels')}</Text>
           </TouchableOpacity>
           
           {activeProjectsExpanded && (
@@ -196,6 +217,14 @@ export default function HomeScreen() {
         </View>
 
       </ScrollView>
+
+      {/* Floating Action Button for New Channel/DM */}
+      <TouchableOpacity 
+        style={[styles.fab, { [i18n.dir() === 'rtl' ? 'left' : 'right']: 20 }]}
+        onPress={() => router.push('/new-channel')}
+      >
+        <MaterialIcons name="add" size={28} color="#FFFFFF" />
+      </TouchableOpacity>
 
     </View>
   );
@@ -247,9 +276,6 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
-  },
-  scrollContent: {
-    paddingBottom: 100, // Space for FAB
   },
   quickActions: {
     paddingHorizontal: 16,
@@ -368,26 +394,28 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
     fontWeight: '700', // Bold for unread
   },
   badge: {
-    backgroundColor: colors.border,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
+    backgroundColor: '#3BA7D6', // Match web app cyan/blue accent
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
   },
   badgeMention: {
-    backgroundColor: colors.primary, // Neon blue instead of pink for better theme matching
+    backgroundColor: colors.primary,
   },
   badgeText: {
-    color: colors.textDim,
-    fontSize: 12,
-    fontWeight: '600',
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   badgeTextMention: {
-    color: colors.background, // Contrast color
+    color: '#fff',
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
+    bottom: 20,
     width: 56,
     height: 56,
     borderRadius: 28,

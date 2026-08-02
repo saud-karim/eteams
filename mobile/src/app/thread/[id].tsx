@@ -1,8 +1,22 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { api, API_BASE_URL } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
+import { useWorkspace } from '../../context/WorkspaceContext';
+import { useSocket } from '../../context/SocketContext';
+import Markdown from 'react-native-markdown-display';
+import * as WebBrowser from 'expo-web-browser';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as Clipboard from 'expo-clipboard';
+import { Modal, TouchableWithoutFeedback, Animated, Alert } from 'react-native';
+import ForwardModal from '../../components/ForwardModal';
+
 
 export default function ThreadScreen() {
   const { theme, colors } = useTheme();
@@ -10,9 +24,408 @@ export default function ThreadScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors, insets);
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
+  const { users, channels } = useWorkspace();
+  const { socket } = useSocket();
+
+  const [parentMessage, setParentMessage] = useState<any>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
+  const [attachment, setAttachment] = useState<any>(null);
+  const [editingMessage, setEditingMessage] = useState<any>(null);
+  const [channelDetails, setChannelDetails] = useState<any>(null);
+  const [channelObj, setChannelObj] = useState<any>(null);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const myTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  const [forwardMessage, setForwardMessage] = useState<any>(null);
+  const [showReadersModal, setShowReadersModal] = useState(false);
+  const slideAnim = useRef(new Animated.Value(300)).current;
+
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    loadThread();
+
+    const handleNewMessage = (msg: any) => {
+      if (msg.parent_id === id) {
+        setMessages(prev => {
+          if (prev.find(m => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+        setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+      }
+    };
+
+    if (socket) {
+      socket.on('message:new', handleNewMessage);
+
+    const handleReaction = (data: any) => {
+      setMessages(prev => prev.map(m => {
+        if (m.id === data.id) {
+          return { ...m, reactions: data.reactions };
+        }
+        return m;
+      }));
+    };
+    
+    const handleUpdatedMessage = (data: any) => {
+      setMessages(prev => prev.map(m => m.id === data.id ? { ...m, ...data } : m));
+    };
+
+    const handleDeletedMessage = (data: any) => {
+      setMessages(prev => prev.filter(m => m.id !== (data.id || data.messageId)));
+    };
+
+    const handleTypingStart = (data: any) => {
+      if (data.userId !== user?.id && data.parentId === id) {
+        setTypingUsers(prev => {
+          if (!prev.includes(data.name)) return [...prev, data.name];
+          return prev;
+        });
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+          setTypingUsers(prev => prev.filter(name => name !== data.name));
+        }, 5000);
+      }
+    };
+
+    const handleTypingStop = (data: any) => {
+      if (data.userId !== user?.id && data.parentId === id) {
+        setTypingUsers(prev => prev.filter(name => name !== data.name));
+      }
+    };
+
+    socket.on('message:reactions', handleReaction);
+    socket.on('message:updated', handleUpdatedMessage);
+    socket.on('message:deleted', handleDeletedMessage);
+    socket.on('typing:start', handleTypingStart);
+    socket.on('typing:stop', handleTypingStop);
+  
+      return () => {
+        socket.off('message:new', handleNewMessage);
+        socket.off('message:reactions', handleReaction);
+        socket.off('message:updated', handleUpdatedMessage);
+        socket.off('message:deleted', handleDeletedMessage);
+        socket.off('typing:start', handleTypingStart);
+        socket.off('typing:stop', handleTypingStop);
+      };
+    }
+  }, [id, socket]);
+
+  const loadThread = async () => {
+    try {
+      setLoading(true);
+      // Fetch parent message
+      const pRes = await api.messages.get(id as string);
+      setParentMessage(pRes.message);
+
+      if (socket && pRes.message?.channel_id) {
+        socket.emit('channel:join', { channelId: pRes.message.channel_id });
+        
+        // Find channel slug from context to fetch details
+        const cObj = channels?.find((c: any) => c.id === pRes.message.channel_id);
+        if (cObj) {
+          setChannelObj(cObj);
+          api.channels.get(cObj.slug).then(res => {
+            setChannelDetails(res);
+          }).catch(console.error);
+        }
+      }
+
+      // Fetch replies
+      const rRes = await api.messages.listReplies(id as string);
+      setMessages(rRes.messages); // Backend already returns in chronological order
+    } catch (error) {
+      console.error('Failed to load thread:', error);
+    } finally {
+      setLoading(false);
+      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: false }), 100);
+    }
+  };
+
+  
+  const handleSend = async () => {
+    if ((!body.trim() && !attachment) || sending || !parentMessage) return;
+    try {
+      setSending(true);
+      
+      let messageRes;
+      if (attachment) {
+        const formData = new FormData();
+        formData.append('channelId', parentMessage.channel_id);
+        formData.append('body', body.trim());
+        formData.append('parentId', id as string);
+        
+        formData.append('file', {
+          uri: attachment.uri,
+          name: attachment.name,
+          type: attachment.mimeType || 'application/octet-stream',
+        } as any);
+
+        messageRes = await api.messages.sendWithAttachment(
+          parentMessage.channel_id,
+          body.trim(),
+          id as string,
+          attachment.uri,
+          attachment.mimeType || 'application/octet-stream',
+          attachment.name
+        );
+      } else {
+        if (editingMessage) {
+           await api.messages.update(editingMessage.id, body.trim());
+           setEditingMessage(null);
+           setBody('');
+           return;
+        } else {
+           messageRes = await api.messages.send(parentMessage.channel_id, body.trim(), id as string);
+        }
+      }
+
+      if (messageRes && messageRes.message) {
+        setMessages(prev => {
+          if (prev.find(m => m.id === messageRes.message.id)) return prev;
+          return [...prev, messageRes.message];
+        });
+        setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+      }
+      
+      setBody('');
+      setAttachment(null);
+      setEditingMessage(null);
+      
+      if (socket && parentMessage.channel_id) {
+         socket.emit('typing:stop', { channelId: parentMessage.channel_id, parentId: id });
+      }
+    } catch (error) {
+      console.error('Send reply failed:', error);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleTextChange = (text: string) => {
+    setBody(text);
+    if (socket && parentMessage) {
+      if (myTypingTimeoutRef.current) clearTimeout(myTypingTimeoutRef.current);
+      socket.emit('typing:start', { channelId: parentMessage.channel_id, parentId: id });
+      
+      myTypingTimeoutRef.current = setTimeout(() => {
+        socket.emit('typing:stop', { channelId: parentMessage.channel_id, parentId: id });
+      }, 3000);
+    }
+    
+    // Mentions logic
+    const lastWord = text.split(' ').pop();
+    if (lastWord && lastWord.startsWith('@') && (user?.role === 'superadmin' || user?.permissions?.['at-user'])) {
+      setMentionQuery(lastWord.substring(1).toLowerCase());
+      setShowMentions(true);
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  const filteredMembers = users?.filter((m: any) => 
+    (m.name?.toLowerCase().includes(mentionQuery) || m.username?.toLowerCase().includes(mentionQuery)) && m.id !== user?.id
+  ) || [];
+
+  const handleSelectMention = (member: any) => {
+    const words = body.split(' ');
+    words.pop();
+    const newText = words.join(' ') + (words.length > 0 ? ' ' : '') + '@' + (member.username || member.name) + ' ';
+    setBody(newText);
+    setShowMentions(false);
+  };
+  
+  const pickAttachment = async () => {
+    Alert.alert(
+      t('chat.attach_file', 'Attach File'),
+      '',
+      [
+        {
+          text: t('chat.photo_video', 'Photo or Video'),
+          onPress: async () => {
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.All,
+              allowsEditing: false,
+              quality: 0.8,
+            });
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+              const asset = result.assets[0];
+              setAttachment({
+                uri: asset.uri,
+                mimeType: asset.type === 'video' ? 'video/mp4' : 'image/jpeg',
+                name: asset.fileName || 'upload.jpg',
+                isImage: asset.type === 'image' || !asset.type,
+              });
+            }
+          }
+        },
+        {
+          text: t('chat.document', 'Document'),
+          onPress: async () => {
+            const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+              const asset = result.assets[0];
+              setAttachment({
+                uri: asset.uri,
+                mimeType: asset.mimeType,
+                name: asset.name,
+                isImage: asset.mimeType?.startsWith('image/'),
+              });
+            }
+          }
+        },
+        { text: t('common.cancel', 'Cancel'), style: 'cancel' }
+      ]
+    );
+  };
+  
+  const openModal = (msg: any) => {
+    setSelectedMessage(msg);
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeModal = () => {
+    Animated.timing(slideAnim, {
+      toValue: 300,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setSelectedMessage(null));
+  };
+  
+  const handleReact = async (messageId: string, emoji: string) => {
+    try {
+      await api.messages.react(messageId, emoji);
+      closeModal();
+    } catch (err) {}
+  };
+  const handleEditPress = () => {
+    if (!selectedMessage) return;
+    setEditingMessage(selectedMessage);
+    setBody(selectedMessage.body || '');
+    closeModal();
+  };
+  const handleForwardPress = () => {
+    if (!selectedMessage) return;
+    setForwardMessage(selectedMessage);
+    closeModal();
+  };
+
+  const handleTogglePin = async () => {
+    if (!selectedMessage) return;
+    try {
+      const newStatus = !selectedMessage.is_pinned;
+      await api.messages.togglePin(selectedMessage.id, newStatus);
+      if (selectedMessage.id === parentMessage?.id) {
+        setParentMessage((prev: any) => ({ ...prev, is_pinned: newStatus ? 1 : 0 }));
+      } else {
+        setMessages(prev => prev.map(m => m.id === selectedMessage.id ? { ...m, is_pinned: newStatus ? 1 : 0 } : m));
+      }
+      closeModal();
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to pin message');
+    }
+  };
+
+  const handleToggleSave = async () => {
+    if (!selectedMessage) return;
+    try {
+      const isCurrentlySaved = selectedMessage.is_saved;
+      const res = await api.messages.toggleSave(selectedMessage.id, !isCurrentlySaved);
+      if (selectedMessage.id === parentMessage?.id) {
+        setParentMessage((prev: any) => ({ ...prev, is_saved: res.saved ? 1 : 0 }));
+      } else {
+        setMessages(prev => prev.map(m => m.id === selectedMessage.id ? { ...m, is_saved: res.saved ? 1 : 0 } : m));
+      }
+    } catch (err: any) {
+      Alert.alert(t('common.error'), err.message || 'Failed to save/unsave message');
+    } finally {
+      closeModal();
+    }
+  };
+  const handleDeletePress = () => {
+    if (!selectedMessage) return;
+    const targetId = selectedMessage.id;
+    closeModal();
+    Alert.alert(t('common.confirm', 'Confirm'), t('chat.delete_confirm', 'Are you sure you want to delete this message?'), [
+      { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+      { text: t('common.delete', 'Delete'), style: 'destructive', onPress: async () => {
+          try {
+            await api.messages.delete(targetId);
+            setMessages(prev => prev.filter(m => m.id !== targetId));
+          } catch (err) {}
+        }
+      }
+    ]);
+  };
+  
+  const renderReactions = (reactions: any[]) => {
+    if (!reactions || reactions.length === 0) return null;
+    const grouped = reactions.reduce((acc, curr) => {
+      acc[curr.emoji] = (acc[curr.emoji] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    return (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+        {Object.entries(grouped).map(([emoji, count]) => (
+          <View key={emoji} style={{ backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ fontSize: 12 }}>{emoji}</Text>
+            <Text style={{ fontSize: 10, color: colors.iconDefault, marginLeft: 4 }}>{count as number}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+
+  const renderAvatar = (authorName: string, avatarPath?: string) => {
+    let url = `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=1E293B&color=fff`;
+    if (avatarPath) {
+      url = avatarPath.startsWith('http') ? avatarPath : `${API_BASE_URL}${avatarPath}`;
+    }
+    return url;
+  };
+
+  if (loading && !parentMessage) {
+    return (
+      <View style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+
+  const currentMem = channelDetails?.members?.find((m: any) => m.id === user?.id);
+  const isManager = currentMem?.is_manager;
+  const isSuperadmin = user?.role === 'superadmin';
+  const isReadOnly = channelObj?.is_readonly || channelDetails?.is_readonly;
+  
+  let canPostInChannel = false;
+  let canPin = false;
+  if (channelDetails && channelDetails.members) {
+    const canPost = (!!currentMem?.can_post && currentMem.can_post !== 0) || isManager || isSuperadmin;
+    canPostInChannel = canPost && (!isReadOnly || isManager || isSuperadmin);
+    canPin = (!!currentMem?.can_pin_messages && currentMem.can_pin_messages !== 0) || isManager || isSuperadmin;
+  }
+
+  // Also check thread permission
+  if (parentMessage && !isSuperadmin && !user?.permissions?.['thread']) {
+    canPostInChannel = false;
+  }
 
   return (
-    <View style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <Stack.Screen options={{ headerShown: false }} />
       <KeyboardAvoidingView 
         style={styles.container}
@@ -21,380 +434,479 @@ export default function ThreadScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/')} style={styles.iconButton}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.primary} />
+            <MaterialIcons name="arrow-back" size={24} color={colors.primary} style={{ transform: [{ scaleX: i18n.dir() === 'rtl' ? -1 : 1 }] }} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>Thread</Text>
-            <Text style={styles.headerSubtitle}>#hvac-maintenance</Text>
+            <Text style={styles.headerTitle}>{t('chat.thread', 'Thread')}</Text>
+            {parentMessage ? <Text style={styles.headerSubtitle}>#{parentMessage.channel_slug || parentMessage.channel_name || 'channel'}</Text> : null}
           </View>
-          <TouchableOpacity style={styles.iconButton}>
-            <MaterialIcons name="more-vert" size={24} color={colors.iconDefault} />
-          </TouchableOpacity>
+          <View style={{ width: 40 }} />
         </View>
 
-        {/* Main Content Area (Timeline) */}
-        <ScrollView style={styles.canvas} contentContainerStyle={styles.canvasContent}>
-          {/* Original Message */}
-          <View style={styles.originalMessageContainer}>
-            <View style={styles.avatarContainer}>
-              <Image 
-                source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDHhG7LZQBJ7B-RvlvTjQLgZCrLpZ_HxEwerzekcxOOWDcwXIsjCXdQHbY3-7sI3fUcEqhB8jDZ8drT-MGyFUpbawTxzQsM4ssHw8QvqmtLceSugpGsz78WzGkEuNluv9Yz-UGRpCWAeWgzpVPLgI1b3zwAUCnV6woh2iIJvczCJBBog5WLtv-_FLKWTWTjkoQA--ovLFAp7hbaRv0Dd4XSRznvIh8jwh1PGUJgHdp6pcc4ZnZQ4k-z' }} 
-                style={styles.avatar} 
-              />
-              <View style={styles.onlineBadgeSecondary} />
+        {/* Pinned Messages Banner */}
+        {messages.filter((m: any) => m.is_pinned).length > 0 && (
+          <TouchableOpacity 
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.08)', paddingVertical: 10, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: theme === 'dark' ? 'rgba(37, 99, 235, 0.3)' : 'rgba(37, 99, 235, 0.15)', borderLeftWidth: 4, borderLeftColor: colors.primary, flexDirection: 'row', alignItems: 'center', gap: 12 }}
+            onPress={() => { /* maybe scroll to message or do nothing */ }}
+          >
+            <MaterialIcons name="push-pin" size={20} color={colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600', marginBottom: 2 }}>
+                {t('chat.pinned_message', 'Pinned Message')}
+              </Text>
+              <Text style={{ color: colors.text, fontSize: 14 }} numberOfLines={1}>
+                {messages.filter((m: any) => m.is_pinned).slice(-1)[0].body}
+              </Text>
             </View>
-            <View style={styles.messageContent}>
-              <View style={styles.messageMeta}>
-                <Text style={styles.authorName}>David Chen</Text>
-                <Text style={styles.timeText}>10:42 AM</Text>
-              </View>
-              <View style={styles.bubbleReceived}>
-                <Text style={styles.messageTextReceived}>
-                  The AHU-3 unit on the 4th floor is showing irregular pressure readings again. Anyone available to take a look before the afternoon shift?
-                </Text>
-              </View>
-              <View style={styles.repliesCountContainer}>
-                <Text style={styles.repliesText}>3 replies</Text>
-                <View style={styles.repliesLine} />
-              </View>
-            </View>
-          </View>
+          </TouchableOpacity>
+        )}
 
-          {/* Replies Timeline */}
-          <View style={styles.timelineContainer}>
-            
-            {/* Reply 1 */}
-            <View style={styles.replyRow}>
-              <View style={styles.connectorLine} />
-              <Image 
-                source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCAjfnE25HLKJ_HtuHoS_Yy1IvYB7LHIUmXFyQVvvDrC-y5lr0-oKNGlqpun_LiiPG4bZ8rqRosAyurXSjiqbdqcWXufh5YcZSB3_P6G72AyjYgKNnhPX6L-tO-MESbXWnZfhjy9PFjZWZHM9ihZLXzJYrhUg_WF98bTGcqaLD_XHSFBeIsGr_xWDVRg3YvUOQq9d8_X2DFi01ZnUsMw8QPfB9yhcL-5IKszxnxSiJxOjYwGMP3ZpNy' }} 
-                style={styles.replyAvatar} 
-              />
+        <ScrollView ref={scrollViewRef} style={styles.canvas} contentContainerStyle={styles.canvasContent}>
+          {parentMessage ? (
+            <View style={styles.originalMessageContainer}>
+              <View style={styles.avatarContainer}>
+                <Image 
+                  source={{ uri: renderAvatar(parentMessage.author_name || 'User', parentMessage.avatar) }} 
+                  style={styles.avatar} 
+                />
+              </View>
               <View style={styles.messageContent}>
                 <View style={styles.messageMeta}>
-                  <Text style={styles.authorName}>Sarah Jenkins</Text>
-                  <Text style={styles.timeText}>10:45 AM</Text>
+                  <Text style={styles.authorName}>{parentMessage.author_name}</Text>
+                  <Text style={styles.timeText}>
+                    {new Date(parentMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
                 </View>
                 <View style={styles.bubbleReceived}>
-                  <Text style={styles.messageTextReceived}>
-                    I'm wrapping up on floor 2. I can head up there in about 15 minutes.
-                  </Text>
+                  <Markdown style={{ body: { color: colors.text, fontSize: 15 }, paragraph: { marginTop: 2, marginBottom: 2 } }}>
+                    {parentMessage.body}
+                  </Markdown>
+                </View>
+                
+                {/* Attachments for Parent */}
+                {parentMessage.attachments && parentMessage.attachments.length > 0 ? (
+                  <View style={{ marginTop: 8, gap: 8 }}>
+                    {parentMessage.attachments.map((att: any) => {
+                      const fileUrl = att.storage_key.startsWith('http') ? att.storage_key : `${API_BASE_URL.replace('/api', '')}/${att.storage_key}`;
+                      const isImage = att.mime_type?.startsWith('image/');
+                      return isImage ? (
+                        <Image key={att.id} source={{ uri: fileUrl }} style={{ width: 200, height: 150, borderRadius: 12, backgroundColor: colors.pillBg }} resizeMode="cover" />
+                      ) : (
+                        <TouchableOpacity key={att.id} onPress={() => WebBrowser.openBrowserAsync(fileUrl)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.pillBg, padding: 8, borderRadius: 8 }}>
+                           <MaterialIcons name="insert-drive-file" size={20} color={colors.primary} />
+                           <Text style={{ color: colors.text, marginLeft: 8, flex: 1 }} numberOfLines={1}>{att.original_name || att.filename}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ) : null}
+
+                <View style={styles.repliesCountContainer}>
+                  <Text style={styles.repliesText}>{messages.length} {t('chat.replies', 'replies')}</Text>
+                  <View style={styles.repliesLine} />
                 </View>
               </View>
             </View>
+          ) : null}
 
-            {/* Reply 2 (Current User - Sent Bubble) */}
-            <View style={styles.replyRowSent}>
-              <View style={styles.connectorLineSent} />
-              <View style={styles.messageContentSent}>
-                <View style={styles.messageMetaSent}>
-                  <Text style={styles.timeText}>10:48 AM</Text>
-                </View>
-                <View style={styles.bubbleSent}>
-                  <Text style={styles.messageTextSent}>
-                    Thanks Sarah. Let me know if you need me to pull the maintenance logs for that unit.
-                  </Text>
-                </View>
-              </View>
-            </View>
+          <View style={styles.timelineContainer}>
+            {messages.map((msg, idx) => {
+              const isMe = msg.user_id === user?.id;
+              const msgUser = users?.find((u: any) => u.id === msg.user_id) || {};
+              const authorName = msg.author_name || msgUser.name || 'Unknown';
+              
+              if (isMe) {
+                return (
+                  <TouchableOpacity key={msg.id} style={styles.replyRowSent} onLongPress={() => openModal(msg)} delayLongPress={250} activeOpacity={0.7}>
+                    <View style={styles.connectorLineSent} />
+                    <View style={styles.messageContentSent}>
+                      <View style={styles.messageMetaSent}>
+                        <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginRight: 4 }}>
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                        {msg.is_pinned ? (
+                          <MaterialIcons name="push-pin" size={12} color={'rgba(255,255,255,0.7)'} style={{ marginRight: 4 }} />
+                        ) : null}
+                      </View>
+                      <View style={styles.bubbleSent}>
+                        <Markdown style={{ body: { color: colors.onPrimary, fontSize: 15 }, paragraph: { marginTop: 2, marginBottom: 2 } }}>
+                          {msg.body}
+                        </Markdown>
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <View style={{ marginTop: 8, gap: 8 }}>
+                            {msg.attachments.map((att: any) => {
+                              const fileUrl = att.storage_key.startsWith('http') ? att.storage_key : `${API_BASE_URL.replace('/api', '')}/${att.storage_key}`;
+                              const isImage = att.mime_type?.startsWith('image/');
+                              return isImage ? (
+                                <Image key={att.id} source={{ uri: fileUrl }} style={{ width: 200, height: 150, borderRadius: 12 }} resizeMode="cover" />
+                              ) : (
+                                <TouchableOpacity key={att.id} onPress={() => WebBrowser.openBrowserAsync(fileUrl)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.1)', padding: 8, borderRadius: 8 }}>
+                                   <MaterialIcons name="insert-drive-file" size={20} color={'#fff'} />
+                                   <Text style={{ color: '#fff', marginLeft: 8, flex: 1 }} numberOfLines={1}>{att.original_name || att.filename}</Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        )}
+                        {renderReactions(msg.reactions)}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
 
-            {/* Reply 3 */}
-            <View style={styles.replyRow}>
-              <View style={styles.connectorLine} />
-              <Image 
-                source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCoZZOoHfagxtveKQ_TU1x6gCNlwE8TAGPKKmglTjgy4rl7m5LNoifnSbxYRDmgmzGaPiU6yOC5_M4niMadaWVlJZuY2tfERfkj0aD0NmvWXAGPTXfEUnkYeCbkN7LxblW3vd2hk6-pE4h3B9hjWNqQCDhAd0i69Q_-mshpFRASMwraB45nU0vJgTNWK0Cj2RWAMANQONx8CK995GWIN-xEQ00OPoL-1iIGPAvJ437cEeMjjKiZstco' }} 
-                style={styles.replyAvatar} 
-              />
-              <View style={styles.messageContent}>
-                <View style={styles.messageMeta}>
-                  <Text style={styles.authorName}>David Chen</Text>
-                  <Text style={styles.timeText}>10:50 AM</Text>
-                </View>
-                <View style={styles.bubbleReceivedReaction}>
-                  <MaterialIcons name="thumb-up" size={16} color={colors.iconDefault} style={styles.reactionIcon} />
-                  <Text style={styles.messageTextReceived}>
-                    Perfect, keeping an eye on the dashboard till you get there.
-                  </Text>
-                </View>
-              </View>
-            </View>
-
+              return (
+                <TouchableOpacity key={msg.id} style={styles.replyRow} onLongPress={() => openModal(msg)} delayLongPress={250} activeOpacity={0.7}>
+                  <View style={styles.connectorLine} />
+                  <Image 
+                    source={{ uri: renderAvatar(authorName, msgUser.avatar) }} 
+                    style={styles.replyAvatar} 
+                  />
+                  <View style={styles.messageContent}>
+                    <View style={styles.messageMeta}>
+                      <Text style={styles.authorName}>{authorName}</Text>
+                      <Text style={styles.timeText}>
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                      {msg.is_pinned ? (
+                        <MaterialIcons name="push-pin" size={12} color={colors.iconDefault} style={{ marginLeft: 4 }} />
+                      ) : null}
+                    </View>
+                    <View style={styles.bubbleReceived}>
+                      <Markdown style={{ body: { color: colors.text, fontSize: 15 }, paragraph: { marginTop: 2, marginBottom: 2 } }}>
+                        {msg.body}
+                      </Markdown>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </ScrollView>
 
-        {/* Input Area */}
-        <View style={styles.inputWrapper}>
-          <View style={styles.inputContainer}>
-            <TouchableOpacity style={styles.actionIcon}>
-              <MaterialIcons name="add-circle-outline" size={24} color={colors.iconDefault} />
-            </TouchableOpacity>
-            <TextInput 
-              style={styles.textInput}
-              placeholder="Reply to thread..."
-              placeholderTextColor={colors.iconDefault}
-              multiline
-            />
-            <TouchableOpacity style={styles.sendButton}>
-              <MaterialIcons name="send" size={18} color="#003548" />
-            </TouchableOpacity>
+        {typingUsers.length > 0 && (
+            <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+              <Text style={{ color: colors.iconDefault, fontSize: 12, fontStyle: 'italic', textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }}>
+                {typingUsers.join(', ')} {typingUsers.length > 1 ? t('chat.are_typing', 'are typing...') : t('chat.is_typing', 'is typing...')}
+              </Text>
+            </View>
+          )}
+          
+        {/* Mentions Autocomplete List */}
+        {showMentions && filteredMembers.length > 0 && (
+          <View style={{ maxHeight: 150, backgroundColor: colors.surfaceContainerHigh, borderTopLeftRadius: 12, borderTopRightRadius: 12, marginHorizontal: 16, elevation: 4 }}>
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {filteredMembers.map((member: any) => {
+                let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || member.username)}&background=1E293B&color=fff`;
+                if (member.avatar) {
+                  avatarUrl = member.avatar.startsWith('http') ? member.avatar : `${API_BASE_URL}${member.avatar}`;
+                }
+                return (
+                  <TouchableOpacity 
+                    key={member.id} 
+                    style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: colors.reactionBorder }}
+                    onPress={() => handleSelectMention(member)}
+                  >
+                    <Image source={{ uri: avatarUrl }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 8 }} />
+                    <Text style={{ color: colors.text, fontWeight: '500' }}>{member.name || member.username}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
-        </View>
+        )}
+
+        {/* Rich Composer */}
+        {canPostInChannel ? (
+          <View style={[styles.inputWrapper, (showMentions && filteredMembers.length > 0) ? { borderTopLeftRadius: 0, borderTopRightRadius: 0 } : {}]}>
+            {editingMessage && (
+              <View style={{ flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surfaceContainerHigh, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginBottom: 8 }}>
+                <View style={{ flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 }}>
+                  <MaterialIcons name="edit" size={16} color={colors.primary} />
+                  <Text style={{ color: colors.text, fontSize: 13, fontWeight: '600' }}>{t('chat.editing_message', 'Editing message')}</Text>
+                </View>
+                <TouchableOpacity onPress={() => { setEditingMessage(null); setBody(''); }}>
+                  <MaterialIcons name="close" size={18} color={colors.iconDefault} />
+                </TouchableOpacity>
+              </View>
+            )}
+            <View style={styles.composerContainer}>
+              {attachment && (
+                <View style={styles.attachmentPreviewContainer}>
+                  {attachment.isImage ? (
+                    <Image source={{ uri: attachment.uri }} style={styles.attachmentPreviewImage} />
+                  ) : (
+                    <View style={styles.attachmentPreviewFile}>
+                      <MaterialIcons name="insert-drive-file" size={24} color={colors.primary} />
+                      <Text style={styles.attachmentPreviewFileName} numberOfLines={1} ellipsizeMode="middle">
+                        {attachment.name}
+                      </Text>
+                    </View>
+                  )}
+                  <TouchableOpacity style={styles.attachmentRemoveBtn} onPress={() => setAttachment(null)}>
+                    <MaterialIcons name="close" size={16} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+              )}
+              <TextInput 
+                style={[styles.textInput, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
+                placeholder={t('chat.reply_in_thread', 'Reply in thread...')}
+                placeholderTextColor={colors.iconDefault}
+                multiline
+                value={body}
+                onChangeText={handleTextChange}
+              />
+              
+              <View style={styles.composerFooter}>
+                <View style={styles.composerFooterLeft}>
+                  { (user?.role === 'superadmin' || user?.permissions?.['upload']) && (
+                    <TouchableOpacity style={styles.composerPlusBtn} onPress={pickAttachment}>
+                      <MaterialIcons name="add" size={20} color={colors.iconDefault} />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={styles.composerActionBtn} onPress={() => setBody(prev => prev + '**bold** ')}>
+                    <MaterialIcons name="format-bold" size={20} color={colors.iconDefault} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.composerActionBtn} onPress={() => setBody(prev => prev + '😂')}>
+                    <MaterialIcons name="emoji-emotions" size={20} color={colors.iconDefault} />
+                  </TouchableOpacity>
+                  { (user?.role === 'superadmin' || user?.permissions?.['at-user']) && (
+                    <TouchableOpacity style={styles.composerActionBtn} onPress={() => setBody(prev => prev + '@')}>
+                      <MaterialIcons name="alternate-email" size={20} color={colors.iconDefault} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                
+                <TouchableOpacity 
+                  style={[styles.sendButton, !(body.trim() || attachment) && { backgroundColor: 'rgba(59, 167, 214, 0.2)' }]} 
+                  onPress={handleSend}
+                  disabled={!(body.trim() || attachment)}
+                >
+                  <MaterialIcons name="send" size={18} color={(body.trim() || attachment) ? colors.onPrimary : colors.iconDefault} style={[styles.sendIconFix, { transform: [{ scaleX: i18n.dir() === 'rtl' ? -1 : 1 }] }]} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        ) : (
+          <View style={[styles.inputWrapper, { alignItems: 'center', justifyContent: 'center', paddingVertical: 20 }]}>
+            <Text style={{ color: colors.iconDefault, fontSize: 14 }}>
+              {isReadOnly ? 'This channel is read-only.' : 'You do not have permission to post.'}
+            </Text>
+          </View>
+        )}
+
       </KeyboardAvoidingView>
-    </View>
+
+        {/* Long Press Bottom Sheet Modal */}
+        <Modal visible={!!selectedMessage} transparent={true} animationType="fade" onRequestClose={closeModal}>
+          <TouchableWithoutFeedback onPress={closeModal}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+              <TouchableWithoutFeedback onPress={() => {}}>
+                <Animated.View style={[{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }, { transform: [{ translateY: slideAnim }] }]}>
+                  <View style={{ width: 40, height: 4, backgroundColor: colors.iconDefault, borderRadius: 2, alignSelf: 'center', marginBottom: 20, opacity: 0.3 }} />
+                  
+                  {/* Quick Reactions */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, paddingHorizontal: 12 }}>
+                    {['👍', '❤️', '😂', '🎉', '👀'].map(emoji => (
+                      <TouchableOpacity key={emoji} onPress={() => handleReact(selectedMessage.id, emoji)} style={{ backgroundColor: colors.surfaceContainer, width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 24 }}>{emoji}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  
+                  <View style={{ height: 1, backgroundColor: colors.pillBg, marginBottom: 16 }} />
+                  
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={async () => { 
+                    if (selectedMessage?.body) await Clipboard.setStringAsync(selectedMessage.body);
+                    closeModal(); 
+                  }}>
+                    <MaterialIcons name="content-copy" size={24} color={colors.text} style={{ marginRight: 16 }} />
+                    <Text style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.copy_text', 'Copy text')}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleForwardPress}>
+                    <MaterialIcons name="forward" size={24} color={colors.text} style={{ marginRight: 16 }} />
+                    <Text style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.forward', 'Forward message')}</Text>
+                  </TouchableOpacity>
+
+                  {canPin && (
+                    <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleTogglePin}>
+                      <MaterialIcons name="push-pin" size={24} color={colors.text} style={{ marginRight: 16 }} />
+                      <Text style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{selectedMessage?.is_pinned ? t('chat.unpin_message', 'Unpin message') : t('chat.pin_message', 'Pin message')}</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleToggleSave}>
+                    <MaterialIcons name={selectedMessage?.is_saved ? "bookmark" : "bookmark-border"} size={24} color={colors.text} style={{ marginRight: 16 }} />
+                    <Text style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{selectedMessage?.is_saved ? t('chat.unsave_message', 'Unsave message') : t('chat.save_message', 'Save message')}</Text>
+                  </TouchableOpacity>
+
+                  {(selectedMessage?.user_id === user?.id || selectedMessage?.author_id === user?.id) && (
+                    <>
+                      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleEditPress}>
+                        <MaterialIcons name="edit" size={24} color={colors.text} style={{ marginRight: 16 }} />
+                        <Text style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.edit_message', 'Edit message')}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleDeletePress}>
+                        <MaterialIcons name="delete-outline" size={24} color="#F43F5E" style={{ marginRight: 16 }} />
+                        <Text style={{ color: '#F43F5E', fontSize: 16, fontWeight: '500' }}>{t('common.delete_message', 'Delete message')}</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </Animated.View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+
+        <ForwardModal visible={!!forwardMessage} onClose={() => setForwardMessage(null)} message={forwardMessage} />
+
+    </SafeAreaView>
   );
 }
 
 const createStyles = (colors: any, insets: any) => StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    flex: 1,
-  },
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: insets?.top || 0,
-    height: 64 + (insets?.top || 0),
-    backgroundColor: 'rgba(5, 20, 36, 0.9)',
-    zIndex: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: insets?.top || 0, height: 64 + (insets?.top || 0),
+    backgroundColor: 'rgba(5, 20, 36, 0.9)', zIndex: 10,
   },
-  iconButton: {
-    padding: 8,
-    borderRadius: 20,
-  },
-  headerInfo: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  headerSubtitle: {
-    fontSize: 11,
-    color: colors.textDim,
-    marginTop: 2,
-  },
-  canvas: {
-    flex: 1,
-  },
-  canvasContent: {
-    padding: 16,
-    paddingTop: 24,
-    paddingBottom: 40,
-  },
-  originalMessageContainer: {
-    flexDirection: 'row',
-    marginBottom: 24,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  onlineBadgeSecondary: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 10,
-    height: 10,
-    backgroundColor: colors.secondary,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: colors.background,
-    shadowColor: colors.secondary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  messageContent: {
-    flex: 1,
-  },
-  messageMeta: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 4,
-  },
-  authorName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
-    marginRight: 8,
-  },
-  timeText: {
-    fontSize: 11,
-    color: colors.textDim,
-  },
+  iconButton: { padding: 8, borderRadius: 20 },
+  headerInfo: { flex: 1, alignItems: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
+  headerSubtitle: { fontSize: 11, color: colors.textDim, marginTop: 2 },
+  canvas: { flex: 1 },
+  canvasContent: { padding: 16, paddingTop: 24, paddingBottom: 40 },
+  originalMessageContainer: { flexDirection: 'row', marginBottom: 24 },
+  avatarContainer: { marginRight: 12 },
+  avatar: { width: 40, height: 40, borderRadius: 20 },
+  messageContent: { flex: 1 },
+  messageMeta: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 4 },
+  authorName: { fontSize: 12, fontWeight: '600', color: colors.text, marginRight: 8 },
+  timeText: { fontSize: 11, color: colors.textDim },
   bubbleReceived: {
-    backgroundColor: colors.surfaceContainer,
-    padding: 12,
-    borderTopRightRadius: 16,
-    borderBottomRightRadius: 16,
-    borderBottomLeftRadius: 16,
-    borderTopLeftRadius: 0,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainer, padding: 12,
+    borderTopRightRadius: 16, borderBottomRightRadius: 16,
+    borderBottomLeftRadius: 16, borderTopLeftRadius: 0,
+    borderWidth: 1, borderColor: colors.border,
   },
-  bubbleReceivedReaction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surfaceContainer,
-    padding: 12,
-    borderTopRightRadius: 16,
-    borderBottomRightRadius: 16,
-    borderBottomLeftRadius: 16,
-    borderTopLeftRadius: 0,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  reactionIcon: {
-    marginRight: 8,
-  },
-  messageTextReceived: {
-    fontSize: 14,
-    color: colors.text,
-    lineHeight: 20,
-    flexShrink: 1,
-  },
-  repliesCountContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  repliesText: {
-    fontSize: 11,
-    color: colors.primary,
-    marginRight: 8,
-  },
-  repliesLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(118, 209, 255, 0.3)',
-  },
+  repliesCountContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  repliesText: { fontSize: 11, color: colors.primary, marginRight: 8 },
+  repliesLine: { flex: 1, height: 1, backgroundColor: 'rgba(118, 209, 255, 0.3)' },
   timelineContainer: {
-    marginLeft: 20,
-    paddingLeft: 16,
-    borderLeftWidth: 2,
-    borderLeftColor: 'rgba(118, 209, 255, 0.3)', // Glowing timeline line
-    gap: 16,
+    marginLeft: 20, paddingLeft: 16, borderLeftWidth: 2,
+    borderLeftColor: 'rgba(118, 209, 255, 0.3)', gap: 16,
   },
-  replyRow: {
-    flexDirection: 'row',
-    position: 'relative',
-  },
-  connectorLine: {
-    position: 'absolute',
-    left: -32,
-    top: 16,
-    width: 16,
-    height: 2,
-    backgroundColor: 'rgba(118, 209, 255, 0.3)',
-  },
-  replyAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 12,
-  },
-  replyRowSent: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    position: 'relative',
-  },
-  connectorLineSent: {
-    position: 'absolute',
-    left: -32,
-    top: 16,
-    width: 16,
-    height: 2,
-    backgroundColor: 'rgba(118, 209, 255, 0.3)',
-  },
-  messageContentSent: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  messageMetaSent: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 4,
-  },
+  replyRow: { flexDirection: 'row', position: 'relative' },
+  connectorLine: { position: 'absolute', left: -32, top: 16, width: 16, height: 2, backgroundColor: 'rgba(118, 209, 255, 0.3)' },
+  replyAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 12 },
+  replyRowSent: { flexDirection: 'row', justifyContent: 'flex-end', position: 'relative' },
+  connectorLineSent: { position: 'absolute', left: -32, top: 16, width: 16, height: 2, backgroundColor: 'rgba(118, 209, 255, 0.3)' },
+  messageContentSent: { flex: 1, alignItems: 'flex-end' },
+  messageMetaSent: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 4 },
   bubbleSent: {
-    backgroundColor: colors.primary,
-    padding: 12,
-    borderTopLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    borderBottomLeftRadius: 16,
-    borderTopRightRadius: 0,
-    maxWidth: '90%',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  messageTextSent: {
-    fontSize: 14,
-    color: '#00394d',
-    lineHeight: 20,
+    backgroundColor: colors.primary, padding: 12,
+    borderTopLeftRadius: 16, borderBottomRightRadius: 16,
+    borderBottomLeftRadius: 16, borderTopRightRadius: 0,
+    maxWidth: '90%', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
   },
   inputWrapper: {
     backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(62, 72, 78, 0.3)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    padding: 12,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: colors.surfaceContainer,
-    borderRadius: 12,
-    padding: 8,
+  composerContainer: {
+    backgroundColor: colors.composerBg || colors.surfaceContainer,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(118, 209, 255, 0.3)',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  actionIcon: {
+    borderColor: colors.composerBorder || colors.border,
     padding: 8,
-    marginRight: 4,
-    marginBottom: 2,
   },
   textInput: {
-    flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     color: colors.text,
-    maxHeight: 120,
+    paddingHorizontal: 8,
+    maxHeight: 150,
     minHeight: 40,
-    paddingTop: 10,
-    paddingBottom: 10,
+    textAlignVertical: 'top',
+    textAlign: 'left',
   },
-  sendButton: {
-    backgroundColor: colors.primary,
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+  composerFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  composerFooterLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  composerPlusBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.pillBg || 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
+    marginLeft: 4,
+  },
+  sendButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendIconFix: {
+    marginLeft: 4,
+  },
+  attachmentPreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    padding: 8,
+    backgroundColor: colors.pillBg || 'rgba(255,255,255,0.1)',
+    borderRadius: 8,
+    position: 'relative',
+  },
+  attachmentPreviewImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  attachmentPreviewFile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    flex: 1,
+  },
+  attachmentPreviewFileName: {
+    color: colors.text,
     marginLeft: 8,
-    marginBottom: 2,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 4,
+    fontSize: 14,
+    flex: 1,
+  },
+  attachmentRemoveBtn: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#F43F5E',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    zIndex: 10,
+  },
+  composerActionBtn: {
+    padding: 4,
+    marginRight: 10,
   }
 });

@@ -95,7 +95,7 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
           </button>
           <div className="edara-logo-container" style={{ marginBottom: 0, justifyContent: 'flex-start', transform: 'scale(0.8)', transformOrigin: 'left center' }}>
             <div className="edara-logo-mark"><span className="edara-lm1" style={{ height: '8px' }}></span><span className="edara-lm2"></span><span className="edara-lm3"></span></div>
-            <div className="edara-logo-text"><div className="edara-lt1" style={{ fontSize: '18px' }}>EDARA</div><div className="edara-lt2" style={{ color: 'var(--text-dim)' }}>A SODIC Company</div><div className="edara-logo-mod">ETeams</div></div>
+            <div className="edara-logo-text"><div className="edara-lt1" style={{ fontSize: '18px' }}>EDARA</div><div className="edara-lt2" style={{ color: 'var(--text-dim)' }}>A SODIC Company</div><div className="edara-logo-mod">Eteams</div></div>
           </div>
         </div>
 
@@ -241,7 +241,7 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
           <div className="big-modal" style={{ width: '440px', position: 'relative' }} onClick={e => e.stopPropagation()}>
             <button onClick={() => setShowPreferences(false)} style={{ position: 'absolute', right: '16px', top: '16px', background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '20px' }}>×</button>
             <h3 style={{ marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}><Settings size={18} /> Preferences</h3>
-            <div className="msub" style={{ marginBottom: '24px' }}>Customize your eTeams experience</div>
+            <div className="msub" style={{ marginBottom: '24px' }}>Customize your Eteams experience</div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
               <div>

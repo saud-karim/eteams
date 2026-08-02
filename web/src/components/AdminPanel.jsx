@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
   Shield, ArrowLeft, BarChart2, Users, Hash, FileText, Radio, Lock,
-  Search, Download, Info, AlertTriangle, XCircle, Clock, Archive, CheckCircle, Megaphone, X,
+  Search, Download, Info, AlertTriangle, XCircle, Clock, Archive, CheckCircle, Megaphone, X, Crown, Sparkles,
   User, Briefcase, Settings, ChevronDown, ChevronUp, UserCheck, MessageSquare, Building
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
@@ -407,13 +407,28 @@ export default function AdminPanel({ onClose }) {
 
   const openEditChannel = (c) => {
     setEditingChannel(c);
-    setChannelForm({ name: c.name, description: c.description || '', type: c.type, is_readonly: c.is_readonly ? true : false, is_mandatory: c.is_mandatory ? true : false });
+    setChannelForm({
+      id: c.id,
+      name: c.name,
+      description: c.description || '',
+      type: c.type === 'announcement' ? 'announce' : c.type,
+      is_readonly: !!c.is_readonly,
+      is_mandatory: !!c.is_mandatory,
+      color: c.color || '',
+      icon: c.icon || 'megaphone'
+    });
     setShowEditChannelModal(true);
   };
 
   const handleSaveChannel = async () => {
     try {
-      const res = await api.admin.updateChannel(editingChannel.id, channelForm);
+      const payload = {
+        ...channelForm,
+        type: channelForm.type === 'announce' ? 'announcement' : channelForm.type,
+        color: channelForm.color || null,
+        icon: channelForm.type === 'announce' ? channelForm.icon : null
+      };
+      const res = await api.admin.updateChannel(editingChannel.id, payload);
       setLocalChannels(prev => prev.map(x => x.id === editingChannel.id ? {...x, ...res.channel} : x));
       alert('Channel updated.');
       setShowEditChannelModal(false);
@@ -469,20 +484,6 @@ export default function AdminPanel({ onClose }) {
       alert(e.error || e.message || 'Failed to revoke manager');
     }
   };
-
-  const mockAuditLogs = [
-    { type: 'normal', icon: <Info size={18} color="var(--emerald)" />, action: <>Superadmin <b>Jasmine Ali</b> created channel <b>#procurement-alerts</b></>, meta: 'Type: public • Retention: 7 years • Initial members: 32', when: '5 minutes ago • IP 10.0.4.87' },
-    { type: 'warn', icon: <AlertTriangle size={18} color="var(--amber)" />, action: <><b>Karim Sobhy</b> exported messages from <b>#hr-confidential</b></>, meta: 'Format: PDF • 1,402 messages • Case: Audit 2026', when: '2 hours ago • IP 10.0.12.5' },
-    { type: 'danger', icon: <XCircle size={18} color="var(--danger)" />, action: <>System forced logout for <b>Omar Fathy</b></>, meta: 'Reason: suspected credential leak • Password reset triggered', when: 'Last week • IP 10.0.4.87' }
-  ];
-
-  const mockBroadcasts = [
-    { icon: <Info size={16} color="var(--emerald)" />, msg: 'ERP maintenance tonight 10PM-12AM. Expect brief downtime.', r: '487 users', ack: '312 read (64%)', when: '3 hours ago' },
-    { icon: <AlertTriangle size={16} color="var(--amber)" />, msg: 'Fire drill scheduled Thursday 11 AM. All staff to assemble at meeting point A.', r: '487 users', ack: '487 acknowledged (100%)', when: '2 days ago' },
-    { icon: <Info size={16} color="var(--emerald)" />, msg: 'New Ramadan working hours policy published — please read #hr-updates', r: '487 users', ack: '419 read (86%)', when: 'Last week' }
-  ];
-
-
 
   const filteredAuditLogs = auditLogs.filter(log => {
     let match = true;
@@ -672,7 +673,7 @@ export default function AdminPanel({ onClose }) {
               <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '12px' }}>📋 Full permission catalog — <b style={{ color: 'var(--emerald)' }}>green</b> checked = granted. Change preset above or tick individually.</div>
               
               <div className="perm-group-title">🔐 Account</div>
-              <label className="perm-check"><input type="checkbox" checked={true} disabled /><span>Can log in to ETeams</span></label>
+              <label className="perm-check"><input type="checkbox" checked={true} disabled /><span>Can log in to Eteams</span></label>
               
               <div className="perm-group-title">💬 Messaging</div>
               <label className="perm-check"><input type="checkbox" checked={userForm.permissions['edit-own']} onChange={() => togglePerm('edit-own')} /><span>Edit own messages</span></label>
@@ -802,7 +803,10 @@ export default function AdminPanel({ onClose }) {
             <div className="form-row">
               <div className="form-field">
                 <label>Type</label>
-                <select value={channelForm.type} onChange={e => setChannelForm({...channelForm, type: e.target.value})}>
+                <select value={channelForm.type} onChange={e => {
+                  const newType = e.target.value;
+                  setChannelForm({...channelForm, type: newType, icon: newType === 'announce' ? channelForm.icon || 'megaphone' : ''});
+                }}>
                   <option value="public">Public</option>
                   <option value="private">Private</option>
                   <option value="announce">Announcement</option>
@@ -830,6 +834,49 @@ export default function AdminPanel({ onClose }) {
                 <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Automatically adds all active users in the system to this channel.</span>
               </label>
             </div>
+
+            <div className="form-field" style={{ marginTop: '16px' }}>
+              <label>Channel Color (Optional)</label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                {['#EF4444', '#F97316', '#F59E0B', '#10B981', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#D946EF', '#F43F5E'].map(c => (
+                  <div 
+                    key={c}
+                    onClick={() => setChannelForm({...channelForm, color: channelForm.color === c ? '' : c})}
+                    style={{
+                      width: '24px', height: '24px', borderRadius: '50%', backgroundColor: c,
+                      cursor: 'pointer', border: channelForm.color === c ? '2px solid var(--text)' : '2px solid transparent',
+                      boxShadow: channelForm.color === c ? '0 0 0 2px var(--bg)' : 'none'
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {channelForm.type === 'announce' && (
+              <div className="form-field">
+                <label>Channel Icon</label>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                  {[
+                    { id: 'megaphone', icon: <Megaphone size={20} /> },
+                    { id: 'crown', icon: <Crown size={20} /> },
+                    { id: 'sparkles', icon: <Sparkles size={20} /> }
+                  ].map(ico => (
+                    <div 
+                      key={ico.id}
+                      onClick={() => setChannelForm({...channelForm, icon: ico.id})}
+                      style={{
+                        padding: '8px', borderRadius: '8px', cursor: 'pointer',
+                        backgroundColor: channelForm.icon === ico.id ? 'var(--panel-3)' : 'var(--panel-2)',
+                        border: channelForm.icon === ico.id ? '1px solid var(--border-light)' : '1px solid transparent',
+                        color: channelForm.icon === ico.id ? (channelForm.color || 'var(--emerald)') : 'var(--text-dim)'
+                      }}
+                    >
+                      {ico.icon}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             <div className="modal-footer" style={{ marginTop: '32px' }}>
               <button className="btn-cancel" onClick={() => setShowEditChannelModal(false)}>Cancel</button>
@@ -1116,7 +1163,7 @@ export default function AdminPanel({ onClose }) {
         <div className="modal-backdrop active" onClick={() => setShowInviteModal(false)} style={{ zIndex: 9999 }}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
             <h2>Invite Guest</h2>
-            <div style={{ color: 'var(--text-dim)', fontSize: '13px', marginBottom: '16px' }}>Generate a secure invitation link to allow an external guest to join ETeams.</div>
+            <div style={{ color: 'var(--text-dim)', fontSize: '13px', marginBottom: '16px' }}>Generate a secure invitation link to allow an external guest to join Eteams.</div>
             
             <div className="form-field">
                                         </div>

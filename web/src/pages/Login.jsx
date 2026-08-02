@@ -26,7 +26,7 @@ export default function Login() {
         </button>
         <div className="edara-logo-container">
           <div className="edara-logo-mark"><span className="edara-lm1"></span><span className="edara-lm2"></span><span className="edara-lm3"></span></div>
-          <div className="edara-logo-text"><div className="edara-lt1">EDARA</div><div className="edara-lt2">A SODIC Company</div><div className="edara-logo-mod">ETeams</div></div>
+          <div className="edara-logo-text"><div className="edara-lt1">EDARA</div><div className="edara-lt2">A SODIC Company</div><div className="edara-logo-mod">Eteams</div></div>
         </div>
         <div className="login-title">{t('signInTitle')}</div>
         <div className="login-sub">{t('signInSub')}</div>

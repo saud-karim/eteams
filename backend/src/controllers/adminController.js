@@ -371,7 +371,7 @@ async function updateChannel(req, res, next) {
   try {
     if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
-    const { name, description, type, is_readonly, is_mandatory } = req.body;
+    const { name, description, type, is_readonly, is_mandatory, color, icon } = req.body;
     
     // Check old state to see if it just became mandatory
     const oldChannel = await Channel.findById(id);
@@ -379,7 +379,7 @@ async function updateChannel(req, res, next) {
 
     const newIsMandatory = is_mandatory ? 1 : 0;
     
-    const channel = await Channel.update(id, { name, description, type, is_readonly: is_readonly ? 1 : 0, is_mandatory: newIsMandatory });
+    const channel = await Channel.update(id, { name, description, type, is_readonly: is_readonly ? 1 : 0, is_mandatory: newIsMandatory, color, icon });
     
     // If it just became mandatory, add all missing users
     if (newIsMandatory === 1 && oldChannel.is_mandatory !== 1) {

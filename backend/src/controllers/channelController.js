@@ -59,6 +59,7 @@ async function create(req, res, next) {
       is_readonly: data.type === 'announcement' ? 1 : 0,
       created_by: req.user.id,
       color: data.color || null,
+      icon: data.icon || null,
     });
     
     // Add the creator as a manager

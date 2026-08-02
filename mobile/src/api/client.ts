@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// For Android emulator, localhost is 10.0.2.2. For iOS it's localhost. 
-// Fallback to EXPO_PUBLIC_API_URL if defined.
-const defaultHost = Platform.OS === 'android' ? 'http://10.0.2.2:4000' : 'http://localhost:4000';
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || defaultHost;
+let defaultHost = process.env.EXPO_PUBLIC_API_URL || 'http://193.163.7.56:4000';
+if (Platform.OS === 'web' && typeof window !== 'undefined') {
+  defaultHost = `http://${window.location.hostname}:4000`;
+}
+export const API_BASE_URL = defaultHost;
 
 let memoryToken: string | null = null; // Fallback
 
@@ -80,21 +81,91 @@ export const api = {
   users: {
     list: () => request('/users'),
     setPresence: (presence: string, statusText: string) => request('/users/me/presence', { method: 'PUT', body: { presence, statusText } }),
-    updateMe: (name: string, job_title?: string, status_text?: string) => request('/users/me', { method: 'PUT', body: { name, job_title, status_text } }),
-    updatePassword: (currentPassword: string, newPassword: string) => request('/users/me/password', { method: 'PUT', body: { currentPassword, newPassword } }),
+    updateMe: (name: string, job_title?: string, status_text?: string, email?: string, phone?: string) => request('/users/me', { method: 'PUT', body: { name, job_title, status_text, email, phone } }),
+    updatePassword: (newPassword: string) => request('/users/me/password', { method: 'PUT', body: { newPassword } }),
     saveFcmToken: (token: string) => request('/users/fcm-token', { method: 'POST', body: { token } }),
+    updateAvatar: async (fileUri: string, mimeType: string, filename: string) => {
+      const token = await getToken();
+      const reqHeaders: any = {};
+      if (token) reqHeaders['Authorization'] = `Bearer ${token}`;
+      
+      const formData = new FormData();
+      // @ts-ignore
+      formData.append('avatar', {
+        uri: fileUri,
+        type: mimeType || 'image/jpeg',
+        name: filename || 'avatar.jpg',
+      });
+
+      const res = await fetch(`${API_BASE_URL}/api/users/me/avatar`, {
+        method: 'POST',
+        headers: reqHeaders,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      return res.json();
+    },
   },
   channels: {
     mine: () => request('/channels'),
     get: (slug: string) => request(`/channels/${slug}`),
+    create: (data: { name: string; description?: string; type: string; is_readonly?: boolean; is_mandatory?: boolean; color?: string }) => request('/channels', { method: 'POST', body: data }),
     createDM: (targetUserIds: string[], name?: string) => request('/channels/dm', { method: 'POST', body: { targetUserIds, name } }),
     markRead: (id: string | number) => request(`/channels/${id}/read`, { method: 'POST' }),
+    addMember: (channelId: string | number, userId: string | number) => request(`/channels/${channelId}/members`, { method: 'POST', body: { userId } }),
+    removeMember: (channelId: string | number, userId: string | number) => request(`/channels/${channelId}/members/${userId}`, { method: 'DELETE' }),
+    leave: (channelId: string | number) => request(`/channels/${channelId}/members/me`, { method: 'DELETE' }),
+    updateMemberPermissions: (channelId: string | number, userId: string | number, permissions: any) => request(`/channels/${channelId}/members/${userId}/permissions`, { method: 'PUT', body: permissions }),
   },
   messages: {
+    get: (id: string | number) => request(`/messages/single/${id}`),
     list: (channelId: string | number, before: string | null = null, limit = 50) => request(`/messages/channel/${channelId}?limit=${limit}${before ? `&before=${encodeURIComponent(before)}` : ''}`),
     listReplies: (parentId: string | number, before: string | null = null, limit = 50) => request(`/messages/${parentId}/replies?limit=${limit}${before ? `&before=${encodeURIComponent(before)}` : ''}`),
     send: (channelId: string | number, body: string, parentId: string | number | null = null) => request('/messages', { method: 'POST', body: { channelId, body, parentId } }),
+    update: (id: string | number, body: string) => request(`/messages/${id}`, { method: 'PATCH', body: { body } }),
+    delete: (id: string | number) => request(`/messages/${id}`, { method: 'DELETE' }),
     react: (id: string | number, emoji: string) => request(`/messages/${id}/react`, { method: 'POST', body: { emoji } }),
+    togglePin: (id: string | number, pinned: boolean) => request(`/messages/${id}/pin`, { method: 'POST', body: { pinned } }),
     getMentions: () => request('/messages/mentions'),
+    getThreads: () => request('/messages/threads'),
+    getSaved: () => request('/messages/saved'),
+    getFiles: () => request('/messages/files'),
+    toggleSave: (id: string | number, save: boolean) => request(`/messages/${id}/save`, { method: 'POST', body: { save } }),
+    search: (query: string) => request(`/messages/search?q=${encodeURIComponent(query)}`),
+    markRead: (messageIds: string[]) => request('/messages/read', { method: 'POST', body: { messageIds } }),
+    sendWithAttachment: async (channelId: string | number, body: string, parentId: string | number | null, fileUri: string, mimeType: string, filename: string) => {
+      const token = await getToken();
+      const reqHeaders: any = {};
+      if (token) reqHeaders['Authorization'] = `Bearer ${token}`;
+      
+      const formData = new FormData();
+      formData.append('channelId', String(channelId));
+      formData.append('body', body || '');
+      if (parentId) formData.append('parentId', String(parentId));
+      else formData.append('parentId', 'null'); // For backend to parse null correctly
+
+      // @ts-ignore
+      formData.append('file', {
+        uri: fileUri,
+        type: mimeType || 'application/octet-stream',
+        name: filename || 'attachment',
+      });
+
+      const res = await fetch(`${API_BASE_URL}/api/messages`, {
+        method: 'POST',
+        headers: reqHeaders, // no Content-Type so fetch sets boundary for FormData automatically
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      return res.json();
+    }
   }
 };

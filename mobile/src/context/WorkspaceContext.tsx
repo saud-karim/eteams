@@ -1,20 +1,22 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from './AuthContext';
-import { useSocket } from './SocketContext';
+import { getSocket } from '../api/socketManager';
 
 const WorkspaceContext = createContext<any>(null);
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
-  const socket = useSocket();
   const [channels, setChannels] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const listenersAttached = useRef(false);
+  const userRef = useRef<any>(null);
+  userRef.current = user;
 
   const fetchWorkspaceData = async () => {
-    if (!user) return;
+    if (!userRef.current) return;
     try {
       const [channelsData, usersData] = await Promise.all([
         api.channels.mine(),
@@ -33,40 +35,71 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setRefreshing(false);
   };
 
+  // Fetch data once when user logs in
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
+    setLoading(true);
     fetchWorkspaceData().finally(() => setLoading(false));
-  }, [user]);
+  }, [user?.id]);
 
+  // Attach socket listeners once - poll for socket readiness
   useEffect(() => {
-    if (!socket) return;
+    if (!user?.id || listenersAttached.current) return;
 
-    const handlePresence = ({ userId, presence }: any) => {
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, presence } : u));
+    const attachListeners = () => {
+      const socket = getSocket();
+      if (!socket?.connected) return false;
+
+      const handlePresence = ({ userId, presence }: any) => {
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, presence } : u));
+      };
+
+      const handleForceLogout = (data: any) => {
+        alert(data.message || 'You have been logged out by an administrator.');
+        logout();
+      };
+
+      const handleNewMessage = (msg: any) => {
+        setChannels(prev => prev.map(channel => {
+          if (channel.id === msg.channel_id) {
+            const isFromMe = msg.user_id === userRef.current?.id;
+            return {
+              ...channel,
+              unread_count: isFromMe ? channel.unread_count : (channel.unread_count || 0) + 1,
+              latest_message: msg
+            };
+          }
+          return channel;
+        }));
+      };
+
+      socket.on('presence:update', handlePresence);
+      socket.on('force_logout', handleForceLogout);
+      socket.on('message:new', handleNewMessage);
+
+      listenersAttached.current = true;
+      console.log('[workspace] socket listeners attached');
+      return true;
     };
 
-    const handleForceLogout = (data: any) => {
-      alert(data.message || 'You have been logged out by an administrator.');
-      logout();
-    };
+    // Try immediately, then retry until connected
+    if (!attachListeners()) {
+      const interval = setInterval(() => {
+        if (attachListeners()) {
+          clearInterval(interval);
+        }
+      }, 500);
 
-    const handleNewMessage = (msg: any) => {
-      // Optimistically update the channel or re-fetch channels to update unread counts
-      api.channels.mine().then(data => {
-        setChannels(data.channels || []);
-      }).catch(console.error);
-    };
+      return () => clearInterval(interval);
+    }
+  }, [user?.id]);
 
-    socket.on('presence:update', handlePresence);
-    socket.on('force_logout', handleForceLogout);
-    socket.on('message:new', handleNewMessage);
-
-    return () => {
-      socket.off('presence:update', handlePresence);
-      socket.off('force_logout', handleForceLogout);
-      socket.off('message:new', handleNewMessage);
-    };
-  }, [socket]);
+  // Reset listeners flag on logout
+  useEffect(() => {
+    if (!user?.id) {
+      listenersAttached.current = false;
+    }
+  }, [user?.id]);
 
   return (
     <WorkspaceContext.Provider value={{ channels, users, setChannels, setUsers, loading, refreshWorkspace, refreshing }}>

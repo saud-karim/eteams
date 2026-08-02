@@ -113,7 +113,7 @@ export default function SplashScreen() {
         
         <View style={styles.badgeContainer}>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>eTeams</Text>
+            <Text style={styles.badgeText}>Eteams</Text>
           </View>
         </View>
 

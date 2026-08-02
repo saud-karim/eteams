@@ -54,10 +54,22 @@ export default function Avatar({ user, size = 32, className = '', style = {}, sh
           color: txt,
           fontWeight: 600,
           fontSize: Math.max(10, size * 0.4),
-          userSelect: 'none'
+          userSelect: 'none',
+          overflow: 'hidden'
         }}
       >
-        {initials}
+        {user.avatar ? (
+          <img 
+            src={user.avatar.startsWith('http') ? user.avatar : `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}${user.avatar}`} 
+            alt={user.name} 
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'block';
+            }}
+          />
+        ) : null}
+        <span style={{ display: user.avatar ? 'none' : 'block' }}>{initials}</span>
       </div>
       {showPresence && (
         <span 

@@ -14,7 +14,7 @@ export default function App() {
         <div className="spinner"></div>
         <div className="loading-logo">
           <div className="edara-lt1">EDARA</div>
-          <div className="edara-logo-mod" style={{ marginTop: '8px' }}>ETeams</div>
+          <div className="edara-logo-mod" style={{ marginTop: '8px' }}>Eteams</div>
         </div>
       </div>
     </div>

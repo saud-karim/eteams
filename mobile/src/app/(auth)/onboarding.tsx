@@ -14,7 +14,7 @@ const SLIDES = [
     id: 1,
     title: 'Real-Time Clarity',
     subtitle: 'Instant messaging designed for enterprise speed. Cut through the noise and stay connected.',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBKlV7NCqa3VjHQV0QE_V2Qnsd_37_WF6OU-9XKCAqUDQ5sNfFqctsBO9uC1ua6dxf-yC7z5HD57ocB0HN4iFxhgB7HpQFltxToQu5AqQcavm8u_egJyXCULOy3Q1xmLNEUtdynP8ckL22qoggxTtk1-TT4gZSXXcIAW9-8qvHEWRdWBc3EtbWOvF6EDjOio0cQYjdQq3jirbQDYJ-0aSKa6qQwnagoCa-kIOHIsIJSmSqnEWR5dSjb',
+    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop',
     bubbles: [
       { text: 'Project update looks great.', isRight: true },
       { text: 'Deploying to staging now.', isRight: false },

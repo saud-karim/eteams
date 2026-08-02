@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Hash } from 'lucide-react';
+import { X, Hash, Crown, Megaphone, Sparkles } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../api/client';
 import { useWorkspace } from '../context/WorkspaceContext';
@@ -20,6 +20,7 @@ export default function CreateChannelModal({ onClose }) {
   const [isReadonly, setIsReadonly] = useState(false);
   const [isMandatory, setIsMandatory] = useState(false);
   const [color, setColor] = useState('');
+  const [icon, setIcon] = useState('megaphone');
   const [loading, setLoading] = useState(false);
 
   const CHANNEL_COLORS = ['#EF4444', '#F97316', '#F59E0B', '#10B981', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#D946EF', '#F43F5E'];
@@ -34,7 +35,8 @@ export default function CreateChannelModal({ onClose }) {
         type: type === 'announce' ? 'announcement' : type,
         is_readonly: isReadonly,
         is_mandatory: isMandatory,
-        color: color || undefined
+        color: color || undefined,
+        icon: type === 'announce' ? icon : undefined
       });
       setChannels(prev => [...prev, res.channel]);
       onClose();
@@ -87,6 +89,33 @@ export default function CreateChannelModal({ onClose }) {
             ))}
           </div>
         </div>
+        
+        {type === 'announce' && (
+          <div className="form-field">
+            <label>Channel Icon</label>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+              {[
+                { id: 'megaphone', icon: <Megaphone size={20} /> },
+                { id: 'crown', icon: <Crown size={20} /> },
+                { id: 'sparkles', icon: <Sparkles size={20} /> }
+              ].map(item => (
+                <div 
+                  key={item.id}
+                  onClick={() => setIcon(item.id)}
+                  style={{
+                    width: '40px', height: '40px', borderRadius: '8px', 
+                    backgroundColor: icon === item.id ? 'var(--panel-3)' : 'var(--panel-2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', border: icon === item.id ? '1px solid var(--emerald)' : '1px solid transparent',
+                    color: color || 'var(--text)'
+                  }}
+                >
+                  {item.icon}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         <div className="form-row">
           <div className="form-field">

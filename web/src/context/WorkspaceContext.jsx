@@ -6,14 +6,14 @@ import { useSocket } from './SocketContext.jsx';
 const WorkspaceContext = createContext(null);
 
 export function WorkspaceProvider({ children }) {
-  const { user, logout } = useAuth();
+  const { user, logout, setUser } = useAuth();
   const socket = useSocket();
   const [channels, setChannels] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     Promise.all([
       api.channels.mine(),
       api.users.list()
@@ -22,13 +22,16 @@ export function WorkspaceProvider({ children }) {
       setUsers(usersData.users || []);
       setLoading(false);
     }).catch(console.error);
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!socket) return;
 
     const handlePresence = ({ userId, presence }) => {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, presence } : u));
+      if (user && user.id === userId) {
+        setUser(prev => ({ ...prev, presence }));
+      }
     };
 
     const handleForceLogout = (data) => {

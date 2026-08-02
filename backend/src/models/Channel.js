@@ -13,6 +13,7 @@ async function findBySlug(slug) {
 async function listForUser(userId) {
   const [rows] = await db.query(
     `SELECT c.*, m.last_read_at, m.is_manager,
+            (SELECT COUNT(*) FROM memberships m2 WHERE m2.channel_id = c.id) AS member_count,
             (SELECT COUNT(*) FROM messages msg WHERE msg.channel_id = c.id AND msg.deleted_at IS NULL
              AND (m.last_read_at IS NULL OR msg.created_at > m.last_read_at)) AS unread_count,
             (SELECT COUNT(*) FROM messages msg WHERE msg.channel_id = c.id AND msg.deleted_at IS NULL
@@ -43,8 +44,8 @@ async function adminListAll() {
 
 async function create(data) {
   await db.query(
-    `INSERT INTO channels (id, slug, name, description, type, is_mandatory, is_readonly, created_by, color)
-     VALUES (:id, :slug, :name, :description, :type, :is_mandatory, :is_readonly, :created_by, :color)`,
+    `INSERT INTO channels (id, slug, name, description, type, is_mandatory, is_readonly, created_by, color, icon)
+     VALUES (:id, :slug, :name, :description, :type, :is_mandatory, :is_readonly, :created_by, :color, :icon)`,
     data
   );
   return findById(data.id);
@@ -109,7 +110,7 @@ async function archive(channelId) {
 
 async function update(channelId, data) {
   await db.query(
-    `UPDATE channels SET name = :name, description = :description, type = :type, is_readonly = :is_readonly, is_mandatory = :is_mandatory WHERE id = :id`,
+    `UPDATE channels SET name = :name, description = :description, type = :type, is_readonly = :is_readonly, is_mandatory = :is_mandatory, color = :color, icon = :icon WHERE id = :id`,
     { id: channelId, ...data }
   );
   return findById(channelId);

@@ -1,6 +1,6 @@
 const { db } = require('../db/connection');
 
-const PUBLIC_FIELDS = 'id, username, name, avatar_initials, avatar_color, role, department, job_title, company_rank, presence, status_text, last_seen_at, is_active, reports_to, employment_type, role_preset, permissions, approval_status';
+const PUBLIC_FIELDS = 'id, username, name, email, phone, avatar, avatar_initials, avatar_color, role, department, job_title, company_rank, presence, status_text, last_seen_at, is_active, reports_to, employment_type, role_preset, permissions, approval_status';
 
 async function findById(id) {
   const [rows] = await db.query(`SELECT ${PUBLIC_FIELDS} FROM users WHERE id = :id AND is_active = 1`, { id });
@@ -8,7 +8,7 @@ async function findById(id) {
 }
 
 async function findByUsername(username) {
-  const [rows] = await db.query(`SELECT id, username, name, password_hash, avatar_initials, avatar_color, role, department, job_title, company_rank, presence, is_active, reports_to, employment_type, role_preset, permissions, approval_status FROM users WHERE username = :username`, { username });
+  const [rows] = await db.query(`SELECT id, username, name, email, phone, password_hash, avatar, avatar_initials, avatar_color, role, department, job_title, company_rank, presence, is_active, reports_to, employment_type, role_preset, permissions, approval_status FROM users WHERE username = :username`, { username });
   return rows[0] || null;
 }
 
@@ -69,4 +69,9 @@ async function updateApproval(id, status, isActive) {
   await db.query(`UPDATE users SET approval_status = :status, is_active = :isActive WHERE id = :id`, { id, status, isActive });
 }
 
-module.exports = { findById, findByIdAnyStatus, findByUsername, findAll, findPending, create, updatePresence, deactivate, update, updatePassword, updateApproval };
+async function updateAvatar(id, avatarUrl) {
+  await db.query(`UPDATE users SET avatar = :avatarUrl WHERE id = :id`, { id, avatarUrl });
+  return findByIdAnyStatus(id);
+}
+
+module.exports = { findById, findByIdAnyStatus, findByUsername, findAll, findPending, create, updatePresence, deactivate, update, updatePassword, updateApproval, updateAvatar };

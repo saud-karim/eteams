@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS channels (
   type          ENUM('public', 'private', 'announcement', 'dm', 'group_dm') NOT NULL DEFAULT 'public',
   is_mandatory  TINYINT(1) NOT NULL DEFAULT 0,
   is_readonly   TINYINT(1) NOT NULL DEFAULT 0,
-  retention_days INT DEFAULT NULL,
   created_by    CHAR(36) NOT NULL,
   archived_at   DATETIME DEFAULT NULL,
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

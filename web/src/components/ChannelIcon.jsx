@@ -1,11 +1,11 @@
 import React from 'react';
-import { Hash, Lock, Megaphone, User } from 'lucide-react';
+import { Hash, Lock, Megaphone, User, Crown, Sparkles } from 'lucide-react';
 
-export default function ChannelIcon({ type, name, size = 16, color, className = '', style = {} }) {
-  const isCeo = name === 'ceo-announcements';
-  
+export default function ChannelIcon({ type, name, icon, size = 16, color, className = '', style = {} }) {
   if (type === 'announcement') {
-    return <Megaphone size={size} color={isCeo ? '#F59E0B' : color} className={className} style={style} />;
+    if (icon === 'crown') return <Crown size={size} color={color} className={className} style={style} />;
+    if (icon === 'sparkles') return <Sparkles size={size} color={color} className={className} style={style} />;
+    return <Megaphone size={size} color={color} className={className} style={style} />;
   }
   if (type === 'private') return <Lock size={size} color={color} className={className} style={style} />;
   if (type === 'dm') return <User size={size} color={color} className={className} style={style} />;

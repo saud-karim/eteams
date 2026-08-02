@@ -5,13 +5,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 interface TabHeaderProps {
   title?: string;
   showLogo?: boolean;
 }
 
-export function TabHeader({ title = 'eTeams', showLogo = true }: TabHeaderProps) {
+export function TabHeader({ title = 'Eteams', showLogo = true }: TabHeaderProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -38,19 +39,21 @@ export function TabHeader({ title = 'eTeams', showLogo = true }: TabHeaderProps)
     }
   }, [showLogo]);
 
+  const { i18n } = useTranslation();
+
   return (
-    <View style={[styles.header, { paddingTop: 12 + (insets?.top || 0), borderBottomColor: colors.border || colors.pillBg }]}>
-      <View style={styles.headerLeft}>
+    <View style={[styles.header, { paddingTop: 12 + (insets?.top || 0), borderBottomColor: colors.border || colors.pillBg, flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
+      <View style={[styles.headerLeft, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
         {showLogo && (
           <Animated.View style={[styles.logoContainer, { backgroundColor: colors.primary, transform: [{ scale: logoScale }] }]}>
             <MaterialIcons name="business" size={16} color={colors.background} />
           </Animated.View>
         )}
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {title === 'eTeams' ? (
+          {title === 'Eteams' ? (
             <>
-              <Text style={{ color: colors.primary }}>e</Text>
-              <Text style={{ color: colors.text }}>Teams</Text>
+              <Text style={{ color: colors.primary }}>E</Text>
+              <Text style={{ color: colors.text }}>teams</Text>
             </>
           ) : (
             title
@@ -58,8 +61,8 @@ export function TabHeader({ title = 'eTeams', showLogo = true }: TabHeaderProps)
         </Text>
       </View>
       
-      <View style={styles.headerRight}>
-        <TouchableOpacity style={styles.iconButton} onPress={() => {/* TODO: Implement Search */}}>
+      <View style={[styles.headerRight, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/search')}>
           <MaterialIcons name="search" size={24} color={colors.iconDefault} />
         </TouchableOpacity>
 
@@ -68,7 +71,10 @@ export function TabHeader({ title = 'eTeams', showLogo = true }: TabHeaderProps)
             source={{ uri: user?.avatar || 'https://ui-avatars.com/api/?name=' + (user?.username || 'U') }} 
             style={[styles.avatar, { backgroundColor: colors.surfaceContainer }]} 
           />
-          <View style={styles.onlineDot} />
+          <View style={[styles.onlineDot, { 
+            backgroundColor: user?.presence === 'dnd' ? '#F43F5E' : user?.presence === 'away' ? '#F59E0B' : user?.presence === 'meeting' ? '#8B5CF6' : user?.presence === 'offline' ? '#64748B' : '#10B981',
+            borderColor: colors.background
+          }]} />
         </TouchableOpacity>
       </View>
     </View>
@@ -117,7 +123,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#0f172a',
   },
   avatarContainer: {
     position: 'relative',
@@ -135,8 +140,6 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#10B981',
     borderWidth: 2,
-    borderColor: '#0f172a',
   },
 });

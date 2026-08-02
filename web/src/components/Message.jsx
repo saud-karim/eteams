@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client.js';
-import { Download, File as FileIcon, Forward } from 'lucide-react';
+import { Download, File as FileIcon, Forward, CheckCheck } from 'lucide-react';
 import ForwardModal from './ForwardModal';
 import { useConfirm } from '../context/ConfirmContext';
 import Avatar from './Avatar';
@@ -21,7 +21,7 @@ function renderBody(body) {
     .replace(/\n/g, '<br>');
 }
 
-export default function Message({ message, author, currentUser, onReply, canPin = false, canDeleteOthers = false }) {
+export default function Message({ message, author, currentUser, onReply, canPin = false, canDeleteOthers = false, showReaders = false }) {
   const confirm = useConfirm();
   const [showActions, setShowActions] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -99,6 +99,8 @@ export default function Message({ message, author, currentUser, onReply, canPin 
   return (
     <div
       id={`msg-${message.id}`}
+      data-msg-id={message.id}
+      data-user-id={message.user_id}
       className={`message ${isPinnedToDisplay ? 'pinned' : ''}`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
@@ -111,8 +113,17 @@ export default function Message({ message, author, currentUser, onReply, canPin 
           <span className="msg-author">{author?.name || 'Unknown'}</span>
           {isCEO && <span className="msg-badge ceo">CEO</span>}
           {author?.role === 'admin' && <span className="msg-badge admin">ADMIN</span>}
-          <span className="msg-time">
+          <span className="msg-time" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {isMine && (
+              <CheckCheck 
+                size={14} 
+                style={{ 
+                  color: (message.readers && message.readers.length > 0) ? '#4ade80' : 'var(--text-dim)',
+                  marginLeft: '2px'
+                }} 
+              />
+            )}
           </span>
           {message.edited_at && <span className="msg-edited">(edited)</span>}
         </div>

@@ -10,7 +10,7 @@ export function SocketProvider({ children }) {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     const token = localStorage.getItem('accessToken');
     const socketPath = import.meta.env.VITE_SOCKET_PATH || '/socket.io/';
     const s = io(SOCKET_URL, { 
@@ -22,7 +22,7 @@ export function SocketProvider({ children }) {
     s.on('connect_error', (err) => console.error('[socket] error', err.message));
     setSocket(s);
     return () => { s.disconnect(); };
-  }, [user]);
+  }, [user?.id]);
 
   return <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>;
 }

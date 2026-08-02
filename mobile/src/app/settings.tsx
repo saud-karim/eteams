@@ -6,16 +6,25 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from 'react-native';
+import { UserAvatar } from '../components/UserAvatar';
+import { useTranslation } from 'react-i18next';
+import { changeLanguage } from '../locales/i18n';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const { theme, colors, setThemeSetting } = useTheme();
+  const { t, i18n } = useTranslation();
   const styles = createStyles(colors);
 
   const toggleTheme = () => {
     setThemeSetting(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'en' ? 'ar' : 'en';
+    changeLanguage(newLang);
   };
 
 
@@ -30,9 +39,9 @@ export default function SettingsScreen() {
       <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? 12 : insets.top + 12 }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/')} style={styles.backButton}>
-            <MaterialIcons name="arrow-back" size={24} color="#76D1FF" />
+            <MaterialIcons name="arrow-back" size={24} color="#76D1FF" style={{ transform: [{ scaleX: i18n.dir() === 'rtl' ? -1 : 1 }] }} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={styles.headerTitle}>{t('settings.title')}</Text>
         </View>
         <TouchableOpacity style={styles.profileIconButton}>
           <MaterialIcons name="person" size={24} color="#76D1FF" />
@@ -42,100 +51,89 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Profile Summary Card */}
         <View style={styles.profileSummary}>
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarInitials}>AM</Text>
-          </View>
+          <UserAvatar 
+            name={user?.name || user?.username || '?'} 
+            avatarUrl={user?.avatar_url} 
+            size={60} 
+            style={{ marginRight: 16 }}
+          />
           <View style={styles.profileTextContainer}>
-            <Text style={styles.profileName}>Alex Mercer</Text>
-            <Text style={styles.profileRole}>Facility Manager</Text>
-            <Text style={styles.profileEmail}>alex.mercer@eteams.com</Text>
+            <Text style={styles.profileName}>{user?.name || user?.username}</Text>
+            <Text style={styles.profileRole}>{user?.job_title || (user?.role === 'superadmin' ? t('profile.system_admin') : t('profile.member'))}</Text>
+            <Text style={styles.profileEmail}>{user?.email || ''}</Text>
           </View>
-          <TouchableOpacity style={styles.editIconButton}>
+          <TouchableOpacity style={styles.editIconButton} onPress={() => router.push('/edit-profile')}>
             <MaterialIcons name="edit" size={20} color="#bec8cf" />
           </TouchableOpacity>
         </View>
 
         {/* Preferences Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PREFERENCES</Text>
+          <Text style={styles.sectionTitle}>{t('settings.preferences')}</Text>
           <View style={styles.sectionCard}>
             
             {/* Appearance */}
-            <TouchableOpacity style={styles.settingItem} onPress={toggleTheme}>
-              <View style={styles.settingItemLeft}>
+            <TouchableOpacity style={[styles.settingItem, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]} onPress={toggleTheme}>
+              <View style={[styles.settingItemLeft, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
                 <View style={styles.settingIconContainer}>
                   <MaterialIcons name="palette" size={20} color="#76D1FF" />
                 </View>
-                <View>
-                  <Text style={styles.settingTitle}>Appearance</Text>
-                  <Text style={styles.settingSubtitle}>{theme === 'dark' ? 'Vibrant Dark Mode' : 'Clean Light Mode'}</Text>
+                <View style={{ alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }}>
+                  <Text style={styles.settingTitle}>{t('settings.theme')}</Text>
+                  <Text style={styles.settingSubtitle}>{theme === 'dark' ? t('settings.dark_mode_desc') : t('settings.light_mode_desc')}</Text>
                 </View>
               </View>
-              <MaterialIcons name="chevron-right" size={24} color="#bec8cf" />
+              <MaterialIcons name="chevron-right" size={24} color="#bec8cf" style={{ transform: [{ scaleX: i18n.dir() === 'rtl' ? -1 : 1 }] }} />
             </TouchableOpacity>
 
             {/* Language */}
-            <TouchableOpacity style={styles.settingItem}>
-              <View style={styles.settingItemLeft}>
+            <TouchableOpacity style={[styles.settingItem, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]} onPress={toggleLanguage}>
+              <View style={[styles.settingItemLeft, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
                 <View style={styles.settingIconContainer}>
                   <MaterialIcons name="language" size={20} color="#76D1FF" />
                 </View>
-                <View>
-                  <Text style={styles.settingTitle}>Language</Text>
-                  <Text style={styles.settingSubtitle}>English</Text>
+                <View style={{ alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }}>
+                  <Text style={styles.settingTitle}>{t('settings.language')}</Text>
+                  <Text style={styles.settingSubtitle}>{i18n.language === 'en' ? t('settings.english') : t('settings.arabic')}</Text>
                 </View>
               </View>
-              <MaterialIcons name="chevron-right" size={24} color="#bec8cf" />
+              <MaterialIcons name="chevron-right" size={24} color="#bec8cf" style={{ transform: [{ scaleX: i18n.dir() === 'rtl' ? -1 : 1 }] }} />
             </TouchableOpacity>
 
-            {/* Notifications */}
-            <TouchableOpacity style={[styles.settingItem, styles.noBorderBottom]}>
-              <View style={styles.settingItemLeft}>
-                <View style={styles.settingIconContainer}>
-                  <MaterialIcons name="notifications" size={20} color="#76D1FF" />
-                </View>
-                <View>
-                  <Text style={styles.settingTitle}>Notifications</Text>
-                  <Text style={styles.settingSubtitle}>Push, Email, Alerts</Text>
-                </View>
-              </View>
-              <MaterialIcons name="chevron-right" size={24} color="#bec8cf" />
-            </TouchableOpacity>
+
 
           </View>
         </View>
 
         {/* Account & Security Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ACCOUNT & SECURITY</Text>
+          <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
           <View style={styles.sectionCard}>
             
-            {/* Privacy */}
-            <TouchableOpacity style={styles.settingItem}>
-              <View style={styles.settingItemLeft}>
+            {/* Edit Profile */}
+            <TouchableOpacity style={[styles.settingItem, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]} onPress={() => router.push('/edit-profile')}>
+              <View style={[styles.settingItemLeft, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
                 <View style={styles.settingIconContainer}>
-                  <MaterialIcons name="privacy-tip" size={20} color="#76D1FF" />
+                  <MaterialIcons name="person-outline" size={20} color="#76D1FF" />
                 </View>
-                <View>
-                  <Text style={styles.settingTitle}>Privacy</Text>
-                  <Text style={styles.settingSubtitle}>Data usage & sharing</Text>
+                <View style={{ alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }}>
+                  <Text style={styles.settingTitle}>{t('settings.edit_profile')}</Text>
                 </View>
               </View>
-              <MaterialIcons name="chevron-right" size={24} color="#bec8cf" />
+              <MaterialIcons name="chevron-right" size={24} color="#bec8cf" style={{ transform: [{ scaleX: i18n.dir() === 'rtl' ? -1 : 1 }] }} />
             </TouchableOpacity>
 
-            {/* Security */}
-            <TouchableOpacity style={[styles.settingItem, styles.noBorderBottom]}>
-              <View style={styles.settingItemLeft}>
+            {/* Change Password */}
+            <TouchableOpacity style={[styles.settingItem, styles.noBorderBottom, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]} onPress={() => router.push('/change-password')}>
+              <View style={[styles.settingItemLeft, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
                 <View style={styles.settingIconContainer}>
-                  <MaterialIcons name="lock" size={20} color="#76D1FF" />
+                  <MaterialIcons name="lock-outline" size={20} color="#76D1FF" />
                 </View>
-                <View>
-                  <Text style={styles.settingTitle}>Security</Text>
-                  <Text style={styles.settingSubtitle}>Password, 2FA</Text>
+                <View style={{ alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }}>
+                  <Text style={styles.settingTitle}>{t('settings.change_password')}</Text>
                 </View>
               </View>
-              <MaterialIcons name="chevron-right" size={24} color="#bec8cf" />
+              <MaterialIcons name="chevron-right" size={24} color="#bec8cf" style={{ transform: [{ scaleX: i18n.dir() === 'rtl' ? -1 : 1 }] }} />
             </TouchableOpacity>
 
           </View>
@@ -144,7 +142,7 @@ export default function SettingsScreen() {
         {/* Danger Zone */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <MaterialIcons name="logout" size={24} color="#F43F5E" />
-          <Text style={styles.logoutText}>Log Out</Text>
+          <Text style={styles.logoutText}>{t('settings.logout')}</Text>
         </TouchableOpacity>
 
         {/* Version Info */}
