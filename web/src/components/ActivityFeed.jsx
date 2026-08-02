@@ -1,29 +1,30 @@
-import React from 'react';
-import { Bell, MessageSquare, AtSign } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, MessageSquare, AtSign, Loader2 } from 'lucide-react';
 import Avatar from './Avatar';
+import { api } from '../api/client';
 
 export default function ActivityFeed() {
-  // Temporary mock data. You would fetch this from a real notifications endpoint
-  const mockActivities = [
-    {
-      id: 1,
-      type: 'mention',
-      actorName: 'Omar Khaled',
-      actorAvatar: null,
-      channelName: 'marketing',
-      content: 'Can you check the new campaign assets?',
-      time: '10m ago'
-    },
-    {
-      id: 2,
-      type: 'reply',
-      actorName: 'Sarah Ahmed',
-      actorAvatar: null,
-      channelName: 'general',
-      content: 'I agree, let\'s proceed with the second option.',
-      time: '1h ago'
-    }
-  ];
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const res = await api.messages.getMentions();
+        setActivities(res.mentions || []);
+      } catch (err) {
+        console.error('Failed to fetch activities:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchActivities();
+  }, []);
+
+  const formatDate = (dateString) => {
+    const d = new Date(dateString);
+    return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
 
   return (
     <div className="chat-area" style={{ backgroundColor: 'var(--bg)', padding: '24px', overflowY: 'auto' }}>
@@ -32,13 +33,17 @@ export default function ActivityFeed() {
           <Bell size={24} color="var(--emerald)" /> Activity
         </h2>
         
-        {mockActivities.length === 0 ? (
+        {loading ? (
+          <div style={{ textAlign: 'center', color: 'var(--text-dim)', marginTop: '48px', display: 'flex', justifyContent: 'center' }}>
+            <Loader2 className="spinner" size={24} />
+          </div>
+        ) : activities.length === 0 ? (
           <div style={{ textAlign: 'center', color: 'var(--text-dim)', marginTop: '48px' }}>
             No recent activity.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {mockActivities.map(activity => (
+            {activities.map(activity => (
               <div key={activity.id} style={{ 
                 backgroundColor: 'var(--panel)', 
                 borderRadius: '12px', 
@@ -49,26 +54,22 @@ export default function ActivityFeed() {
                 alignItems: 'flex-start'
               }}>
                 <div style={{ position: 'relative' }}>
-                  <Avatar user={{ name: activity.actorName, avatar: activity.actorAvatar }} size={40} />
+                  <Avatar user={{ name: activity.author_name || 'Unknown', avatar: activity.author_avatar }} size={40} />
                   <div style={{ 
                     position: 'absolute', bottom: -4, right: -4, 
                     backgroundColor: 'var(--panel)', borderRadius: '50%', padding: '2px',
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                   }}>
-                    {activity.type === 'mention' ? (
-                      <AtSign size={14} color="var(--emerald)" />
-                    ) : (
-                      <MessageSquare size={14} color="var(--blue)" />
-                    )}
+                    <AtSign size={14} color="var(--emerald)" />
                   </div>
                 </div>
                 
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span style={{ fontSize: '14px', color: 'var(--text)' }}>
-                      <strong>{activity.actorName}</strong> {activity.type === 'mention' ? 'mentioned you in' : 'replied to your thread in'} <strong>#{activity.channelName}</strong>
+                      <strong>{activity.author_name || 'Unknown'}</strong> mentioned you in <strong>#{activity.channel_name || activity.channel_slug}</strong>
                     </span>
-                    <span style={{ fontSize: '12px', color: 'var(--text-mute)' }}>{activity.time}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-mute)' }}>{formatDate(activity.created_at)}</span>
                   </div>
                   <div style={{ 
                     backgroundColor: 'var(--panel-2)', 
@@ -78,7 +79,7 @@ export default function ActivityFeed() {
                     color: 'var(--text-dim)',
                     marginTop: '8px'
                   }}>
-                    {activity.content}
+                    {activity.body}
                   </div>
                 </div>
               </div>
