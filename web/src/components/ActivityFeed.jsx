@@ -3,7 +3,7 @@ import { Bell, MessageSquare, AtSign, Loader2 } from 'lucide-react';
 import Avatar from './Avatar';
 import { api } from '../api/client';
 
-export default function ActivityFeed() {
+export default function ActivityFeed({ onMessageSelect }) {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -51,8 +51,9 @@ export default function ActivityFeed() {
                 border: '1px solid var(--border)',
                 display: 'flex',
                 gap: '16px',
-                alignItems: 'flex-start'
-              }}>
+                alignItems: 'flex-start',
+                cursor: 'pointer'
+              }} onClick={() => onMessageSelect?.(activity.channel_slug, activity.id)}>
                 <div style={{ position: 'relative' }}>
                   <Avatar user={{ name: activity.author_name || 'Unknown', avatar: activity.author_avatar }} size={40} />
                   <div style={{ 

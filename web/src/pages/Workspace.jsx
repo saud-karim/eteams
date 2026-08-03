@@ -126,7 +126,14 @@ export default function Workspace() {
   const handleChannelSelect = (slug, messageId = null) => {
     setActiveChannel(slug);
     setTargetMessageId(messageId);
-    setActiveView('chat');
+    
+    const ch = channelsRef.current.find(c => c.slug === slug);
+    if (ch && (ch.type === 'dm' || ch.type === 'group_dm' || ch.type === 'direct')) {
+      setActiveView('dms');
+    } else {
+      setActiveView('chat');
+    }
+    
     setShowAdminPanel(false);
     setSidebarOpen(false);
     // Unread badge is cleared by the useEffect above
@@ -267,7 +274,7 @@ export default function Workspace() {
         />
         
         {!showAdminPanel ? (
-          activeView === 'chat' ? (
+          (activeView === 'chat' || activeView === 'dms') ? (
             <ChatArea 
               activeChannel={activeChannel} 
               targetMessageId={targetMessageId}
@@ -282,7 +289,7 @@ export default function Workspace() {
               onJumpToChannel={(slug, msgId) => handleChannelSelect(slug, msgId)}
             />
           ) : activeView === 'activity' ? (
-            <ActivityFeed />
+            <ActivityFeed onMessageSelect={handleChannelSelect} />
           ) : null
         ) : (
           <AdminPanel onClose={() => setShowAdminPanel(false)} />

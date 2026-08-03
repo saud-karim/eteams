@@ -314,6 +314,24 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
   const canPost = (!!currentMem?.can_post && currentMem.can_post !== 0) || isManager || user?.role === 'superadmin';
   const isReadOnly = channelObj?.is_readonly;
   const canPostInChannel = canPost && (!isReadOnly || isManager || user?.role === 'superadmin');
+  let displayName = channelObj?.name || activeChannel || 'general';
+  
+  if (channelObj?.type === 'dm' || channelObj?.type === 'group_dm' || channelObj?.type === 'direct') {
+    if (channelObj.slug && channelObj.slug.startsWith('dm-')) {
+      const ids = channelObj.slug.replace('dm-', '').split('-');
+      const otherIds = ids.filter(id => id !== user?.id?.toString());
+      if (otherIds.length > 0) {
+        const otherUsers = otherIds.map(id => users?.find(u => u.id?.toString() === id)).filter(Boolean);
+        if (channelObj.type === 'dm' || otherUsers.length === 1) {
+          if (otherUsers[0]) displayName = otherUsers[0].name;
+        }
+      }
+    }
+    
+    if (displayName === channelObj?.name && channelObj?.type === 'dm') {
+      displayName = channelObj.name.split(', ').find(n => n !== user?.name) || channelObj.name;
+    }
+  }
 
   return (
     <>
@@ -323,7 +341,7 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
           <div>
             <div className="chat-title">
               <span className="prefix">{getChannelIcon()}</span>
-              <span className="name">{channelObj?.name || activeChannel || 'general'}</span>
+              <span className="name">{displayName}</span>
               <span className="caret">▾</span>
               {channelObj?.description && (
                 <div className="chat-topic">{channelObj.description}</div>
