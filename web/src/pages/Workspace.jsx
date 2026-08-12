@@ -20,6 +20,7 @@ import ActivityFeed from '../components/ActivityFeed';
 import { api } from '../api/client';
 import { requestFirebaseNotificationPermission } from '../firebase';
 
+
 export default function Workspace() {
   const { user, setUser } = useAuth();
   const { channels, setChannels } = useWorkspace();
