@@ -16,7 +16,7 @@ import { useConfirm } from '../context/ConfirmContext';
 import Avatar from './Avatar';
 import ChannelIcon from './ChannelIcon';
 
-export default function ChatArea({ activeChannel, onStartCall, targetMessageId }) {
+export default function ChatArea({ activeChannel, onStartCall, targetMessageId, setActiveChannel }) {
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState('messages');
   const [messages, setMessages] = useState([]);
@@ -30,11 +30,31 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
   const [editingMember, setEditingMember] = useState(null);
   
   const { t } = useLanguage();
-  const { channels, users } = useWorkspace();
+  const { channels, users, refreshWorkspace } = useWorkspace();
   const socket = useSocket();
   const { user } = useAuth();
 
-  const channelObj = channels?.find(c => c.slug === activeChannel) || channels?.[0];
+  const [fetchedChannel, setFetchedChannel] = useState(null);
+
+  useEffect(() => {
+    if (!activeChannel) return;
+    const found = channels?.find(c => c.slug === activeChannel);
+    if (!found) {
+      api.channels.get(activeChannel).then(res => {
+        if (res.channel) setFetchedChannel(res.channel);
+      }).catch((err) => {
+        if (!err.message?.includes('404')) {
+          console.error(err);
+        }
+      });
+    } else {
+      setFetchedChannel(null);
+    }
+  }, [activeChannel, channels]);
+
+  const channelObj = channels?.find(c => c.slug === activeChannel) || 
+                     (fetchedChannel?.slug === activeChannel ? fetchedChannel : null) || 
+                     (!activeChannel ? channels?.[0] : null);
 
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -301,7 +321,8 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
     if (ok) {
       try {
         await api.channels.delete(channelObj.id);
-        window.location.reload();
+        if (refreshWorkspace) await refreshWorkspace();
+        if (setActiveChannel) setActiveChannel(null); // Fallback to default channel
       } catch (e) {
         alert(e.message || 'Error deleting channel');
       }
@@ -309,6 +330,15 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
   };
 
   const isDM = channelObj?.type === 'dm';
+  
+  if (!channelObj) {
+    return (
+      <div className="chat-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-mute)', background: 'var(--panel-2)' }}>
+        Loading channel...
+      </div>
+    );
+  }
+
   const currentMem = channelMembers.find(m => m.id === user?.id);
   const isManager = !!currentMem?.is_manager && currentMem.is_manager !== 0 && currentMem.is_manager !== false;
   const canPost = (!!currentMem?.can_post && currentMem.can_post !== 0) || isManager || user?.role === 'superadmin';
@@ -368,12 +398,12 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
               {showMoreMenu && (
                 <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 100, minWidth: 180, padding: 8 }}>
                   <div className="hover-bg" onClick={handleCopyLink} style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4, fontSize: 13 }}>Copy Link</div>
-                  <div className="hover-bg" onClick={() => { setIsMuted(!isMuted); setShowMoreMenu(false); }} style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4, fontSize: 13 }}>{isMuted ? 'Unmute Notifications' : 'Mute Notifications'}</div>
+
                   <div className="hover-bg" onClick={handleClearHistory} style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4, fontSize: 13 }}>Clear History</div>
-                  {channelObj?.type !== 'announcement' && (
+                  {channelObj?.type !== 'announcement' && channelObj?.type !== 'dm' && channelObj?.type !== 'group_dm' && (
                     <div className="hover-bg" onClick={handleLeaveChannel} style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4, fontSize: 13, color: 'var(--accent)' }}>Leave Channel</div>
                   )}
-                  {(user?.id === channelObj?.created_by || user?.role === 'superadmin') && (
+                  {(user?.id === channelObj?.created_by || user?.role === 'superadmin' || channelObj?.type === 'dm' || channelObj?.type === 'group_dm') && (
                     <div className="hover-bg" onClick={handleDeleteChannel} style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4, fontSize: 13, color: 'var(--error)' }}>Delete Channel</div>
                   )}
                 </div>
@@ -501,9 +531,9 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId }
           <div className="messages" style={{ padding: '20px' }}>
             <div className="list-group">
               {channelMembers.map(member => (
-                <div key={member.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--panel-2)', borderRadius: 8, marginBottom: 8 }}>
-                  <Avatar user={member} size={40} showPresence={true} style={{ borderRadius: 10 }} />
-                  <div style={{ marginLeft: 16, flex: 1 }}>
+                <div key={member.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--panel-2)', borderRadius: 8, marginBottom: 8 }}>
+                  <Avatar user={member} size={40} showPresence={true} style={{ borderRadius: 10, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
                       {member.name}
                       {member.id === channelObj?.created_by && <span style={{ fontSize: 10, background: 'var(--panel-3)', padding: '2px 6px', borderRadius: 4, color: 'var(--text-mute)' }}>Creator</span>}

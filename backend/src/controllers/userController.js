@@ -77,4 +77,29 @@ async function uploadAvatar(req, res, next) {
   } catch (e) { next(e); }
 }
 
-module.exports = { list, updateMyPresence, updateMe, updateMyPassword, saveFcmToken, uploadAvatar };
+async function getFavorites(req, res, next) {
+  try {
+    const favorites = await User.getFavorites(req.user.id);
+    res.json({ favorites });
+  } catch (e) { next(e); }
+}
+
+async function addFavorite(req, res, next) {
+  try {
+    const { id: favoriteUserId } = req.params;
+    if (!favoriteUserId) return res.status(400).json({ error: 'User ID required' });
+    await User.addFavorite(req.user.id, favoriteUserId);
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+}
+
+async function removeFavorite(req, res, next) {
+  try {
+    const { id: favoriteUserId } = req.params;
+    if (!favoriteUserId) return res.status(400).json({ error: 'User ID required' });
+    await User.removeFavorite(req.user.id, favoriteUserId);
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+}
+
+module.exports = { list, updateMyPresence, updateMe, updateMyPassword, saveFcmToken, uploadAvatar, getFavorites, addFavorite, removeFavorite };

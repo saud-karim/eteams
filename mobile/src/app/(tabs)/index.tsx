@@ -121,9 +121,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        <TouchableOpacity style={styles.filterButton}>
-          <MaterialIcons name="filter-list" size={20} color={colors.iconDefault} />
-        </TouchableOpacity>
       </View>
 
       <ScrollView 

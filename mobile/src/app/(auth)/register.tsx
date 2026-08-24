@@ -1,36 +1,118 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, ScrollView, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, ScrollView, Modal, FlatList, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useTranslation } from 'react-i18next';
-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { api } from '../../api/client';
 
-const { width, height } = Dimensions.get('window');
+
+const DEPARTMENTS = [
+  'Engineering', 'Product', 'Marketing', 'Sales', 'HR', 'Finance', 
+  'Executive', 'Customer Support', 'IT', 'Operations', 'Legal', 'Other'
+];
+
+const EMPLOYMENT_TYPES = [
+  'Full-time employee', 'Part-time employee', 'Consultant', 'Intern', 'Vendor'
+];
 
 export default function RegisterScreen() {
   const { theme, colors, setThemeSetting } = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = createStyles(colors, insets);
+  const { width, height } = useWindowDimensions();
+  const styles = createStyles(colors, insets, width, height);
   const router = useRouter();
   const { t, i18n } = useTranslation();
+  
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [department, setDepartment] = useState('');
+  const [employmentType, setEmploymentType] = useState('Full-time employee');
+  const [reportsTo, setReportsTo] = useState('');
+  
+  const [managers, setManagers] = useState<any[]>([]);
   const [showPassword, setShowPassword] = useState(false);
-  const [agree, setAgree] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleRegister = () => {
-    // Navigate to main app or verification
-    console.log('Register logic here');
+  const [pickerConfig, setPickerConfig] = useState({ visible: false, type: '', title: '', options: [] as any[] });
+
+  useEffect(() => {
+    api.auth.getManagers().then((res: any) => {
+      if (res.managers) setManagers(res.managers);
+    }).catch(err => console.log('Could not load managers', err));
+  }, []);
+
+  const handleRegister = async () => {
+    if (!name || !username || !password) {
+      setErrorMsg(t('auth.fill_required') || 'Please fill out required fields');
+      return;
+    }
+    setErrorMsg('');
+    setLoading(true);
+    
+    const data = {
+      name,
+      username,
+      password,
+      department: department || null,
+      employment_type: employmentType,
+      reports_to: reportsTo || null
+    };
+
+    try {
+      const res: any = await api.auth.signup(data);
+      setSuccessMsg(res.message || 'Signup successful. Pending admin approval.');
+      setTimeout(() => {
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/(auth)/login');
+        }
+      }, 3000);
+    } catch (err: any) {
+      let errMsg = err.message || 'Registration failed';
+      try {
+        if (errMsg.startsWith('[') && errMsg.endsWith(']')) {
+          const parsed = JSON.parse(errMsg);
+          if (Array.isArray(parsed) && parsed[0]?.message) {
+            errMsg = parsed.map(e => e.message).join('\\n');
+          }
+        }
+      } catch (e) {
+        // Not a JSON array, leave it as is
+      }
+      setErrorMsg(errMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openPicker = (type: string) => {
+    if (type === 'department') {
+      setPickerConfig({ visible: true, type, title: 'Select Department', options: DEPARTMENTS.map(d => ({ label: d, value: d })) });
+    } else if (type === 'employment') {
+      setPickerConfig({ visible: true, type, title: 'Select Employment Type', options: EMPLOYMENT_TYPES.map(e => ({ label: e, value: e })) });
+    } else if (type === 'reportsTo') {
+      const opts = [{ label: 'None', value: '' }, ...managers.map(m => ({ label: m.name, value: m.id }))];
+      setPickerConfig({ visible: true, type, title: 'Select Manager', options: opts });
+    }
+  };
+
+  const handleSelect = (val: string) => {
+    if (pickerConfig.type === 'department') setDepartment(val);
+    else if (pickerConfig.type === 'employment') setEmploymentType(val);
+    else if (pickerConfig.type === 'reportsTo') setReportsTo(val);
+    setPickerConfig({ ...pickerConfig, visible: false });
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Background Blurs (Reversed from Login for variety) */}
       <View style={styles.blurTopRight} />
       <View style={styles.blurBottomLeft} />
 
@@ -62,98 +144,173 @@ export default function RegisterScreen() {
 
           <View style={styles.glassPanel}>
             <View style={styles.logoSection}>
-              <View style={styles.logoContainer}>
-                <MaterialIcons name="business" size={28} color="#fff" />
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <View style={{ flexDirection: 'column', gap: 4, marginRight: 16 }}>
+                  <View style={{ height: 6, width: 28, backgroundColor: '#3BA7D6', borderRadius: 4 }} />
+                  <View style={{ height: 6, width: 36, backgroundColor: '#22D3EE', borderRadius: 4 }} />
+                  <View style={{ height: 6, width: 22, backgroundColor: '#67E8F9', borderRadius: 4 }} />
+                </View>
+                
+                <View style={{ 
+                  flexDirection: 'row', alignItems: 'baseline',
+                  backgroundColor: colors.surfaceContainerHigh, paddingVertical: 8, paddingHorizontal: 16, 
+                  borderRadius: 12, borderWidth: 1, borderColor: colors.border,
+                  elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8
+                }}>
+                  <Text style={{ color: '#3BA7D6', fontWeight: '900', fontSize: 36, lineHeight: 36 }}>E</Text>
+                  <Text style={{ color: colors.text, fontWeight: '700', fontSize: 30, letterSpacing: 1, lineHeight: 36 }}>teams</Text>
+                </View>
               </View>
-              <Text style={styles.title}>Eteams</Text>
               <Text style={styles.subtitle}>{t('auth.create_account')}</Text>
             </View>
 
-            <View style={styles.form}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('auth.name')}</Text>
-                <View style={styles.inputWrapper}>
-                  <MaterialIcons name="account-circle" size={20} color={colors.textDim} style={styles.inputIconLeft} />
-                  <TextInput
-                    style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
-                    placeholder={t('auth.enter_name')}
-                    placeholderTextColor={colors.border}
-                    value={name}
-                    onChangeText={setName}
-                  />
-                </View>
+            {successMsg ? (
+              <View style={styles.successBox}>
+                <MaterialIcons name="check-circle" size={24} color="#000" />
+                <Text style={styles.successText}>{successMsg}</Text>
               </View>
+            ) : (
+              <View style={styles.form}>
+                {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('auth.email')}</Text>
-                <View style={styles.inputWrapper}>
-                  <MaterialIcons name="email" size={20} color={colors.textDim} style={styles.inputIconLeft} />
-                  <TextInput
-                    style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
-                    placeholder={t('auth.enter_email')}
-                    placeholderTextColor={colors.border}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={email}
-                    onChangeText={setEmail}
-                  />
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Full Name</Text>
+                  <View style={styles.inputWrapper}>
+                    <MaterialIcons name="account-circle" size={20} color={colors.textDim} style={styles.inputIconLeft} />
+                    <TextInput
+                      style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
+                      placeholder="e.g. John Doe"
+                      placeholderTextColor={colors.border}
+                      value={name}
+                      onChangeText={setName}
+                    />
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('auth.password')}</Text>
-                <View style={styles.inputWrapper}>
-                  <MaterialIcons name="lock" size={20} color={colors.textDim} style={styles.inputIconLeft} />
-                  <TextInput
-                    style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
-                    placeholder="••••••••"
-                    placeholderTextColor={colors.border}
-                    secureTextEntry={!showPassword}
-                    value={password}
-                    onChangeText={setPassword}
-                  />
-                  <TouchableOpacity style={styles.inputIconRight} onPress={() => setShowPassword(!showPassword)}>
-                    <MaterialIcons name={showPassword ? "visibility-off" : "visibility"} size={20} color={colors.textDim} />
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Username</Text>
+                  <View style={styles.inputWrapper}>
+                    <MaterialIcons name="person" size={20} color={colors.textDim} style={styles.inputIconLeft} />
+                    <TextInput
+                      style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
+                      placeholder="john_doe"
+                      placeholderTextColor={colors.border}
+                      autoCapitalize="none"
+                      value={username}
+                      onChangeText={setUsername}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>{t('auth.password')}</Text>
+                  <View style={styles.inputWrapper}>
+                    <MaterialIcons name="lock" size={20} color={colors.textDim} style={styles.inputIconLeft} />
+                    <TextInput
+                      style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
+                      placeholder="••••••••"
+                      placeholderTextColor={colors.border}
+                      secureTextEntry={!showPassword}
+                      value={password}
+                      onChangeText={setPassword}
+                    />
+                    <TouchableOpacity style={styles.inputIconRight} onPress={() => setShowPassword(!showPassword)}>
+                      <MaterialIcons name={showPassword ? "visibility-off" : "visibility"} size={20} color={colors.textDim} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Department</Text>
+                  <TouchableOpacity style={[styles.input, styles.pickerInput]} onPress={() => openPicker('department')}>
+                    <Text style={{ color: department ? colors.text : colors.textDim }}>{department || 'Select department...'}</Text>
+                    <MaterialIcons name="arrow-drop-down" size={24} color={colors.textDim} />
                   </TouchableOpacity>
                 </View>
-              </View>
 
-              <View style={styles.rememberSection}>
-                <TouchableOpacity 
-                  style={styles.checkboxContainer} 
-                  onPress={() => setAgree(!agree)}
-                >
-                  <View style={[styles.checkbox, agree && styles.checkboxActive]}>
-                    {agree && <MaterialIcons name="check" size={12} color={colors.background} />}
-                  </View>
-                  <Text style={styles.rememberText}>{t('auth.agree_terms')}</Text>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Employment Type</Text>
+                  <TouchableOpacity style={[styles.input, styles.pickerInput]} onPress={() => openPicker('employment')}>
+                    <Text style={{ color: employmentType ? colors.text : colors.textDim }}>{employmentType || 'Select...'}</Text>
+                    <MaterialIcons name="arrow-drop-down" size={24} color={colors.textDim} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Reports To</Text>
+                  <TouchableOpacity style={[styles.input, styles.pickerInput]} onPress={() => openPicker('reportsTo')}>
+                    <Text style={{ color: reportsTo ? colors.text : colors.textDim }}>
+                      {reportsTo ? managers.find(m => m.id === reportsTo)?.name : 'Select manager...'}
+                    </Text>
+                    <MaterialIcons name="arrow-drop-down" size={24} color={colors.textDim} />
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity style={styles.loginButton} onPress={handleRegister} disabled={loading}>
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Text style={styles.loginButtonText}>{t('auth.sign_up')}</Text>
+                      <MaterialIcons name="person-add" size={20} color="#fff" />
+                    </>
+                  )}
                 </TouchableOpacity>
               </View>
-
-              <TouchableOpacity style={styles.loginButton} onPress={handleRegister}>
-                <Text style={styles.loginButtonText}>{t('auth.sign_up')}</Text>
-                <MaterialIcons name="person-add" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
+            )}
           </View>
           
           <View style={styles.footer}>
             <Text style={styles.footerText}>{t('auth.has_account')}</Text>
             <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-              <Text style={styles.footerLink}>{t('auth.sign_in')}</Text>
+              <Text style={styles.footerLink}> {t('auth.sign_in')}</Text>
             </TouchableOpacity>
           </View>
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal visible={pickerConfig.visible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{pickerConfig.title}</Text>
+            <FlatList
+              data={pickerConfig.options}
+              keyExtractor={(item) => String(item.value)}
+              style={{ maxHeight: height * 0.35 }}
+              renderItem={({ item }) => {
+                let isSelected = false;
+                if (pickerConfig.type === 'department') isSelected = item.value === department;
+                if (pickerConfig.type === 'employment') isSelected = item.value === employmentType;
+                if (pickerConfig.type === 'reportsTo') isSelected = item.value === reportsTo;
+
+                return (
+                  <TouchableOpacity 
+                    style={[styles.modalItem, isSelected && styles.modalItemSelected]} 
+                    onPress={() => handleSelect(item.value)}
+                  >
+                    <Text style={[styles.modalItemText, isSelected && styles.modalItemTextSelected]}>{item.label}</Text>
+                    {isSelected && <MaterialIcons name="check" size={20} color={colors.primary} />}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setPickerConfig({ ...pickerConfig, visible: false })}>
+              <Text style={styles.modalCloseText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
 
-const createStyles = (colors: typeof Colors.light, insets: any) => StyleSheet.create({
+const createStyles = (colors: typeof Colors.light, insets: any, width: number, height: number) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    overflow: 'hidden',
   },
   blurTopRight: {
     position: 'absolute',
@@ -162,7 +319,7 @@ const createStyles = (colors: typeof Colors.light, insets: any) => StyleSheet.cr
     width: width * 0.6,
     height: width * 0.6,
     borderRadius: 9999,
-    backgroundColor: 'rgba(118, 209, 255, 0.08)', // primary/8
+    backgroundColor: 'rgba(118, 209, 255, 0.08)', 
   },
   blurBottomLeft: {
     position: 'absolute',
@@ -171,12 +328,13 @@ const createStyles = (colors: typeof Colors.light, insets: any) => StyleSheet.cr
     width: width * 0.7,
     height: width * 0.7,
     borderRadius: 9999,
-    backgroundColor: 'rgba(74, 225, 118, 0.04)', // secondary/4
+    backgroundColor: 'rgba(74, 225, 118, 0.04)', 
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
     padding: 16,
+    paddingTop: 70,
+    paddingBottom: 16,
   },
   topBar: {
     position: 'absolute',
@@ -217,7 +375,7 @@ const createStyles = (colors: typeof Colors.light, insets: any) => StyleSheet.cr
   glassPanel: {
     backgroundColor: colors.surfaceContainer,
     borderRadius: 12,
-    padding: 32,
+    padding: 24,
     borderWidth: 1,
     borderColor: colors.border,
     shadowColor: '#000',
@@ -225,20 +383,20 @@ const createStyles = (colors: typeof Colors.light, insets: any) => StyleSheet.cr
     shadowOpacity: 0.15,
     shadowRadius: 16,
     width: '100%',
-    maxWidth: 448, // max-w-md
+    maxWidth: 448, 
     alignSelf: 'center',
     zIndex: 10,
-    marginTop: 60,
+    marginTop: 0,
   },
   logoSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   logoContainer: {
     width: 48,
     height: 48,
     borderRadius: 8,
-    backgroundColor: colors.primary, // primary-container
+    backgroundColor: colors.primary, 
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -249,16 +407,16 @@ const createStyles = (colors: typeof Colors.light, insets: any) => StyleSheet.cr
   },
   title: {
     ...Typography.displayMd,
-    color: colors.text, // on-surface
+    color: colors.text, 
   },
   subtitle: {
     ...Typography.bodyMd,
-    color: colors.textDim, // on-surface-variant
+    color: colors.textDim, 
     marginTop: 8,
     textAlign: 'center',
   },
   form: {
-    gap: 20,
+    gap: 16,
   },
   inputGroup: {
     gap: 6,
@@ -290,37 +448,18 @@ const createStyles = (colors: typeof Colors.light, insets: any) => StyleSheet.cr
     paddingVertical: 10,
     paddingLeft: 40,
     paddingRight: 40,
-    color: colors.text, // on-surface
+    color: colors.text, 
     ...Typography.bodyMd,
   },
-  rememberSection: {
-    marginTop: 4,
-  },
-  checkboxContainer: {
+  pickerInput: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  checkbox: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceContainerHigh, // surface-container-high
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxActive: {
-    backgroundColor: colors.primary, // primary
-    borderColor: colors.primary,
-  },
-  rememberText: {
-    ...Typography.bodyMd,
-    color: colors.textDim,
+    justifyContent: 'space-between',
+    paddingLeft: 12,
+    paddingRight: 8,
   },
   loginButton: {
-    backgroundColor: colors.primary, // primary-container
+    backgroundColor: colors.primary, 
     borderRadius: 8,
     paddingVertical: 12,
     marginTop: 16,
@@ -345,11 +484,89 @@ const createStyles = (colors: typeof Colors.light, insets: any) => StyleSheet.cr
   },
   footerText: {
     ...Typography.bodyMd,
-    color: colors.iconDefault, // outline
+    color: colors.iconDefault, 
   },
   footerLink: {
     ...Typography.bodyMd,
-    color: colors.primary, // primary
+    color: colors.primary, 
     fontWeight: '600',
+  },
+  successBox: {
+    backgroundColor: '#34d399',
+    padding: 16,
+    borderRadius: 8,
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 12
+  },
+  successText: {
+    ...Typography.bodyMd,
+    color: '#000',
+    fontWeight: 'bold',
+    textAlign: 'center'
+  },
+  errorText: {
+    color: '#ef4444',
+    textAlign: 'center',
+    ...Typography.labelMd,
+    marginBottom: 8
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: colors.surfaceContainer,
+    width: width * 0.88,
+    maxHeight: height * 0.6,
+    borderRadius: 20,
+    padding: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  modalTitle: {
+    ...Typography.titleLg,
+    color: colors.text,
+    marginBottom: 20,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  modalItem: {
+    paddingVertical: 14,
+    paddingLeft: 4,
+    paddingRight: 16,
+    borderRadius: 12,
+    marginBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalItemSelected: {
+    backgroundColor: 'rgba(74, 225, 118, 0.1)', 
+  },
+  modalItemText: {
+    ...Typography.bodyMd,
+    color: colors.textDim,
+    textAlign: 'left',
+  },
+  modalItemTextSelected: {
+    color: colors.text,
+    fontWeight: 'bold',
+  },
+  modalCloseBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: 8
+  },
+  modalCloseText: {
+    ...Typography.bodyLg,
+    color: colors.text,
+    textAlign: 'center'
   }
 });

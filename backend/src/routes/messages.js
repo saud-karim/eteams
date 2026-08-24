@@ -22,6 +22,7 @@ router.get('/saved', ctrl.getSavedMessages);
 router.get('/threads', ctrl.getThreads);
 router.get('/mentions', ctrl.getMentions);
 router.get('/files', ctrl.getFiles);
+router.get('/download/:attachmentId', ctrl.downloadAttachment);
 router.post('/', upload.single('file'), ctrl.send);
 router.patch('/:id', ctrl.edit);
 router.delete('/:id', ctrl.remove);

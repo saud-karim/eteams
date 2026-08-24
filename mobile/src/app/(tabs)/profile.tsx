@@ -71,7 +71,7 @@ export default function ProfileScreen() {
             <View style={styles.avatarWrapper}>
               <UserAvatar 
                 name={user.name || user.username || '?'} 
-                avatarUrl={user.avatar_url} 
+                avatarUrl={user.avatar} 
                 size={90} 
               />
               <View style={[styles.onlineBadge, { backgroundColor: user.presence === 'dnd' ? '#F43F5E' : user.presence === 'away' ? '#F59E0B' : user.presence === 'meeting' ? '#8B5CF6' : user.presence === 'offline' ? '#64748B' : '#10B981' }]} />
@@ -204,17 +204,7 @@ export default function ProfileScreen() {
               ))}
             </View>
 
-            {/* Custom Status Text */}
-            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.iconDefault, marginBottom: 6, textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }}>
-              {t('profile.status_text_label', 'Status message')}
-            </Text>
-            <TextInput
-              style={{ backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, color: colors.text, fontSize: 14, marginBottom: 20, textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }}
-              placeholder={t('profile.status_placeholder', 'e.g. In a meeting, WFH')}
-              placeholderTextColor={colors.iconDefault}
-              value={statusText}
-              onChangeText={setStatusText}
-            />
+            {/* Custom Status Text removed to restrict editing */}
 
             {/* Action Buttons */}
             <View style={{ flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row', justifyContent: 'flex-end', gap: 12 }}>

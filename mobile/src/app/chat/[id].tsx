@@ -29,7 +29,7 @@ export default function ChatScreen() {
   const { t, i18n } = useTranslation();
   
   const { user } = useAuth();
-  const { channels, users, setChannels } = useWorkspace();
+  const { channels, users, setChannels, refreshWorkspace } = useWorkspace();
   const socket = useSocket();
   
   const channelObj = channels?.find((c: any) => c.slug === id);
@@ -85,11 +85,13 @@ export default function ChatScreen() {
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
   const [showReadersModal, setShowReadersModal] = useState(false);
   const [showChannelInfo, setShowChannelInfo] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [forwardMessage, setForwardMessage] = useState<any>(null);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [activeTab, setActiveTab] = useState<'members' | 'files' | 'pinned'>('members');
   const [selectedMemberForPerms, setSelectedMemberForPerms] = useState<any>(null);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
   const slideAnim = useRef(new Animated.Value(300)).current;
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -150,7 +152,11 @@ export default function ChatScreen() {
           setChannelDetails(res);
         }
       })
-      .catch(console.error);
+      .catch((err: any) => {
+        if (!err.message?.includes('404')) {
+          console.error(err);
+        }
+      });
   }, [channelObj?.id]);
 
   useEffect(() => {
@@ -293,6 +299,31 @@ export default function ChatScreen() {
     } else {
       setShowMentions(false);
     }
+  };
+
+  const insertText = (text: string) => {
+    const before = inputText.substring(0, selection.start);
+    const after = inputText.substring(selection.end);
+    const newText = before + text + after;
+    setInputText(newText);
+    
+    // Trigger handleTextChange so mentions or typing indicator work
+    handleTextChange(newText);
+  };
+
+  const handleBold = () => {
+    if (selection.start !== selection.end) {
+      const selected = inputText.substring(selection.start, selection.end);
+      const before = inputText.substring(0, selection.start);
+      const after = inputText.substring(selection.end);
+      setInputText(before + `**${selected}**` + after);
+    } else {
+      insertText('**bold** ');
+    }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    insertText(emoji);
   };
 
   const handleSelectMention = (member: any) => {
@@ -503,7 +534,57 @@ export default function ChatScreen() {
     );
   };
 
+  const handleDeleteChannel = () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Are you sure you want to DELETE this channel for everyone?`)) {
+        api.channels.delete(channelObj.id).then(() => {
+          setShowChannelInfo(false);
+          refreshWorkspace();
+          router.replace('/(tabs)');
+        }).catch((err: any) => {
+          window.alert(err.message || 'Failed to delete channel');
+        });
+      }
+      return;
+    }
+
+    Alert.alert(
+      t('common.confirm', 'Confirm'),
+      `Are you sure you want to DELETE this channel for everyone?`,
+      [
+        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+        {
+          text: t('common.delete', 'Delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.channels.delete(channelObj.id);
+              setShowChannelInfo(false);
+              refreshWorkspace();
+              router.replace('/(tabs)');
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to delete channel');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleLeaveChannel = () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Are you sure you want to leave #${channelObj?.name}?`)) {
+        api.channels.leave(channelObj.id).then(() => {
+          setShowChannelInfo(false);
+          refreshWorkspace();
+          router.replace('/(tabs)');
+        }).catch((err: any) => {
+          window.alert(err.message || 'Failed to leave channel');
+        });
+      }
+      return;
+    }
+
     Alert.alert(
       t('common.confirm', 'Confirm'),
       `Are you sure you want to leave #${channelObj?.name}?`,
@@ -516,7 +597,8 @@ export default function ChatScreen() {
             try {
               await api.channels.leave(channelObj.id);
               setShowChannelInfo(false);
-              router.replace('/');
+              refreshWorkspace();
+              router.replace('/(tabs)');
             } catch (err: any) {
               Alert.alert('Error', err.message || 'Failed to leave channel');
             }
@@ -606,9 +688,14 @@ export default function ChatScreen() {
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.headerTitlePill} onPress={() => setShowChannelInfo(true)}>
-            <Text style={styles.headerName}>
-              {(channelObj?.type === 'dm' || channelObj?.type === 'group_dm' || channelObj?.type === 'direct') ? displayName : `#${channelObj?.name}`}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={styles.headerName}>
+                {(channelObj?.type === 'dm' || channelObj?.type === 'group_dm' || channelObj?.type === 'direct') ? displayName : `#${channelObj?.name}`}
+              </Text>
+              {(channelObj?.type === 'dm' || channelObj?.type === 'group_dm' || channelObj?.type === 'direct') && (
+                <MaterialIcons name="chevron-right" size={20} color={colors.text} />
+              )}
+            </View>
             {channelObj?.type !== 'dm' && channelObj?.type !== 'direct' ? (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Text style={styles.headerMembers}>{channelDetails?.members?.length || channelObj?.member_count || 0} members</Text>
@@ -882,6 +969,7 @@ export default function ChatScreen() {
                 multiline
                 value={inputText}
                 onChangeText={handleTextChange}
+                onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
               />
               
               <View style={styles.composerFooter}>
@@ -891,14 +979,14 @@ export default function ChatScreen() {
                       <MaterialIcons name="add" size={20} color={colors.iconDefault} />
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity style={styles.composerActionBtn} onPress={() => setInputText(prev => prev + '**bold** ')}>
+                  <TouchableOpacity style={styles.composerActionBtn} onPress={handleBold}>
                     <MaterialIcons name="format-bold" size={20} color={colors.iconDefault} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.composerActionBtn} onPress={() => setInputText(prev => prev + '😂')}>
+                  <TouchableOpacity style={styles.composerActionBtn} onPress={() => setShowEmojiPicker(true)}>
                     <MaterialIcons name="emoji-emotions" size={20} color={colors.iconDefault} />
                   </TouchableOpacity>
                   { (isSuperadmin || user?.permissions?.['at-user']) && (
-                    <TouchableOpacity style={styles.composerActionBtn} onPress={() => setInputText(prev => prev + '@')}>
+                    <TouchableOpacity style={styles.composerActionBtn} onPress={() => insertText('@')}>
                       <MaterialIcons name="alternate-email" size={20} color={colors.iconDefault} />
                     </TouchableOpacity>
                   )}
@@ -1190,16 +1278,62 @@ export default function ChatScreen() {
 
                 {channelObj?.type !== 'announcement' && (
                   <View style={{ marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.pillBg }}>
-                    <TouchableOpacity 
-                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(244, 63, 94, 0.1)', paddingVertical: 12, borderRadius: 8 }}
-                      onPress={handleLeaveChannel}
-                    >
-                      <MaterialIcons name="logout" size={20} color="#F43F5E" style={{ marginRight: 8 }} />
-                      <Text style={{ color: '#F43F5E', fontSize: 15, fontWeight: '600' }}>Leave Channel</Text>
-                    </TouchableOpacity>
+                    {(user?.id === channelObj?.created_by || user?.role === 'superadmin' || channelObj?.type === 'dm' || channelObj?.type === 'group_dm') && (
+                      <TouchableOpacity 
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(244, 63, 94, 0.1)', paddingVertical: 12, borderRadius: 8, marginBottom: 12 }}
+                        onPress={handleDeleteChannel}
+                      >
+                        <MaterialIcons name="delete" size={20} color="#F43F5E" style={{ marginRight: 8 }} />
+                        <Text style={{ color: '#F43F5E', fontSize: 15, fontWeight: '600' }}>Delete Channel</Text>
+                      </TouchableOpacity>
+                    )}
+                    {channelObj?.type !== 'dm' && channelObj?.type !== 'group_dm' && (
+                      <TouchableOpacity 
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(244, 63, 94, 0.1)', paddingVertical: 12, borderRadius: 8 }}
+                        onPress={handleLeaveChannel}
+                      >
+                        <MaterialIcons name="logout" size={20} color="#F43F5E" style={{ marginRight: 8 }} />
+                        <Text style={{ color: '#F43F5E', fontSize: 15, fontWeight: '600' }}>Leave Channel</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
 
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Emoji Picker Modal */}
+        <Modal
+          visible={showEmojiPicker}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowEmojiPicker(false)}
+        >
+          <View style={[styles.modalOverlay, { justifyContent: 'flex-end', margin: 0, padding: 0 }]}>
+            <View style={{ backgroundColor: colors.composerBg, borderTopLeftRadius: 24, borderTopRightRadius: 24, width: '100%', height: 450, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 10 }}>
+              <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+                <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12 }}>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text }}>{t('chat.emojis') || 'Emojis'}</Text>
+                <TouchableOpacity onPress={() => setShowEmojiPicker(false)} style={{ backgroundColor: colors.pillBg, padding: 6, borderRadius: 20 }}>
+                  <MaterialIcons name="keyboard-arrow-down" size={24} color={colors.iconDefault} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 40 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+                  {['😀','😃','😄','😁','😆','😅','😂','🤣','🥲','☺️','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'].map(emoji => (
+                    <TouchableOpacity 
+                      key={emoji} 
+                      style={{ width: '16.66%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }}
+                      onPress={() => handleEmojiSelect(emoji)}
+                    >
+                      <Text style={{ fontSize: 32 }}>{emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </ScrollView>
             </View>
           </View>

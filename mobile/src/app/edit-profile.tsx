@@ -20,7 +20,6 @@ export default function EditProfileScreen() {
   const [jobTitle, setJobTitle] = useState(user?.job_title || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [statusText, setStatusText] = useState(user?.status_text || '');
   const [presence, setPresence] = useState(user?.presence || 'online');
   const [loading, setLoading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -65,9 +64,9 @@ export default function EditProfileScreen() {
     setLoading(true);
     try {
       // Update basic profile
-      const res = await api.users.updateMe(name, jobTitle, statusText, email, phone);
+      const res = await api.users.updateMe(name, jobTitle, '', email, phone);
       // Update presence
-      await api.users.setPresence(presence, statusText);
+      await api.users.setPresence(presence, '');
 
       if (res.user) {
         setUser({ ...res.user, presence });
@@ -122,22 +121,18 @@ export default function EditProfileScreen() {
         <View style={[styles.inputGroup, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]}>
           <Text style={styles.label}>{t('auth.name')}</Text>
           <TextInput
-            style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left', width: '100%' }]}
+            style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left', width: '100%', opacity: 0.6 }]}
             value={name}
-            onChangeText={setName}
-            placeholder={t('auth.enter_name')}
-            placeholderTextColor={colors.textDim}
+            editable={false}
           />
         </View>
 
         <View style={[styles.inputGroup, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]}>
           <Text style={styles.label}>{t('profile.job_title')}</Text>
           <TextInput
-            style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left', width: '100%' }]}
+            style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left', width: '100%', opacity: 0.6 }]}
             value={jobTitle}
-            onChangeText={setJobTitle}
-            placeholder={t('profile.job_placeholder')}
-            placeholderTextColor={colors.textDim}
+            editable={false}
           />
         </View>
 
@@ -188,19 +183,7 @@ export default function EditProfileScreen() {
           </View>
         </View>
 
-        <View style={[styles.inputGroup, { alignItems: i18n.dir() === 'rtl' ? 'flex-end' : 'flex-start' }]}>
-          <Text style={styles.label}>{t('profile.status_message')}</Text>
-          <TextInput
-            style={[styles.input, styles.textArea, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left', width: '100%' }]}
-            value={statusText}
-            onChangeText={setStatusText}
-            placeholder={t('profile.status_placeholder')}
-            placeholderTextColor={colors.textDim}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-        </View>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );

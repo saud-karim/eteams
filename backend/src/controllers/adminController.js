@@ -343,6 +343,7 @@ async function getChannelManagers(req, res, next) {
         m.user_id, m.channel_id,
         u.name as u,
         c.name as ch,
+        c.type as channel_type,
         m.is_manager,
         m.can_post, m.can_add_members, m.can_remove_members, 
         m.can_pin_messages, m.can_edit_topic, m.can_delete_messages,
@@ -409,6 +410,23 @@ async function archiveChannel(req, res, next) {
     
     const io = getIo();
     io.emit('channel_archived', { channelId: id });
+    
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function unarchiveChannel(req, res, next) {
+  try {
+    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    const { id } = req.params;
+    
+    await Channel.unarchive(id);
+    await AuditLog.log(req.user.id, 'channel.unarchive', 'channel', id, null, req.ip);
+    
+    const io = getIo();
+    io.emit('channel_unarchived', { channelId: id });
     
     res.json({ success: true });
   } catch (err) {
@@ -624,6 +642,7 @@ module.exports = {
   getChannelManagers,
   updateChannel,
   archiveChannel,
+  unarchiveChannel,
   assignChannelManager,
   revokeChannelManager,
   getRolePresets,

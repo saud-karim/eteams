@@ -9,6 +9,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [channels, setChannels] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [favoriteUserIds, setFavoriteUserIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const listenersAttached = useRef(false);
@@ -18,12 +19,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const fetchWorkspaceData = async () => {
     if (!userRef.current) return;
     try {
-      const [channelsData, usersData] = await Promise.all([
+      const [channelsData, usersData, favoritesData] = await Promise.all([
         api.channels.mine(),
-        api.users.list()
+        api.users.list(),
+        api.users.getFavorites().catch(() => ({ favorites: [] }))
       ]);
       setChannels(channelsData.channels || []);
       setUsers(usersData.users || []);
+      setFavoriteUserIds(favoritesData.favorites || []);
     } catch (error) {
       console.error(error);
     }
@@ -33,6 +36,23 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setRefreshing(true);
     await fetchWorkspaceData();
     setRefreshing(false);
+  };
+
+  const toggleFavoriteUser = async (userId: string) => {
+    const isFavorite = favoriteUserIds.includes(userId);
+    // Optimistic UI update
+    setFavoriteUserIds(prev => isFavorite ? prev.filter(id => id !== userId) : [...prev, userId]);
+    try {
+      if (isFavorite) {
+        await api.users.removeFavorite(userId);
+      } else {
+        await api.users.addFavorite(userId);
+      }
+    } catch (error) {
+      // Revert on failure
+      setFavoriteUserIds(prev => isFavorite ? [...prev, userId] : prev.filter(id => id !== userId));
+      console.error('Failed to toggle favorite:', error);
+    }
   };
 
   // Fetch data once when user logs in
@@ -102,7 +122,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, [user?.id]);
 
   return (
-    <WorkspaceContext.Provider value={{ channels, users, setChannels, setUsers, loading, refreshWorkspace, refreshing }}>
+    <WorkspaceContext.Provider value={{ channels, users, favoriteUserIds, toggleFavoriteUser, setChannels, setUsers, loading, refreshWorkspace, refreshing }}>
       {children}
     </WorkspaceContext.Provider>
   );

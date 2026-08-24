@@ -66,10 +66,23 @@ export default function LoginScreen() {
 
           <View style={styles.glassPanel}>
             <View style={styles.logoSection}>
-              <View style={styles.logoContainer}>
-                <MaterialIcons name="business" size={28} color="#fff" />
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <View style={{ flexDirection: 'column', gap: 4, marginRight: 16 }}>
+                  <View style={{ height: 6, width: 28, backgroundColor: '#3BA7D6', borderRadius: 4 }} />
+                  <View style={{ height: 6, width: 36, backgroundColor: '#22D3EE', borderRadius: 4 }} />
+                  <View style={{ height: 6, width: 22, backgroundColor: '#67E8F9', borderRadius: 4 }} />
+                </View>
+                
+                <View style={{ 
+                  flexDirection: 'row', alignItems: 'baseline',
+                  backgroundColor: colors.surfaceContainerHigh, paddingVertical: 8, paddingHorizontal: 16, 
+                  borderRadius: 12, borderWidth: 1, borderColor: colors.border,
+                  elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8
+                }}>
+                  <Text style={{ color: '#3BA7D6', fontWeight: '900', fontSize: 36, lineHeight: 36 }}>E</Text>
+                  <Text style={{ color: colors.text, fontWeight: '700', fontSize: 30, letterSpacing: 1, lineHeight: 36 }}>teams</Text>
+                </View>
               </View>
-              <Text style={styles.title}>Eteams</Text>
               <Text style={styles.subtitle}>{t('auth.welcome_back')}</Text>
             </View>
 

@@ -279,6 +279,7 @@ export default function Workspace() {
             <ChatArea 
               activeChannel={activeChannel} 
               targetMessageId={targetMessageId}
+              setActiveChannel={handleChannelSelect}
             />
           ) : activeView === 'threads' ? (
             <GlobalThreadsView />
@@ -293,7 +294,10 @@ export default function Workspace() {
             <ActivityFeed onMessageSelect={handleChannelSelect} />
           ) : null
         ) : (
-          <AdminPanel onClose={() => setShowAdminPanel(false)} />
+          <AdminPanel 
+            onClose={() => setShowAdminPanel(false)} 
+            onJumpToChannel={(slug, msgId) => handleChannelSelect(slug, msgId)}
+          />
         )}
       </div>
       

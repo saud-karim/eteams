@@ -18,13 +18,6 @@ export default function NewChannelScreen() {
   const { t, i18n } = useTranslation();
   const styles = createStyles(colors, insets);
 
-  const [activeTab, setActiveTab] = useState<'dm' | 'channel'>('dm');
-  
-  // DM State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [creatingDM, setCreatingDM] = useState(false);
-
   // Channel State
   const canCreatePublic = currentUser?.role === 'superadmin' || currentUser?.permissions?.['create-public'];
   const canCreatePrivate = currentUser?.role === 'superadmin' || currentUser?.permissions?.['create-private'];
@@ -40,36 +33,6 @@ export default function NewChannelScreen() {
   const [creatingChannel, setCreatingChannel] = useState(false);
 
   const CHANNEL_COLORS = ['#EF4444', '#F97316', '#F59E0B', '#10B981', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#D946EF', '#F43F5E'];
-
-  // Filter out current user from the list
-  const availableUsers = users.filter((u: any) => u.id !== currentUser?.id);
-  const filteredUsers = availableUsers.filter((u: any) => 
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const toggleUserSelection = (userId: string) => {
-    if (selectedUsers.includes(userId)) {
-      setSelectedUsers(selectedUsers.filter(id => id !== userId));
-    } else {
-      setSelectedUsers([...selectedUsers, userId]);
-    }
-  };
-
-  const handleCreateDM = async () => {
-    if (selectedUsers.length === 0) return;
-    try {
-      setCreatingDM(true);
-      const res = await api.channels.createDM(selectedUsers);
-      await refreshWorkspace();
-      router.replace(`/chat/${res.channel.slug}`);
-    } catch (e) {
-      console.error('Failed to create DM:', e);
-      alert('Failed to start chat');
-    } finally {
-      setCreatingDM(false);
-    }
-  };
 
   const handleCreateChannel = async () => {
     if (!channelName.trim()) return;
@@ -107,88 +70,11 @@ export default function NewChannelScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name={i18n.dir() === 'rtl' ? 'arrow-forward' : 'arrow-back'} size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{activeTab === 'dm' ? t('new_chat', 'New Chat') : t('new_channel', 'New Channel')}</Text>
+        <Text style={styles.headerTitle}>{t('new_channel', 'New Channel')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={[styles.tabContainer, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'dm' && styles.activeTab]}
-          onPress={() => setActiveTab('dm')}
-        >
-          <Text style={[styles.tabText, activeTab === 'dm' && styles.activeTabText]}>Direct Message</Text>
-        </TouchableOpacity>
-        { (currentUser?.role === 'superadmin' || currentUser?.permissions?.['create-channel']) && (
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'channel' && styles.activeTab]}
-            onPress={() => setActiveTab('channel')}
-          >
-            <Text style={[styles.tabText, activeTab === 'channel' && styles.activeTabText]}>Channel</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {activeTab === 'dm' ? (
-        <View style={styles.content}>
-          <View style={[styles.searchBox, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
-            <MaterialIcons name="search" size={20} color={colors.iconDefault} />
-            <TextInput 
-              style={[styles.searchInput, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
-              placeholder="Search team members..."
-              placeholderTextColor={colors.iconDefault}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-
-          {selectedUsers.length > 0 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectedScroll} contentContainerStyle={{ paddingHorizontal: 16 }}>
-              {selectedUsers.map(id => {
-                const u = users.find((u: any) => u.id === id);
-                if (!u) return null;
-                return (
-                  <TouchableOpacity key={id} style={styles.selectedPill} onPress={() => toggleUserSelection(id)}>
-                    <Image source={{ uri: renderAvatar(u.name, u.avatar) }} style={styles.pillAvatar} />
-                    <Text style={styles.pillText}>{u.name.split(' ')[0]}</Text>
-                    <MaterialIcons name="close" size={16} color={colors.text} />
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          ) : null}
-
-          <ScrollView style={styles.userList}>
-            {filteredUsers.map((u: any) => {
-              const isSelected = selectedUsers.includes(u.id);
-              return (
-                <TouchableOpacity 
-                  key={u.id} 
-                  style={[styles.userRow, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}
-                  onPress={() => toggleUserSelection(u.id)}
-                >
-                  <View style={[styles.userRowLeft, { flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
-                    <Image source={{ uri: renderAvatar(u.name, u.avatar) }} style={styles.userAvatar} />
-                    <View style={i18n.dir() === 'rtl' ? { marginRight: 12 } : { marginLeft: 12 }}>
-                      <Text style={styles.userName}>{u.name}</Text>
-                      <Text style={styles.userRole}>{u.role}</Text>
-                    </View>
-                  </View>
-                  <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-                    {isSelected && <MaterialIcons name="check" size={16} color="#FFF" />}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          {selectedUsers.length > 0 ? (
-            <TouchableOpacity style={styles.createButton} onPress={handleCreateDM} disabled={creatingDM}>
-              {creatingDM ? <ActivityIndicator color="#FFF" /> : <Text style={styles.createButtonText}>Start Chat</Text>}
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      ) : (
-        <ScrollView style={styles.content} contentContainerStyle={{ padding: 16 }}>
+      <ScrollView style={styles.content} contentContainerStyle={{ padding: 16 }}>
           <Text style={styles.label}>Channel Name</Text>
           <TextInput 
             style={[styles.input, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
@@ -322,7 +208,6 @@ export default function NewChannelScreen() {
             {creatingChannel ? <ActivityIndicator color="#FFF" /> : <Text style={styles.createButtonText}>Create Channel</Text>}
           </TouchableOpacity>
         </ScrollView>
-      )}
     </SafeAreaView>
   );
 }

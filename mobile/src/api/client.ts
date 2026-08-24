@@ -75,11 +75,16 @@ async function request(path: string, { method = 'GET', body = null, headers = {}
 export const api = {
   auth: {
     login: (username: string, password: string) => request('/auth/login', { method: 'POST', body: { username, password } }),
+    getManagers: () => request('/auth/managers'),
+    signup: (data: any) => request('/auth/signup', { method: 'POST', body: data }),
     me: () => request('/auth/me'),
     logout: () => request('/auth/logout', { method: 'POST' }),
   },
   users: {
     list: () => request('/users'),
+    getFavorites: () => request('/users/favorites'),
+    addFavorite: (id: string | number) => request(`/users/favorites/${id}`, { method: 'POST' }),
+    removeFavorite: (id: string | number) => request(`/users/favorites/${id}`, { method: 'DELETE' }),
     setPresence: (presence: string, statusText: string) => request('/users/me/presence', { method: 'PUT', body: { presence, statusText } }),
     updateMe: (name: string, job_title?: string, status_text?: string, email?: string, phone?: string) => request('/users/me', { method: 'PUT', body: { name, job_title, status_text, email, phone } }),
     updatePassword: (newPassword: string) => request('/users/me/password', { method: 'PUT', body: { newPassword } }),
@@ -113,12 +118,13 @@ export const api = {
   channels: {
     mine: () => request('/channels'),
     get: (slug: string) => request(`/channels/${slug}`),
-    create: (data: { name: string; description?: string; type: string; is_readonly?: boolean; is_mandatory?: boolean; color?: string }) => request('/channels', { method: 'POST', body: data }),
+    create: (data: { name: string; description?: string; type: string; is_readonly?: boolean; is_mandatory?: boolean; color?: string; icon?: string }) => request('/channels', { method: 'POST', body: data }),
     createDM: (targetUserIds: string[], name?: string) => request('/channels/dm', { method: 'POST', body: { targetUserIds, name } }),
     markRead: (id: string | number) => request(`/channels/${id}/read`, { method: 'POST' }),
     addMember: (channelId: string | number, userId: string | number) => request(`/channels/${channelId}/members`, { method: 'POST', body: { userId } }),
     removeMember: (channelId: string | number, userId: string | number) => request(`/channels/${channelId}/members/${userId}`, { method: 'DELETE' }),
     leave: (channelId: string | number) => request(`/channels/${channelId}/members/me`, { method: 'DELETE' }),
+    delete: (channelId: string | number) => request(`/channels/${channelId}`, { method: 'DELETE' }),
     updateMemberPermissions: (channelId: string | number, userId: string | number, permissions: any) => request(`/channels/${channelId}/members/${userId}/permissions`, { method: 'PUT', body: permissions }),
   },
   messages: {

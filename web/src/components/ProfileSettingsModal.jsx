@@ -13,7 +13,6 @@ export default function ProfileSettingsModal({ onClose, user }) {
     job_title: user?.job_title || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    status_text: user?.status_text || '',
     currentPassword: '',
     newPassword: '',
   });
@@ -41,7 +40,7 @@ export default function ProfileSettingsModal({ onClose, user }) {
     setSaving(true);
     setError('');
     try {
-      const res = await api.users.updateMe({ name: form.name, job_title: form.job_title, status_text: form.status_text, email: form.email, phone: form.phone });
+      const res = await api.users.updateMe({ name: form.name, job_title: form.job_title, email: form.email, phone: form.phone });
       setUser(prev => ({ ...prev, ...res.user }));
       
       if (form.currentPassword || form.newPassword) {
@@ -94,8 +93,8 @@ export default function ProfileSettingsModal({ onClose, user }) {
               <input 
                 type="text" 
                 value={form.name} 
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="Your full name"
+                readOnly
+                style={{ opacity: 0.6 }}
               />
             </div>
             <div className="form-field">
@@ -103,8 +102,8 @@ export default function ProfileSettingsModal({ onClose, user }) {
               <input 
                 type="text" 
                 value={form.job_title} 
-                onChange={e => setForm(f => ({ ...f, job_title: e.target.value }))}
-                placeholder="e.g. Software Engineer"
+                readOnly
+                style={{ opacity: 0.6 }}
               />
             </div>
           </div>
@@ -136,16 +135,7 @@ export default function ProfileSettingsModal({ onClose, user }) {
           </div>
         </div>
 
-        <div className="form-field" style={{ marginTop: '4px' }}>
-          <label>{t('statusMessage', 'Status Message')}</label>
-          <input 
-            type="text" 
-            value={form.status_text}
-            onChange={e => setForm(f => ({ ...f, status_text: e.target.value }))}
-            placeholder="e.g. In a meeting, Working from home..."
-            maxLength={100}
-          />
-        </div>
+
 
         <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-dim)', marginTop: '24px', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('changePassword', 'Change Password (Optional)')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

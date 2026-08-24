@@ -10,19 +10,37 @@ export function WorkspaceProvider({ children }) {
   const socket = useSocket();
   const [channels, setChannels] = useState([]);
   const [users, setUsers] = useState([]);
+  const [favoriteUserIds, setFavoriteUserIds] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user?.id) return;
     Promise.all([
       api.channels.mine(),
-      api.users.list()
-    ]).then(([channelsData, usersData]) => {
+      api.users.list(),
+      api.users.getFavorites().catch(() => ({ favorites: [] }))
+    ]).then(([channelsData, usersData, favoritesData]) => {
       setChannels(channelsData.channels || []);
       setUsers(usersData.users || []);
+      setFavoriteUserIds(favoritesData.favorites || []);
       setLoading(false);
     }).catch(console.error);
   }, [user?.id]);
+
+  const toggleFavoriteUser = async (userId) => {
+    const isFavorite = favoriteUserIds.includes(userId);
+    setFavoriteUserIds(prev => isFavorite ? prev.filter(id => id !== userId) : [...prev, userId]);
+    try {
+      if (isFavorite) {
+        await api.users.removeFavorite(userId);
+      } else {
+        await api.users.addFavorite(userId);
+      }
+    } catch (error) {
+      setFavoriteUserIds(prev => isFavorite ? [...prev, userId] : prev.filter(id => id !== userId));
+      console.error('Failed to toggle favorite:', error);
+    }
+  };
 
   useEffect(() => {
     if (!socket) return;
@@ -49,7 +67,7 @@ export function WorkspaceProvider({ children }) {
   }, [socket]);
 
   return (
-    <WorkspaceContext.Provider value={{ channels, users, setChannels, setUsers, loading }}>
+    <WorkspaceContext.Provider value={{ channels, users, favoriteUserIds, toggleFavoriteUser, setChannels, setUsers, loading }}>
       {children}
     </WorkspaceContext.Provider>
   );

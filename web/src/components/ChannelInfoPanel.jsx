@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Hash, Lock, Megaphone, User, Settings, X, Plus, Clock, Info, Users, Shield, LogOut, UserMinus } from 'lucide-react';
+import { Hash, Lock, Megaphone, User, Settings, X, Plus, Clock, Info, Users, Shield, LogOut, UserMinus, Download } from 'lucide-react';
 import { api } from '../api/client';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +18,26 @@ export default function ChannelInfoPanel({ channel, onClose, onLeft }) {
   const [allUsers, setAllUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState('');
   const [editingMember, setEditingMember] = useState(null);
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const handleExport = async () => {
+    try {
+      setExportLoading(true);
+      const blob = await api.channels.export(channel.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${channel.slug || channel.name}-export.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.message || 'Export failed');
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   const fetchMembers = () => {
     if (!channel) return;
@@ -99,6 +119,17 @@ export default function ChannelInfoPanel({ channel, onClose, onLeft }) {
       </div>
 
       <div className="right-scroll" style={{ padding: '24px 20px', overflowY: 'auto', flex: 1 }}>
+        {/* Actions Card */}
+        <div style={{ 
+          background: 'var(--panel-2)', borderRadius: '12px', padding: '16px', marginBottom: '24px',
+          border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '8px'
+        }}>
+          <button onClick={handleExport} disabled={exportLoading} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', cursor: exportLoading ? 'default' : 'pointer', fontWeight: '600', transition: 'background 0.2s' }} onMouseEnter={e => !exportLoading && (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => !exportLoading && (e.currentTarget.style.background = 'var(--panel)')}>
+            <Download size={18} style={{ color: '#3BA7D6' }} />
+            <span style={{ flex: 1, textAlign: 'left' }}>{exportLoading ? 'Exporting...' : 'Export Chat (Visual HTML)'}</span>
+          </button>
+        </div>
+
         {/* About Card */}
         <div style={{ 
           background: 'var(--panel-2)', 
@@ -174,7 +205,7 @@ export default function ChannelInfoPanel({ channel, onClose, onLeft }) {
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                <Avatar user={m} size={36} showPresence={true} style={{ borderRadius: '50%' }} />
+                <Avatar user={m} size={36} showPresence={true} style={{ borderRadius: '50%', flexShrink: 0 }} />
                 
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

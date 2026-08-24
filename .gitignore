@@ -13,3 +13,7 @@ yarn-error.log
 eteams-ser/
 *.cjs
 run-migration.js
+
+# Ignore uploads contents but keep the folder
+backend/uploads/*
+!backend/uploads/.gitkeep

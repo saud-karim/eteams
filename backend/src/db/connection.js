@@ -7,7 +7,8 @@ const db = mysql.createPool({
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'eteams',
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 100, // Increased to handle 600-700 concurrent users
+  queueLimit: 0,
   namedPlaceholders: true,
 });
 

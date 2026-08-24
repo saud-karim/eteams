@@ -25,7 +25,7 @@ import DepartmentsTab from './admin/DepartmentsTab';
 
 import { defaultPermissions } from '../constants/permissions';
 
-export default function AdminPanel({ onClose }) {
+export default function AdminPanel({ onClose, onJumpToChannel }) {
   const confirm = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('adminTab') || 'dashboard';
@@ -401,8 +401,18 @@ export default function AdminPanel({ onClose }) {
     try {
       await api.admin.archiveChannel(c.id);
       alert(`Channel #${c.name} archived.`);
-      setLocalChannels(prev => prev.filter(x => x.id !== c.id));
+      setLocalChannels(prev => prev.map(x => x.id === c.id ? { ...x, archived_at: new Date().toISOString() } : x));
     } catch(e) { alert(e.error || 'Failed to archive channel'); }
+  };
+
+  const handleUnarchiveChannel = async (c) => {
+    const ok = await confirm({ title: 'Restore Channel', message: `Are you sure you want to restore #${c.name}? This will make it visible again.` });
+    if (!ok) return;
+    try {
+      await api.admin.unarchiveChannel(c.id);
+      alert(`Channel #${c.name} restored.`);
+      setLocalChannels(prev => prev.map(x => x.id === c.id ? { ...x, archived_at: null } : x));
+    } catch(e) { alert(e.error || 'Failed to restore channel'); }
   };
 
   const openEditChannel = (c) => {
@@ -664,7 +674,7 @@ export default function AdminPanel({ onClose }) {
 
             <div style={{ marginBottom: '12px' }}>
               <button className="admin-btn-ghost" style={{ width: '100%', textAlign: 'start', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => setShowPermCatalog(!showPermCatalog)}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Shield size={16} /> Show all 42 permissions individually</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Shield size={16} /> Show all {Object.keys(defaultPermissions).length} permissions individually</span>
                 <span>{showPermCatalog ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
               </button>
             </div>
@@ -702,7 +712,6 @@ export default function AdminPanel({ onClose }) {
               <label className="perm-check"><input type="checkbox" checked={userForm.permissions['create-public']} onChange={() => togglePerm('create-public')} /><span>Create Public Channels</span></label>
               <label className="perm-check"><input type="checkbox" checked={userForm.permissions['create-private']} onChange={() => togglePerm('create-private')} /><span>Create Private Channels</span></label>
               <label className="perm-check"><input type="checkbox" checked={userForm.permissions['create-announcement']} onChange={() => togglePerm('create-announcement')} /><span>Create Announcement Channels</span></label>
-              <label className="perm-check"><input type="checkbox" checked={userForm.permissions['invite-guest']} onChange={() => togglePerm('invite-guest')} /><span>Invite Guests to workspace</span></label>
               <label className="perm-check"><input type="checkbox" checked={userForm.permissions['join-any']} onChange={() => togglePerm('join-any')} /><span>Join any Private Channel without invite</span></label>
               <label className="perm-check"><input type="checkbox" checked={userForm.permissions['be-manager']} onChange={() => togglePerm('be-manager')} /><span>Can be assigned as Channel Manager</span></label>
 
@@ -715,7 +724,7 @@ export default function AdminPanel({ onClose }) {
                   Mandatory channels are automatically assigned. Select other non-mandatory channels to add or remove this user from.
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '150px', overflowY: 'auto', background: 'var(--panel-2)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
-                  {localChannels.map(c => (
+                  {localChannels.filter(c => c.type !== 'dm' && c.type !== 'group_dm' && c.type !== 'direct').map(c => (
                     <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
                       <input 
                         type="checkbox" 
@@ -1037,6 +1046,8 @@ export default function AdminPanel({ onClose }) {
             setShowCreateChannelModal={setShowCreateChannelModal}
             openEditChannel={openEditChannel}
             handleArchiveChannel={handleArchiveChannel}
+            handleUnarchiveChannel={handleUnarchiveChannel}
+            onJumpToChannel={onJumpToChannel}
           />
         )}
 
@@ -1135,7 +1146,6 @@ export default function AdminPanel({ onClose }) {
               <label className="perm-check"><input type="checkbox" checked={presetForm.permissions['create-public']} onChange={() => setPresetForm(prev => ({...prev, permissions: {...prev.permissions, 'create-public': !prev.permissions['create-public']}}))} /><span>Create Public Channels</span></label>
               <label className="perm-check"><input type="checkbox" checked={presetForm.permissions['create-private']} onChange={() => setPresetForm(prev => ({...prev, permissions: {...prev.permissions, 'create-private': !prev.permissions['create-private']}}))} /><span>Create Private Channels</span></label>
               <label className="perm-check"><input type="checkbox" checked={presetForm.permissions['create-announcement']} onChange={() => setPresetForm(prev => ({...prev, permissions: {...prev.permissions, 'create-announcement': !prev.permissions['create-announcement']}}))} /><span>Create Announcement Channels</span></label>
-              <label className="perm-check"><input type="checkbox" checked={presetForm.permissions['invite-guest']} onChange={() => setPresetForm(prev => ({...prev, permissions: {...prev.permissions, 'invite-guest': !prev.permissions['invite-guest']}}))} /><span>Invite Guests to workspace</span></label>
               <label className="perm-check"><input type="checkbox" checked={presetForm.permissions['join-any']} onChange={() => setPresetForm(prev => ({...prev, permissions: {...prev.permissions, 'join-any': !prev.permissions['join-any']}}))} /><span>Join any Private Channel without invite</span></label>
               <label className="perm-check"><input type="checkbox" checked={presetForm.permissions['be-manager']} onChange={() => setPresetForm(prev => ({...prev, permissions: {...prev.permissions, 'be-manager': !prev.permissions['be-manager']}}))} /><span>Can be assigned as Channel Manager</span></label>
 
@@ -1155,30 +1165,6 @@ export default function AdminPanel({ onClose }) {
                 setShowPresetModal(false);
                 loadPresets();
               }}>{editingPreset ? 'Save Changes' : 'Create Preset'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showInviteModal && (
-        <div className="modal-backdrop active" onClick={() => setShowInviteModal(false)} style={{ zIndex: 9999 }}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
-            <h2>Invite Guest</h2>
-            <div style={{ color: 'var(--text-dim)', fontSize: '13px', marginBottom: '16px' }}>Generate a secure invitation link to allow an external guest to join Eteams.</div>
-            
-            <div className="form-field">
-                                        </div>
-
-            {inviteLink && (
-              <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--emerald)', borderRadius: '8px', padding: '16px', marginTop: '16px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--emerald)', marginBottom: '8px' }}>Invitation Link Generated!</div>
-                <input type="text" readOnly value={inviteLink} style={{ width: '100%', padding: '8px', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)' }} onClick={e => e.target.select()} />
-                <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '8px' }}>Copy and send this link to the guest.</div>
-              </div>
-            )}
-
-            <div className="modal-footer" style={{ marginTop: '24px' }}>
-              <button className="btn-cancel" onClick={() => setShowInviteModal(false)}>Close</button>
-              {!inviteLink && <button className="btn-primary" onClick={submitInviteGuest}>Generate Link</button>}
             </div>
           </div>
         </div>

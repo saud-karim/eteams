@@ -4,6 +4,7 @@ import Message from './Message';
 import ThreadPanel from './ThreadPanel';
 import { MessageSquare } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
+import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 
 export default function GlobalThreadsView() {
@@ -13,6 +14,7 @@ export default function GlobalThreadsView() {
   const [threadMessages, setThreadMessages] = useState([]);
   const { users, channels } = useWorkspace();
   const { user } = useAuth();
+  const socket = useSocket();
 
   useEffect(() => {
     api.messages.getThreads().then(res => {
@@ -22,7 +24,28 @@ export default function GlobalThreadsView() {
       console.error(err);
       setLoading(false);
     });
-  }, []);
+
+    if (!socket) return;
+    const handleUpdate = (updatedMsg) => {
+      setMessages(prev => prev.map(m => m.id === updatedMsg.id ? { ...m, ...updatedMsg } : m));
+    };
+    const handleDelete = (data) => {
+      setMessages(prev => prev.filter(m => m.id !== data.id));
+    };
+    const handleReactions = (data) => {
+      setMessages(prev => prev.map(m => m.id === data.id ? { ...m, reactions: data.reactions } : m));
+    };
+    
+    socket.on('message:updated', handleUpdate);
+    socket.on('message:deleted', handleDelete);
+    socket.on('message:reactions', handleReactions);
+    
+    return () => {
+      socket.off('message:updated', handleUpdate);
+      socket.off('message:deleted', handleDelete);
+      socket.off('message:reactions', handleReactions);
+    };
+  }, [socket]);
 
   const handleOpenThread = async (msg) => {
     setActiveThreadMsg(msg);

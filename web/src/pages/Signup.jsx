@@ -58,7 +58,14 @@ export default function Signup() {
         </button>
         <div className="edara-logo-container">
           <div className="edara-logo-mark"><span className="edara-lm1"></span><span className="edara-lm2"></span><span className="edara-lm3"></span></div>
-          <div className="edara-logo-text"><div className="edara-lt1">EDARA</div><div className="edara-lt2">A SODIC Company</div><div className="edara-logo-mod">Eteams</div></div>
+          <div className="edara-logo-text" style={{ 
+            display: 'flex', flexDirection: 'row', alignItems: 'baseline',
+            background: 'var(--panel-2)', padding: '8px 16px', borderRadius: '12px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.2)', marginLeft: '12px', border: '1px solid var(--border)'
+          }}>
+            <span style={{ color: 'var(--emerald)', fontWeight: '900', fontSize: '36px', lineHeight: '1' }}>E</span>
+            <span style={{ color: 'var(--text)', fontWeight: '700', fontSize: '30px', letterSpacing: '1px', lineHeight: '1' }}>teams</span>
+          </div>
         </div>
         <div className="login-title">Create an Account</div>
         <div className="login-sub">Sign up for your workspace. Accounts require admin approval.</div>

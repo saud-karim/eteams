@@ -51,10 +51,14 @@ async function markRead(req, res, next) {
 async function list(req, res, next) {
   try {
     const { channelId } = req.params;
-    const ch = await Channel.findById(channelId);
+    const ch = await Channel.findByIdWithArchived(channelId);
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
     
-    if (ch.type === 'private') {
+    if (ch.archived_at && req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Archived channel' });
+    }
+
+    if (ch.type === 'private' || ch.type === 'dm' || ch.type === 'group_dm' || ch.type === 'direct') {
       if (!(await Channel.isMember(channelId, req.user.id)) && req.user.role !== 'superadmin') {
         return res.status(403).json({ error: 'Not a member' });
       }
@@ -76,7 +80,7 @@ async function listReplies(req, res, next) {
     const ch = await Channel.findById(parent.channel_id);
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
     
-    if (ch.type === 'private') {
+    if (ch.type === 'private' || ch.type === 'dm' || ch.type === 'group_dm' || ch.type === 'direct') {
       if (!(await Channel.isMember(ch.id, req.user.id)) && req.user.role !== 'superadmin') {
         return res.status(403).json({ error: 'Not a member' });
       }
@@ -124,6 +128,11 @@ async function send(req, res, next) {
     const mem = await Channel.getMembership(data.channelId, req.user.id);
     if (!mem && req.user.role !== 'superadmin') return res.status(403).json({ error: 'Not a member' });
     const ch = await Channel.findById(data.channelId);
+    
+    if (ch.deleted_at && req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Cannot post to a deleted channel.' });
+    }
+
     const perms = req.user.permissions || {};
     
     if (ch.is_readonly && req.user.role !== 'superadmin' && !mem?.is_manager) {
@@ -358,13 +367,32 @@ async function togglePin(req, res, next) {
 async function search(req, res, next) {
   try {
     const q = (req.query.q || '').trim();
-    if (q.length < 2) return res.json({ messages: [] });
+    if (q.length < 2) return res.json({ messages: [], channels: [], users: [] });
     
     const perms = req.user.permissions || {};
     const hasGlobalSearch = req.user.role === 'superadmin' || !!perms['search-history'];
     
-    const results = await Message.search(req.user.id, q, hasGlobalSearch);
-    res.json({ messages: results });
+    const messages = await Message.search(req.user.id, q, hasGlobalSearch);
+
+    const { db } = require('../db/connection');
+    
+    const [channels] = await db.query(`
+      SELECT c.* 
+      FROM channels c
+      LEFT JOIN memberships mem ON mem.channel_id = c.id AND mem.user_id = :userId
+      WHERE c.archived_at IS NULL AND (c.name LIKE CONCAT('%', :q, '%') OR c.description LIKE CONCAT('%', :q, '%'))
+      AND (mem.user_id = :userId OR c.type = 'public' OR c.type = 'announce')
+      LIMIT 10
+    `, { userId: req.user.id, q });
+
+    const [users] = await db.query(`
+      SELECT id, name, username, avatar, avatar_initials, avatar_color, job_title, presence, is_active
+      FROM users
+      WHERE is_active = 1 AND (name LIKE CONCAT('%', :q, '%') OR username LIKE CONCAT('%', :q, '%') OR job_title LIKE CONCAT('%', :q, '%'))
+      LIMIT 10
+    `, { q });
+    
+    res.json({ messages, channels, users });
   } catch (e) { next(e); }
 }
 
@@ -409,8 +437,7 @@ async function getFiles(req, res, next) {
        JOIN channels c ON c.id = m.channel_id
        JOIN memberships mem ON mem.channel_id = c.id AND mem.user_id = :userId
        WHERE m.deleted_at IS NULL
-         AND m.attachments IS NOT NULL 
-         AND JSON_LENGTH(m.attachments) > 0
+         AND EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id)
        ORDER BY m.created_at DESC
        LIMIT 50`,
       { userId: req.user.id }
@@ -442,5 +469,25 @@ async function getMentions(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { list, listReplies, send, edit, remove, react, togglePin, search, toggleSave, getSavedMessages, getThreads, getMentions, markRead, getById, getFiles };
+async function downloadAttachment(req, res, next) {
+  try {
+    const { attachmentId } = req.params;
+    const { db } = require('../db/connection');
+    const [rows] = await db.query('SELECT * FROM attachments WHERE id = :attachmentId', { attachmentId });
+    if (rows.length === 0) return res.status(404).json({ error: 'Attachment not found' });
+    const att = rows[0];
+    const path = require('path');
+    const fs = require('fs');
+    const filePath = path.join(__dirname, '..', '..', att.storage_key);
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found on server' });
+    }
+    
+    res.download(filePath, att.original_name);
+  } catch (err) {
+    next(err);
+  }
+}
 
+module.exports = { list, listReplies, send, edit, remove, react, togglePin, search, toggleSave, getSavedMessages, getThreads, getMentions, markRead, getById, getFiles, downloadAttachment };

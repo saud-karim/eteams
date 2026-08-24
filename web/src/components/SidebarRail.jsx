@@ -35,7 +35,7 @@ export default function SidebarRail({ activeView, setActiveView, onLogout, onOpe
       </div>
       <div className="rail-bottom">
         <div className="rail-item profile" onClick={onOpenProfile} title="Profile">
-          <Avatar name={user?.name} src={user?.avatar} size={32} />
+          <Avatar user={user} size={32} />
         </div>
         <div className="rail-item logout" onClick={onLogout} title="Logout">
           <LogOut size={24} />

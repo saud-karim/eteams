@@ -33,6 +33,9 @@ export const api = {
   },
   users: {
     list: () => request('/users'),
+    getFavorites: () => request('/users/favorites'),
+    addFavorite: (id) => request(`/users/favorites/${id}`, { method: 'POST' }),
+    removeFavorite: (id) => request(`/users/favorites/${id}`, { method: 'DELETE' }),
     updateMe: (data) => request('/users/me', { method: 'PUT', body: data }),
     updatePassword: (currentPassword, newPassword) => request('/users/me/password', { method: 'PUT', body: { currentPassword, newPassword } }),
     setPresence: (presence, statusText) => request('/users/me/presence', { method: 'PUT', body: { presence, statusText } }),
@@ -46,7 +49,10 @@ export const api = {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: fd
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
       return res.json();
     },
   },
@@ -61,7 +67,7 @@ export const api = {
     leave: (id) => request(`/channels/${id}/members/me`, { method: 'DELETE' }),
     delete: (id) => request(`/channels/${id}`, { method: 'DELETE' }),
     updateMemberPermissions: (id, userId, permissions) => request(`/channels/${id}/members/${userId}/permissions`, { method: 'PUT', body: permissions }),
-    export: (id) => request(`/channels/${id}/export`, { responseType: 'text' }),
+    export: (id) => request(`/channels/${id}/export`, { responseType: 'blob' }),
   },
   messages: {
     list: (channelId, before = null, limit = 50) => request(`/messages/channel/${channelId}?limit=${limit}${before ? `&before=${encodeURIComponent(before)}` : ''}`),
@@ -83,7 +89,10 @@ export const api = {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: fd
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
       return res.json();
     },
     edit: (id, body) => request(`/messages/${id}`, { method: 'PATCH', body: { body } }),
@@ -116,6 +125,7 @@ export const api = {
     getChannels: () => request('/admin/channels'),
     updateChannel: (id, data) => request(`/admin/channels/${id}`, { method: 'PUT', body: data }),
     archiveChannel: (id) => request(`/admin/channels/${id}/archive`, { method: 'POST' }),
+    unarchiveChannel: (id) => request(`/admin/channels/${id}/unarchive`, { method: 'POST' }),
     assignChannelManager: (channelId, data) => request(`/admin/channels/${channelId}/managers`, { method: 'POST', body: data }),
     revokeChannelManager: (channelId, userId) => request(`/admin/channels/${channelId}/managers/${userId}`, { method: 'DELETE' }),
     getRolePresets: () => request('/admin/role-presets'),

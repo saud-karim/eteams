@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Shield } from 'lucide-react';
 
 export default function ChannelPermissionsTab({
@@ -6,6 +6,15 @@ export default function ChannelPermissionsTab({
   setShowAssignManagerModal,
   handleRevokeManager
 }) {
+  const [filterType, setFilterType] = useState('channels');
+
+  const filteredManagers = channelManagers.filter(m => {
+    if (filterType === 'all') return true;
+    if (filterType === 'channels') return m.channel_type !== 'dm' && m.channel_type !== 'group_dm';
+    if (filterType === 'dms') return m.channel_type === 'dm' || m.channel_type === 'group_dm';
+    return m.channel_type === filterType;
+  });
+
   return (
     <div>
       <h2 style={{ marginBottom: '20px' }}>Channel Permissions</h2>
@@ -17,7 +26,23 @@ export default function ChannelPermissionsTab({
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', marginTop: '24px' }}>
           <h3 style={{ fontSize: '14px', fontWeight: 'bold' }}>Active Channel Manager assignments</h3>
-          <button className="admin-btn-primary" onClick={() => setShowAssignManagerModal(true)}>+ Assign Manager</button>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', background: 'var(--panel)', padding: '4px', borderRadius: '8px', marginRight: '16px' }}>
+              <button 
+                style={{ padding: '6px 16px', borderRadius: '6px', fontSize: '14px', background: filterType === 'channels' ? 'var(--panel-2)' : 'transparent', color: filterType === 'channels' ? 'var(--text)' : 'var(--text-mute)', border: 'none', cursor: 'pointer', fontWeight: filterType === 'channels' ? '600' : '400' }}
+                onClick={() => setFilterType('channels')}
+              >
+                Channels
+              </button>
+              <button 
+                style={{ padding: '6px 16px', borderRadius: '6px', fontSize: '14px', background: filterType === 'dms' ? 'var(--panel-2)' : 'transparent', color: filterType === 'dms' ? 'var(--text)' : 'var(--text-mute)', border: 'none', cursor: 'pointer', fontWeight: filterType === 'dms' ? '600' : '400' }}
+                onClick={() => setFilterType('dms')}
+              >
+                Direct Messages
+              </button>
+            </div>
+            <button className="admin-btn-primary" onClick={() => setShowAssignManagerModal(true)}>+ Assign Manager</button>
+          </div>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', background: 'var(--panel-2)', borderRadius: '12px', overflow: 'hidden' }}>
           <thead style={{ background: 'var(--panel)' }}>
@@ -31,7 +56,7 @@ export default function ChannelPermissionsTab({
             </tr>
           </thead>
           <tbody>
-            {channelManagers.map((a, i) => {
+            {filteredManagers.map((a, i) => {
               let perms = [];
               if (a.is_manager || a.can_post) perms.push('post');
               if (a.is_manager || a.can_add_members || a.can_remove_members) perms.push('manage members');
@@ -45,10 +70,12 @@ export default function ChannelPermissionsTab({
               else if (perms.length === 1 && perms[0] === 'post') tpl = 'Poster Only';
               else if (perms.length === 0) tpl = 'Read-Only / Muted';
               
+              const isDM = a.channel_type === 'dm' || a.channel_type === 'group_dm' || a.channel_type === 'direct';
+
               return (
                 <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '12px', fontWeight: 'bold' }}>{a.u}</td>
-                  <td style={{ padding: '12px', color: 'var(--emerald)', fontWeight: '500' }}>#{a.ch}</td>
+                  <td style={{ padding: '12px', color: 'var(--emerald)', fontWeight: '500' }}>{isDM ? '' : '#'}{a.ch}</td>
                   <td style={{ padding: '12px' }}>
                     <span style={{ display: 'inline-block', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--emerald)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>{tpl}</span>
                   </td>
@@ -65,6 +92,11 @@ export default function ChannelPermissionsTab({
             })}
           </tbody>
         </table>
+        {filteredManagers.length === 0 && (
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-mute)' }}>
+            No managers found for this filter.
+          </div>
+        )}
       </div>
     </div>
   );

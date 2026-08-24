@@ -4,7 +4,7 @@ const User = require('../models/User');
 async function requireAuth(req, res, next) {
   try {
     const header = req.headers.authorization || '';
-    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+    const token = header.startsWith('Bearer ') ? header.slice(7) : (req.query.token || null);
     if (!token) return res.status(401).json({ error: 'Missing token' });
     const payload = verify(token);
     const user = await User.findById(payload.sub);

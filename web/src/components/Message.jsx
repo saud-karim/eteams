@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client.js';
-import { Download, File as FileIcon, Forward, CheckCheck } from 'lucide-react';
+import { Download, File as FileIcon, Forward, CheckCheck, MessageSquare, SmilePlus, Bookmark, Pin, Edit2, Trash2 } from 'lucide-react';
 import ForwardModal from './ForwardModal';
 import { useConfirm } from '../context/ConfirmContext';
 import Avatar from './Avatar';
@@ -47,25 +47,50 @@ export default function Message({ message, author, currentUser, onReply, canPin 
   const react = async (emoji) => {
     setShowEmojiPicker(false);
     
-    const currentReactions = localReactions !== null ? [...localReactions] : [...(message.reactions || [])];
-    const existingIdx = currentReactions.findIndex(r => r.emoji === emoji);
+    let currentReactions = localReactions !== null ? [...localReactions] : [...(message.reactions || [])];
     
+    // Check if the user already has any reaction
+    const previousReactionIdx = currentReactions.findIndex(r => r.user_ids.includes(currentUser.id));
+    let previousEmoji = null;
+    
+    if (previousReactionIdx !== -1) {
+      const prevR = currentReactions[previousReactionIdx];
+      previousEmoji = prevR.emoji;
+      
+      // Remove their current reaction locally
+      const newUserIds = prevR.user_ids.filter(id => id !== currentUser.id);
+      if (newUserIds.length === 0) currentReactions.splice(previousReactionIdx, 1);
+      else currentReactions[previousReactionIdx] = { ...prevR, count: prevR.count - 1, user_ids: newUserIds };
+      
+      if (previousEmoji === emoji) {
+        // They are just toggling off their current reaction
+        setLocalReactions(currentReactions);
+        try { await api.messages.react(message.id, emoji); } catch { setLocalReactions(null); }
+        return;
+      }
+    }
+    
+    // Add the new reaction locally
+    const existingIdx = currentReactions.findIndex(r => r.emoji === emoji);
     if (existingIdx !== -1) {
       const r = currentReactions[existingIdx];
-      const hasReacted = r.user_ids.includes(currentUser.id);
-      if (hasReacted) {
-        const newUserIds = r.user_ids.filter(id => id !== currentUser.id);
-        if (newUserIds.length === 0) currentReactions.splice(existingIdx, 1);
-        else currentReactions[existingIdx] = { ...r, count: r.count - 1, user_ids: newUserIds };
-      } else {
-        currentReactions[existingIdx] = { ...r, count: r.count + 1, user_ids: [...r.user_ids, currentUser.id] };
-      }
+      currentReactions[existingIdx] = { ...r, count: r.count + 1, user_ids: [...r.user_ids, currentUser.id] };
     } else {
       currentReactions.push({ emoji, count: 1, user_ids: [currentUser.id] });
     }
+    
     setLocalReactions(currentReactions);
     
-    try { await api.messages.react(message.id, emoji); } catch { setLocalReactions(null); }
+    try {
+      if (previousEmoji && previousEmoji !== emoji) {
+        // Remove old reaction in the backend
+        await api.messages.react(message.id, previousEmoji);
+      }
+      // Add new reaction in the backend
+      await api.messages.react(message.id, emoji);
+    } catch {
+      setLocalReactions(null);
+    }
   };
   
   const remove = async () => {
@@ -160,7 +185,7 @@ export default function Message({ message, author, currentUser, onReply, canPin 
                         <div className="file-name">{att.original_name}</div>
                         <div className="file-meta">{(att.size_bytes / 1024).toFixed(1)} KB</div>
                       </div>
-                      <a href={url} download={att.original_name} target="_blank" rel="noreferrer" className="attachment-download">
+                      <a href={`http://localhost:4000/api/messages/download/${att.id}?token=${localStorage.getItem('accessToken')}`} download={att.original_name} target="_blank" rel="noreferrer" className="attachment-download">
                         <Download size={16} />
                       </a>
                     </div>
@@ -190,16 +215,36 @@ export default function Message({ message, author, currentUser, onReply, canPin 
       {showActions && !editing && (
         <div className="msg-actions">
           {onReply && (currentUser.role === 'superadmin' || currentUser.permissions?.['thread']) && (
-            <button className="msg-action" onClick={onReply} title="Reply">💬</button>
+            <button className="msg-action" onClick={onReply} title="Reply" style={{ color: '#C084FC' }}>
+              <MessageSquare size={15} />
+            </button>
           )}
-          <button className="msg-action" onClick={() => setShowForwardModal(true)} title="Forward"><Forward size={14} /></button>
+          <button className="msg-action" onClick={() => setShowForwardModal(true)} title="Forward" style={{ color: '#9CA3AF' }}>
+            <Forward size={15} />
+          </button>
           {(currentUser.role === 'superadmin' || currentUser.permissions?.['react']) && (
-            <button className="msg-action" onClick={() => setShowEmojiPicker(!showEmojiPicker)} title="React">😊</button>
+            <button className="msg-action" onClick={() => setShowEmojiPicker(!showEmojiPicker)} title="React" style={{ color: '#FBBF24' }}>
+              <SmilePlus size={15} />
+            </button>
           )}
-          <button className="msg-action" onClick={toggleSave} title={isSaved ? "Unsave" : "Save"}>{isSaved ? '🏷️' : '🔖'}</button>
-          {canPin && <button className="msg-action" onClick={togglePin} title={isPinnedToDisplay ? "Unpin" : "Pin"}>📌</button>}
-          {isMine && (currentUser.role === 'superadmin' || currentUser.permissions?.['edit-own']) && <button className="msg-action" onClick={() => setEditing(true)} title="Edit">✏️</button>}
-          {(isMine && (currentUser.role === 'superadmin' || currentUser.permissions?.['delete-own'])) || (!isMine && canDeleteOthers) ? <button className="msg-action danger" onClick={remove} title="Delete">🗑️</button> : null}
+          <button className="msg-action" onClick={toggleSave} title={isSaved ? "Unsave" : "Save"} style={{ color: isSaved ? '#3BA7D6' : '#F43F5E' }}>
+            <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} />
+          </button>
+          {canPin && (
+            <button className="msg-action" onClick={togglePin} title={isPinnedToDisplay ? "Unpin" : "Pin"} style={{ color: isPinnedToDisplay ? '#3BA7D6' : '#F59E0B' }}>
+              <Pin size={15} fill={isPinnedToDisplay ? 'currentColor' : 'none'} />
+            </button>
+          )}
+          {isMine && (currentUser.role === 'superadmin' || currentUser.permissions?.['edit-own']) && (
+            <button className="msg-action" onClick={() => setEditing(true)} title="Edit" style={{ color: '#FB923C' }}>
+              <Edit2 size={15} />
+            </button>
+          )}
+          {((isMine && (currentUser.role === 'superadmin' || currentUser.permissions?.['delete-own'])) || (!isMine && canDeleteOthers)) ? (
+            <button className="msg-action danger" onClick={remove} title="Delete" style={{ color: '#94A3B8' }}>
+              <Trash2 size={15} />
+            </button>
+          ) : null}
         </div>
       )}
       {showEmojiPicker && (

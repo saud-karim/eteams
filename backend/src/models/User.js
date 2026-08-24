@@ -74,4 +74,26 @@ async function updateAvatar(id, avatarUrl) {
   return findByIdAnyStatus(id);
 }
 
-module.exports = { findById, findByIdAnyStatus, findByUsername, findAll, findPending, create, updatePresence, deactivate, update, updatePassword, updateApproval, updateAvatar };
+async function getFavorites(userId) {
+  const [rows] = await db.query(
+    `SELECT favorite_user_id FROM favorite_users WHERE user_id = :userId`,
+    { userId }
+  );
+  return rows.map(r => r.favorite_user_id);
+}
+
+async function addFavorite(userId, favoriteUserId) {
+  await db.query(
+    `INSERT IGNORE INTO favorite_users (user_id, favorite_user_id) VALUES (:userId, :favoriteUserId)`,
+    { userId, favoriteUserId }
+  );
+}
+
+async function removeFavorite(userId, favoriteUserId) {
+  await db.query(
+    `DELETE FROM favorite_users WHERE user_id = :userId AND favorite_user_id = :favoriteUserId`,
+    { userId, favoriteUserId }
+  );
+}
+
+module.exports = { findById, findByIdAnyStatus, findByUsername, findAll, findPending, create, updatePresence, deactivate, update, updatePassword, updateApproval, updateAvatar, getFavorites, addFavorite, removeFavorite };

@@ -28,8 +28,6 @@ export default function UsersTab({
           <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImportCSV} />
         </label>
         <button className="admin-btn-ghost" onClick={handleExportUsers}>Export list</button>
-
-        <button className="admin-btn-primary" onClick={openInviteModal}>+ Invite Guest</button>
         <button className="admin-btn-primary" onClick={openCreateUser}>+ Create user</button>
       </div>
       

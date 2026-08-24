@@ -31,6 +31,7 @@ router.get('/channels/managers', adminController.getChannelManagers);
 
 router.put('/channels/:id', adminController.updateChannel);
 router.post('/channels/:id/archive', adminController.archiveChannel);
+router.post('/channels/:id/unarchive', adminController.unarchiveChannel);
 router.post('/channels/:id/managers', adminController.assignChannelManager);
 router.delete('/channels/:id/managers/:userId', adminController.revokeChannelManager);
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, File, Plus, Smile, AtSign, Bold, Italic, Strikethrough, Code, Link, X } from 'lucide-react';
+import { Send, File, Plus, Smile, AtSign, Bold, Italic, Strikethrough, Code, Link, X, Loader } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { useAuth } from '../context/AuthContext';
@@ -30,9 +30,29 @@ export default function MessageInput({ channelId, parentId }) {
     const newText = body.substring(0, start) + prefix + selectedText + suffix + body.substring(end);
     
     setBody(newText);
+    textareaRef.current.focus();
+    
     setTimeout(() => {
-      textareaRef.current.focus();
-      textareaRef.current.setSelectionRange(start + prefix.length, end + prefix.length);
+      if (textareaRef.current) textareaRef.current.setSelectionRange(start + prefix.length, end + prefix.length);
+    }, 0);
+  };
+
+  const handleMentionClick = () => {
+    if (!textareaRef.current) return;
+    const start = textareaRef.current.selectionStart;
+    const end = textareaRef.current.selectionEnd;
+    
+    const needsSpace = start > 0 && body[start - 1] !== ' ' && body[start - 1] !== '\n';
+    const prefix = needsSpace ? ' @' : '@';
+    
+    const newText = body.substring(0, start) + prefix + body.substring(end);
+    setBody(newText);
+    setMentionState({ active: true, query: '', index: 0 });
+    
+    textareaRef.current.focus();
+    
+    setTimeout(() => {
+      if (textareaRef.current) textareaRef.current.setSelectionRange(start + prefix.length, start + prefix.length);
     }, 0);
   };
 
@@ -41,25 +61,30 @@ export default function MessageInput({ channelId, parentId }) {
     
     if (socket) socket.emit('typing:stop', { channelId, parentId });
     
-    // Optimistic UI: Clear input immediately to feel instantaneous
+    // Optimistic UI: Clear input immediately to feel instantaneous ONLY for text
     const sentBody = body;
     const sentFile = file;
-    setBody('');
-    setFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    
+    if (!sentFile) {
+      setBody('');
+    }
     
     setSending(true);
     try {
       if (sentFile) {
         await api.messages.sendWithFile(channelId, sentBody, parentId, sentFile);
+        // Clear after successful upload
+        setBody('');
+        setFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
       } else {
         await api.messages.send(channelId, sentBody, parentId);
       }
     } catch (err) {
       console.error('Failed to send message:', err);
+      alert(err.message || 'Failed to send message');
       // Revert if failed
-      setBody(sentBody);
-      setFile(sentFile);
+      if (!sentFile) setBody(sentBody);
     } finally {
       setSending(false);
     }
@@ -210,15 +235,14 @@ export default function MessageInput({ channelId, parentId }) {
         ></textarea>
         <div className="composer-bottom">
           <div className="composer-tools">
-            <button className="format-btn" title="Attach" onClick={() => fileInputRef.current.click()}><Plus size={16} /></button>
-            {canReact && <button className="format-btn" title="Emoji" onClick={() => setShowEmojiPicker(!showEmojiPicker)}><Smile size={16} /></button>}
-            <button className="format-btn" title="Mention"><AtSign size={16} /></button>
+            <button className="format-btn" title="Attach" onMouseDown={e => e.preventDefault()} onClick={() => fileInputRef.current.click()}><Plus size={16} /></button>
+            {canReact && <button className="format-btn" title="Emoji" onMouseDown={e => e.preventDefault()} onClick={(e) => { e.preventDefault(); setShowEmojiPicker(!showEmojiPicker); }}><Smile size={16} /></button>}
+            <button className="format-btn" title="Mention" onMouseDown={e => e.preventDefault()} onClick={(e) => { e.preventDefault(); handleMentionClick(); }}><AtSign size={16} /></button>
             <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }}></div>
-            <button className="format-btn" title="Bold" onClick={() => applyFormatting('**')}><Bold size={16} /></button>
-            <button className="format-btn" title="Italic" onClick={() => applyFormatting('_')}><Italic size={16} /></button>
-            <button className="format-btn" title="Strikethrough" onClick={() => applyFormatting('~~')}><Strikethrough size={16} /></button>
-            <button className="format-btn" title="Code" onClick={() => applyFormatting('`')}><Code size={16} /></button>
-            <button className="format-btn" title="Link" onClick={() => applyFormatting('[', '](url)')}><Link size={16} /></button>
+            <button className="format-btn" title="Bold" onMouseDown={e => e.preventDefault()} onClick={(e) => { e.preventDefault(); applyFormatting('**'); }}><Bold size={16} /></button>
+            <button className="format-btn" title="Italic" onMouseDown={e => e.preventDefault()} onClick={(e) => { e.preventDefault(); applyFormatting('_'); }}><Italic size={16} /></button>
+            <button className="format-btn" title="Strikethrough" onMouseDown={e => e.preventDefault()} onClick={(e) => { e.preventDefault(); applyFormatting('~~'); }}><Strikethrough size={16} /></button>
+            <button className="format-btn" title="Link" onMouseDown={e => e.preventDefault()} onClick={(e) => { e.preventDefault(); applyFormatting('[', '](url)'); }}><Link size={16} /></button>
             
             {showEmojiPicker && (
               <EmojiPicker 
@@ -233,7 +257,7 @@ export default function MessageInput({ channelId, parentId }) {
             onClick={handleSend}
             disabled={sending || (!body.trim() && !file)}
           >
-            <Send size={14} />
+            {sending ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={14} />}
           </button>
         </div>
       </div>

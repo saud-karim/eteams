@@ -5,8 +5,18 @@ async function findById(id) {
   return rows[0] || null;
 }
 
+async function findByIdWithArchived(id) {
+  const [rows] = await db.query(`SELECT * FROM channels WHERE id = :id`, { id });
+  return rows[0] || null;
+}
+
 async function findBySlug(slug) {
   const [rows] = await db.query(`SELECT * FROM channels WHERE slug = :slug AND archived_at IS NULL`, { slug });
+  return rows[0] || null;
+}
+
+async function findBySlugWithArchived(slug) {
+  const [rows] = await db.query(`SELECT * FROM channels WHERE slug = :slug`, { slug });
   return rows[0] || null;
 }
 
@@ -23,7 +33,7 @@ async function listForUser(userId) {
                   OR JSON_CONTAINS(msg.mentions, '"everyone"', '$.special') = 1)) AS mention_count
      FROM channels c
      JOIN memberships m ON m.channel_id = c.id
-     WHERE m.user_id = :userId AND c.archived_at IS NULL
+     WHERE m.user_id = :userId AND c.archived_at IS NULL AND c.deleted_at IS NULL
      ORDER BY c.type, c.name`,
     { userId }
   );
@@ -36,7 +46,6 @@ async function adminListAll() {
             (SELECT COUNT(*) FROM memberships m WHERE m.channel_id = c.id) AS member_count,
             (SELECT COUNT(*) FROM messages msg WHERE msg.channel_id = c.id AND msg.deleted_at IS NULL) AS message_count
      FROM channels c
-     WHERE c.archived_at IS NULL
      ORDER BY c.created_at DESC`
   );
   return rows;
@@ -101,11 +110,24 @@ async function removeMember(channelId, userId) {
 }
 
 async function deleteChannel(channelId) {
-  await db.query(`DELETE FROM channels WHERE id = :channelId`, { channelId });
+  const [rows] = await db.query('SELECT type FROM channels WHERE id = :channelId', { channelId });
+  if (rows.length > 0 && (rows[0].type === 'dm' || rows[0].type === 'group_dm')) {
+    await db.query(`UPDATE channels SET deleted_at = NOW() WHERE id = :channelId`, { channelId });
+  } else {
+    await db.query(`DELETE FROM channels WHERE id = :channelId`, { channelId });
+  }
+}
+
+async function restore(channelId) {
+  await db.query(`UPDATE channels SET deleted_at = NULL WHERE id = :channelId`, { channelId });
 }
 
 async function archive(channelId) {
   await db.query(`UPDATE channels SET archived_at = NOW() WHERE id = :channelId`, { channelId });
+}
+
+async function unarchive(channelId) {
+  await db.query(`UPDATE channels SET archived_at = NULL WHERE id = :channelId`, { channelId });
 }
 
 async function update(channelId, data) {
@@ -131,4 +153,4 @@ async function updateMembership(channelId, userId, data) {
   );
 }
 
-module.exports = { findById, findBySlug, listForUser, adminListAll, create, memberCount, listMembers, addMember, removeMember, deleteChannel, archive, update, isMember, getMembership, markRead, updateMembership };
+module.exports = { findById, findByIdWithArchived, findBySlug, findBySlugWithArchived, listForUser, adminListAll, create, memberCount, listMembers, addMember, removeMember, deleteChannel, restore, archive, unarchive, update, isMember, getMembership, markRead, updateMembership };

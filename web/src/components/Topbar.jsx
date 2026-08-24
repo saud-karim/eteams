@@ -11,7 +11,7 @@ import Avatar from './Avatar';
 export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToChannel, onGlobalSearch }) {
   const [statusOpen, setStatusOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState({ messages: [], channels: [], users: [] });
   const [searchOpen, setSearchOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [mentions, setMentions] = useState([]);
@@ -28,12 +28,16 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
 
   useEffect(() => {
     if (!searchQuery.trim() || searchQuery.length < 2) {
-      setSearchResults([]);
+      setSearchResults({ messages: [], channels: [], users: [] });
       return;
     }
     const timer = setTimeout(() => {
       api.messages.search(searchQuery).then(res => {
-        setSearchResults(res.messages || []);
+        setSearchResults({
+          messages: res.messages || [],
+          channels: res.channels || [],
+          users: res.users || []
+        });
         setSearchOpen(true);
       }).catch(console.error);
     }, 300);
@@ -95,7 +99,14 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
           </button>
           <div className="edara-logo-container" style={{ marginBottom: 0, justifyContent: 'flex-start', transform: 'scale(0.8)', transformOrigin: 'left center' }}>
             <div className="edara-logo-mark"><span className="edara-lm1" style={{ height: '8px' }}></span><span className="edara-lm2"></span><span className="edara-lm3"></span></div>
-            <div className="edara-logo-text"><div className="edara-lt1" style={{ fontSize: '18px' }}>EDARA</div><div className="edara-lt2" style={{ color: 'var(--text-dim)' }}>A SODIC Company</div><div className="edara-logo-mod">Eteams</div></div>
+            <div className="edara-logo-text" style={{ 
+              display: 'flex', flexDirection: 'row', alignItems: 'baseline',
+              background: 'var(--panel-2)', padding: '6px 12px', borderRadius: '8px',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.15)', marginLeft: '10px', border: '1px solid var(--border)'
+            }}>
+              <span style={{ color: 'var(--emerald)', fontWeight: '900', fontSize: '24px', lineHeight: '1' }}>E</span>
+              <span style={{ color: 'var(--text)', fontWeight: '700', fontSize: '20px', letterSpacing: '0.5px', lineHeight: '1' }}>teams</span>
+            </div>
           </div>
         </div>
 
@@ -115,25 +126,74 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
           </div>
 
           <div className={`search-dropdown ${searchOpen && searchQuery.trim().length >= 2 ? 'active' : ''}`}>
-            {searchResults.length > 0 ? (
+            {(searchResults.messages?.length > 0 || searchResults.channels?.length > 0 || searchResults.users?.length > 0) ? (
               <>
-                <div className="search-section">Messages</div>
-                {searchResults.map(msg => (
-                  <div key={msg.id} className="search-result" onMouseDown={(e) => {
-                    e.preventDefault();
-                    if (onJumpToChannel) onJumpToChannel(msg.channel_slug, msg.id);
-                    setSearchOpen(false);
-                    setSearchQuery('');
-                  }}>
-                    <div className="icon" style={{ background: 'var(--panel-2)' }}>
-                      <MessageSquare size={16} />
-                    </div>
-                    <div className="info">
-                      <div className="title">{msg.body}</div>
-                      <div className="sub">#{msg.channel_slug} • {msg.author_name}</div>
-                    </div>
-                  </div>
-                ))}
+                {searchResults.channels?.length > 0 && (
+                  <>
+                    <div className="search-section">Channels</div>
+                    {searchResults.channels.map(ch => (
+                      <div key={`ch-${ch.id}`} className="search-result" onMouseDown={(e) => {
+                        e.preventDefault();
+                        if (onJumpToChannel) onJumpToChannel(ch.slug);
+                        setSearchOpen(false);
+                        setSearchQuery('');
+                      }}>
+                        <div className="icon" style={{ background: 'var(--panel-2)' }}>
+                          <span style={{ fontSize: 16, color: 'var(--text-mute)' }}>#</span>
+                        </div>
+                        <div className="info">
+                          <div className="title">{ch.name}</div>
+                          <div className="sub">{ch.type}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {searchResults.users?.length > 0 && (
+                  <>
+                    <div className="search-section">Users</div>
+                    {searchResults.users.map(u => (
+                      <div key={`u-${u.id}`} className="search-result" onMouseDown={async (e) => {
+                        e.preventDefault();
+                        try {
+                           const dm = await api.channels.createDM([u.id]);
+                           if (onJumpToChannel) onJumpToChannel(dm.channel.slug);
+                        } catch (err) { console.error(err); }
+                        setSearchOpen(false);
+                        setSearchQuery('');
+                      }}>
+                        <div className="icon" style={{ background: 'transparent' }}>
+                           <Avatar user={u} size={24} />
+                        </div>
+                        <div className="info">
+                          <div className="title">{u.name}</div>
+                          <div className="sub">{u.job_title || '@'+u.username}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {searchResults.messages?.length > 0 && (
+                  <>
+                    <div className="search-section">Messages</div>
+                    {searchResults.messages.map(msg => (
+                      <div key={msg.id} className="search-result" onMouseDown={(e) => {
+                        e.preventDefault();
+                        if (onJumpToChannel) onJumpToChannel(msg.channel_slug, msg.id);
+                        setSearchOpen(false);
+                        setSearchQuery('');
+                      }}>
+                        <div className="icon" style={{ background: 'var(--panel-2)' }}>
+                          <MessageSquare size={16} />
+                        </div>
+                        <div className="info">
+                          <div className="title">{msg.body}</div>
+                          <div className="sub">#{msg.channel_slug} • {msg.author_name}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
               </>
             ) : (
               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-mute)' }}>

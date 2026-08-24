@@ -12,32 +12,32 @@ const { width, height } = Dimensions.get('window');
 const SLIDES = [
   {
     id: 1,
-    title: 'Real-Time Clarity',
-    subtitle: 'Instant messaging designed for enterprise speed. Cut through the noise and stay connected.',
-    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop',
+    title: 'Fast & Familiar',
+    subtitle: 'Chat with your team as easily as you do on personal apps, but built specifically for professional company use.',
+    image: require('../../../assets/images/onboarding_chat.png'),
     bubbles: [
-      { text: 'Project update looks great.', isRight: true },
-      { text: 'Deploying to staging now.', isRight: false },
+      { text: 'Can we discuss the new project?', isRight: true },
+      { text: 'Yes, I created a channel for it.', isRight: false },
     ]
   },
   {
     id: 2,
-    title: 'Unified Workspace',
-    subtitle: 'All your tools, tasks, and teams in one secure place. Streamline your daily operations.',
-    image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop',
+    title: 'Officially Documented',
+    subtitle: 'Never lose a decision or a file again. Every conversation is officially recorded, securely stored, and easily searchable.',
+    image: require('../../../assets/images/onboarding_workspace.png'),
     bubbles: [
-      { text: 'Q3 Report uploaded.', isRight: true },
-      { text: 'Reviewing it right now.', isRight: false },
+      { text: 'Where is the contract from last month?', isRight: true },
+      { text: 'Just search for it in the files tab!', isRight: false },
     ]
   },
   {
     id: 3,
-    title: 'Advanced Security',
-    subtitle: 'Bank-grade encryption and compliance tools built-in. Your data is always protected.',
-    image: 'https://images.unsplash.com/photo-1633630654593-b223d51433b5?q=80&w=800&auto=format&fit=crop',
+    title: 'Organized Workspace',
+    subtitle: 'Keep communication professional. Separate work from personal life, manage team permissions, and keep everything centralized.',
+    image: require('../../../assets/images/onboarding_security.png'),
     bubbles: [
-      { text: 'Access granted.', isRight: false },
-      { text: 'Secure session started.', isRight: true },
+      { text: 'I added the new designer.', isRight: false },
+      { text: 'Great, they have access to design channels.', isRight: true },
     ]
   }
 ];
@@ -52,7 +52,7 @@ export default function OnboardingScreen() {
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / width);
-    if (index !== currentIndex) {
+    if (index !== currentIndex && index >= 0 && index < SLIDES.length) {
       setCurrentIndex(index);
     }
   };
@@ -60,17 +60,16 @@ export default function OnboardingScreen() {
   const handleNext = () => {
     if (currentIndex < SLIDES.length - 1) {
       const nextIndex = currentIndex + 1;
-      setCurrentIndex(nextIndex);
       scrollRef.current?.scrollTo({ x: nextIndex * width, y: 0, animated: true });
     } else {
-      router.push('/(auth)/login');
+      router.replace('/(auth)/login');
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.skipButton} onPress={() => router.push('/(auth)/login')}>
+        <TouchableOpacity style={styles.skipButton} onPress={() => router.replace('/(auth)/login')}>
           <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -80,7 +79,8 @@ export default function OnboardingScreen() {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleScroll}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         style={styles.scrollView}
       >
         {SLIDES.map((slide, index) => (
@@ -89,7 +89,7 @@ export default function OnboardingScreen() {
               <View style={styles.cardContainer}>
                 
                 <Image 
-                  source={{ uri: slide.image }} 
+                  source={typeof slide.image === 'string' ? { uri: slide.image } : slide.image} 
                   style={styles.image} 
                   resizeMode="cover"
                 />

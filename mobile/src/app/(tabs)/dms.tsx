@@ -21,7 +21,7 @@ export default function DmsScreen() {
   const { t, i18n } = useTranslation();
   
   const { user } = useAuth();
-  const { channels, users, refreshWorkspace, refreshing } = useWorkspace();
+  const { channels, users, favoriteUserIds, refreshWorkspace, refreshing } = useWorkspace();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
@@ -38,11 +38,38 @@ export default function DmsScreen() {
     });
   };
 
-  const filteredUsers = users?.filter((u: any) => 
-    u.id !== user?.id && 
-    (u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-     u.username?.toLowerCase().includes(searchQuery.toLowerCase()))
-  ) || [];
+  const parsePerms = (p: any) => {
+    if (!p) return {};
+    if (typeof p === 'string') {
+      try { return JSON.parse(p); } catch { return {}; }
+    }
+    return p;
+  };
+
+  const perms = parsePerms(user?.permissions);
+  const isSuperadmin = user?.role === 'superadmin';
+  const canDMAnyone = isSuperadmin || perms['dm-anyone'];
+  const canDMExec = isSuperadmin || perms['dm-exec'];
+  const canDMCEO = isSuperadmin || perms['dm-ceo'];
+
+  const isExec = (u: any) => u.company_rank === 'executive' || u.company_rank === 'ceo';
+  const isCEO = (u: any) => u.company_rank === 'ceo';
+
+  const filteredUsers = users?.filter((u: any) => {
+    if (u.id === user?.id) return false;
+    if (!canDMAnyone) return false;
+
+    const uExec = isExec(u);
+    const uCEO = isCEO(u);
+
+    if (uCEO && !canDMCEO) return false;
+    if (uExec && !canDMExec && !uCEO) return false;
+
+    return (
+      u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      u.username?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }) || [];
 
   const isSearchActive = searchQuery.length > 0 || selectedUsers.length > 0;
 
@@ -193,46 +220,41 @@ export default function DmsScreen() {
         ) : (
           <>
             {/* Favorites */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionHeader, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}>{t('dms.favorites')}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.favoritesContainer}>
-                {/* User 1 */}
-                <TouchableOpacity style={styles.favoriteItem} onPress={() => router.push('/chat/sarah')}>
-                  <View style={styles.favoriteAvatarWrapper}>
-                    <Image source={{ uri: 'https://i.pravatar.cc/150?img=1' }} style={styles.favoriteAvatar} />
-                    <View style={[styles.statusDot, { backgroundColor: '#22C55E' }]} />
-                  </View>
-                  <Text style={styles.favoriteName} numberOfLines={1}>Sarah M.</Text>
-                </TouchableOpacity>
-
-                {/* User 2 */}
-                <TouchableOpacity style={styles.favoriteItem} onPress={() => router.push('/chat/david')}>
-                  <View style={styles.favoriteAvatarWrapper}>
-                    <Image source={{ uri: 'https://i.pravatar.cc/150?img=2' }} style={styles.favoriteAvatar} />
-                    <View style={[styles.statusDot, { backgroundColor: '#EF4444' }]} />
-                  </View>
-                  <Text style={styles.favoriteName} numberOfLines={1}>David K.</Text>
-                </TouchableOpacity>
-
-                {/* User 3 */}
-                <TouchableOpacity style={styles.favoriteItem} onPress={() => router.push('/chat/elena')}>
-                  <View style={styles.favoriteAvatarWrapper}>
-                    <Image source={{ uri: 'https://i.pravatar.cc/150?img=3' }} style={styles.favoriteAvatar} />
-                    <View style={[styles.statusDot, { backgroundColor: '#F59E0B' }]} />
-                  </View>
-                  <Text style={styles.favoriteName} numberOfLines={1}>Elena R.</Text>
-                </TouchableOpacity>
-
-                {/* User 4 */}
-                <TouchableOpacity style={styles.favoriteItem} onPress={() => router.push('/chat/marcus')}>
-                  <View style={styles.favoriteAvatarWrapper}>
-                    <Image source={{ uri: 'https://i.pravatar.cc/150?img=4' }} style={styles.favoriteAvatar} />
-                    <View style={[styles.statusDot, { backgroundColor: '#889299' }]} />
-                  </View>
-                  <Text style={styles.favoriteName} numberOfLines={1}>Marcus T.</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
+            {favoriteUserIds?.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionHeader, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}>{t('dms.favorites')}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.favoritesContainer}>
+                  {users?.filter((u: any) => favoriteUserIds.includes(u.id)).map((favUser: any) => {
+                    return (
+                      <TouchableOpacity 
+                        key={favUser.id} 
+                        style={styles.favoriteItem} 
+                        onPress={async () => {
+                          const existingDM = dmChannels.find((c: any) => c.slug?.includes(favUser.id) && c.slug?.includes(user?.id));
+                          if (existingDM) {
+                            router.push(`/chat/${existingDM.slug}`);
+                          } else {
+                            try {
+                              const res = await api.channels.createDM([String(favUser.id)]);
+                              await refreshWorkspace();
+                              router.push(`/chat/${res.channel.slug}`);
+                            } catch (e) {
+                              console.error(e);
+                            }
+                          }
+                        }}
+                      >
+                        <View style={styles.favoriteAvatarWrapper}>
+                          <UserAvatar name={favUser.name || favUser.username} avatarUrl={favUser.avatar} size={56} style={styles.favoriteAvatar} />
+                          <View style={[styles.statusDot, { backgroundColor: favUser.presence === 'online' ? '#22C55E' : '#889299' }]} />
+                        </View>
+                        <Text style={styles.favoriteName} numberOfLines={1}>{favUser.name || favUser.username}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
 
             {/* Recent Messages */}
             <View style={styles.section}>

@@ -19,8 +19,14 @@ async function myChannels(req, res, next) {
 
 async function getBySlug(req, res, next) {
   try {
-    const ch = await Channel.findBySlug(req.params.slug);
+    const ch = await Channel.findBySlugWithArchived(req.params.slug);
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
+    if (ch.deleted_at && req.user.role !== 'superadmin') {
+      return res.status(404).json({ error: 'Channel not found' });
+    }
+    if (ch.archived_at && req.user.role !== 'superadmin') {
+      return res.status(404).json({ error: 'Channel not found' });
+    }
     const isMember = await Channel.isMember(ch.id, req.user.id);
     if (ch.type === 'private' && !isMember && req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Not a member' });
@@ -114,8 +120,26 @@ async function createDM(req, res, next) {
     const sortedIds = [req.user.id, ...ids].sort();
     const slug = `dm-${sortedIds.join('-')}`;
 
-    let ch = await Channel.findBySlug(slug);
+    let ch = await Channel.findBySlugWithArchived(slug);
     if (ch) {
+      let updated = false;
+      if (ch.deleted_at) {
+        await Channel.restore(ch.id);
+        ch.deleted_at = null;
+        updated = true;
+      }
+      if (ch.archived_at) {
+        await Channel.unarchive(ch.id);
+        ch.archived_at = null;
+        updated = true;
+      }
+      
+      // If we restored or unarchived it, we need to notify clients
+      if (updated) {
+        const { getIo } = require('../sockets');
+        const io = getIo();
+        io.emit('channel_unarchived', { channelId: ch.id });
+      }
       return res.json({ channel: ch });
     }
 
@@ -209,7 +233,12 @@ async function deleteChannel(req, res, next) {
   try {
     const ch = await Channel.findById(req.params.id);
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
-    if (ch.created_by !== req.user.id && req.user.role !== 'superadmin') {
+    if (ch.type === 'dm' || ch.type === 'group_dm') {
+      const isMem = await Channel.isMember(ch.id, req.user.id);
+      if (!isMem && req.user.role !== 'superadmin') {
+        return res.status(403).json({ error: 'Not a member' });
+      }
+    } else if (ch.created_by !== req.user.id && req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Only the creator or superadmin can delete this channel' });
     }
     await Channel.deleteChannel(ch.id);
