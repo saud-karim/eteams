@@ -181,6 +181,7 @@ export default function ChatScreen() {
     const handleNewMessage = (msg: any) => {
       // Do not append thread replies to the main channel chat
       if (msg.parent_id) return;
+      if (msg.channel_id && msg.channel_id !== channelObj.id) return;
       
       setMessages(prev => {
         if (prev.find(m => m.id === msg.id)) return prev;
@@ -223,6 +224,7 @@ export default function ChatScreen() {
     };
 
     const handleTypingStart = (data: any) => {
+      if (data.channelId && data.channelId !== channelObj.id) return;
       if (data.userId !== user?.id) {
         setTypingUsers(prev => {
           if (!prev.includes(data.name)) return [...prev, data.name];
@@ -238,6 +240,7 @@ export default function ChatScreen() {
     };
 
     const handleTypingStop = (data: any) => {
+      if (data.channelId && data.channelId !== channelObj.id) return;
       if (data.userId !== user?.id) {
         setTypingUsers(prev => prev.filter(name => name !== data.name));
       }

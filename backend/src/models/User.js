@@ -56,7 +56,7 @@ async function update(id, data) {
   }
   await db.query(
     `UPDATE users SET name = :name, username = :username, department = :department, role = :role, job_title = :job_title, company_rank = :company_rank, reports_to = :reports_to, employment_type = :employment_type, role_preset = :role_preset, permissions = :permissions WHERE id = :id`,
-    { id, ...data, company_rank: data.company_rank || 'employee', permissions: perms ? JSON.stringify(perms) : null }
+    { id, ...data, company_rank: data.company_rank || 'employee', reports_to: data.reports_to || null, permissions: perms ? JSON.stringify(perms) : null }
   );
   return findByIdAnyStatus(id);
 }

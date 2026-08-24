@@ -8,16 +8,24 @@ import { useTheme } from '../../context/ThemeContext';
 import { Typography } from '@/constants/Typography';
 import { useTranslation } from 'react-i18next';
 import { i18n as i18nInstance } from '../../locales/i18n';
+import { useWorkspace } from '../../context/WorkspaceContext';
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { theme, colors } = useTheme();
   const { t, i18n } = useTranslation();
   const styles = createStyles(colors);
+  const workspace = useWorkspace();
+  const channels = workspace?.channels || [];
+  
+  const hasUnreadDMs = channels?.some((ch: any) => 
+    (ch.type === 'direct' || ch.type === 'dm' || ch.type === 'group_dm' || ch.slug?.startsWith('dm-')) && 
+    (ch.unread_count || 0) > 0
+  ) || false;
 
   return (
     <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 16), flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row' }]}>
-      {state.routes.map((route: any, index: number) => {
+      {state?.routes?.map((route: any, index: number) => {
         const { options } = descriptors[route.key];
         
         if (options.href === null) {
@@ -68,6 +76,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                 size={24}
                 color={isFocused ? '#3BA7D6' : '#bec8cf'}
               />
+              {route.name === 'dms' && hasUnreadDMs && (
+                <View style={styles.badge} />
+              )}
             </View>
             <Text
               style={[

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-let defaultHost = process.env.EXPO_PUBLIC_API_URL || 'http://193.163.7.56:4000';
+let defaultHost = process.env.EXPO_PUBLIC_API_URL || 'http://193.163.7.59:4000';
 if (Platform.OS === 'web' && typeof window !== 'undefined') {
   defaultHost = `http://${window.location.hostname}:4000`;
 }

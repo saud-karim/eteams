@@ -56,14 +56,14 @@ export default function RegisterScreen() {
     setErrorMsg('');
     setLoading(true);
     
-    const data = {
+    const data: any = {
       name,
       username,
       password,
-      department: department || null,
       employment_type: employmentType,
-      reports_to: reportsTo || null
     };
+    if (department) data.department = department;
+    if (reportsTo) data.reports_to = reportsTo;
 
     try {
       const res: any = await api.auth.signup(data);

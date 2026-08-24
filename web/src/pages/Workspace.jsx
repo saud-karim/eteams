@@ -19,7 +19,27 @@ import NotificationPromptModal from '../components/NotificationPromptModal';
 import ActivityFeed from '../components/ActivityFeed';
 import { api } from '../api/client';
 import { requestFirebaseNotificationPermission } from '../firebase';
-
+const playNotificationSound = () => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.2);
+  } catch (e) {
+    console.error('Audio play failed', e);
+  }
+};
 
 export default function Workspace() {
   const { user, setUser } = useAuth();
@@ -167,14 +187,19 @@ export default function Workspace() {
         const isHidden = document.hidden;
         const isOtherChannel = activeChannelObj?.id !== msg.channel_id;
 
+        // Play sound if not active
+        if (msg.user_id !== currentUser?.id && isOtherChannel) {
+          playNotificationSound();
+        }
+
         // Firebase Cloud Messaging automatically shows notifications when the app is in the background (hidden).
         // To prevent duplicate notifications, we only show native notifications manually if the app is in the foreground
         // (not hidden) BUT the user is in a different channel.
-        if (!isHidden && isOtherChannel && (isMentioned || msgChannelObj?.type === 'direct')) {
+        if (!isHidden && isOtherChannel && (isMentioned || msgChannelObj?.type === 'direct' || msgChannelObj?.type === 'dm' || msgChannelObj?.type === 'group_dm')) {
           if ('Notification' in window && Notification.permission === 'granted') {
              let title = `New message from ${msg.author_name || 'someone'}`;
              if (isMentioned) title = `New mention in #${msgChannelObj?.name || 'channel'}`;
-             else if (msgChannelObj?.type === 'direct') title = `New DM from ${msg.author_name || 'someone'}`;
+             else if (msgChannelObj?.type === 'direct' || msgChannelObj?.type === 'dm' || msgChannelObj?.type === 'group_dm') title = `New DM from ${msg.author_name || 'someone'}`;
              else title = `New message in #${msgChannelObj?.name || 'channel'}`;
 
              new Notification(title, {
@@ -241,6 +266,8 @@ export default function Workspace() {
     setSidebarOpen(false);
   };
 
+  const hasUnreadDMs = channels?.some(ch => ch.type === 'direct' && unreadCounts[ch.id]?.count > 0) || false;
+
   return (
     <div className="workspace active">
       <GlobalBanner />
@@ -258,6 +285,7 @@ export default function Workspace() {
           setActiveView={setActiveView} 
           onLogout={() => { localStorage.clear(); window.location.href = '/login'; }}
           onOpenProfile={() => setShowProfileSettings(true)}
+          hasUnreadDMs={hasUnreadDMs}
         />
         <Sidebar 
           user={user} 

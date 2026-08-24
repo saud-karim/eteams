@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Avatar from './Avatar';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function SidebarRail({ activeView, setActiveView, onLogout, onOpenProfile }) {
+export default function SidebarRail({ activeView, setActiveView, onLogout, onOpenProfile, hasUnreadDMs }) {
   const { user } = useAuth();
   const { t } = useLanguage();
 
@@ -22,8 +22,10 @@ export default function SidebarRail({ activeView, setActiveView, onLogout, onOpe
           className={`rail-item ${activeView === 'dms' ? 'active' : ''}`}
           onClick={() => setActiveView('dms')}
           title={t('directMessages') || 'Direct Messages'}
+          style={{ position: 'relative' }}
         >
           <MessageSquare size={24} />
+          {hasUnreadDMs && <div className="unread-dot" />}
         </div>
         <div 
           className={`rail-item ${activeView === 'activity' ? 'active' : ''}`}

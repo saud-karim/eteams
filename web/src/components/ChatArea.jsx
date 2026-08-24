@@ -193,6 +193,8 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
     socket.emit('channel:join', { channelId: channelObj.id });
 
     const handleNewMessage = (msg) => {
+      if (msg.parent_id) return;
+      if (msg.channel_id && msg.channel_id !== channelObj.id) return;
       const container = messagesContainerRef.current;
       const isNearBottom = container ? (container.scrollHeight - container.scrollTop - container.clientHeight < 100) : true;
       
@@ -215,12 +217,14 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
     const handleReactions = (data) => {
       setMessages(prev => prev.map(m => m.id === data.id ? { ...m, reactions: data.reactions } : m));
     };
-    const handleTypingStart = ({ userId, name, parentId }) => {
+    const handleTypingStart = ({ userId, name, parentId, channelId }) => {
       if (parentId) return; // Ignore thread typing
+      if (channelId && channelId !== channelObj.id) return;
       setTypingUsers(prev => ({ ...prev, [userId]: name }));
     };
-    const handleTypingStop = ({ userId, parentId }) => {
+    const handleTypingStop = ({ userId, parentId, channelId }) => {
       if (parentId) return;
+      if (channelId && channelId !== channelObj.id) return;
       setTypingUsers(prev => {
         const next = { ...prev };
         delete next[userId];
