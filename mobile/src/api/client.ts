@@ -97,7 +97,7 @@ export const api = {
       const formData = new FormData();
       // @ts-ignore
       formData.append('avatar', {
-        uri: fileUri,
+        uri: Platform.OS === 'ios' ? decodeURI(fileUri).replace('file://', '') : fileUri,
         type: mimeType || 'image/jpeg',
         name: filename || 'avatar.jpg',
       });
@@ -131,7 +131,7 @@ export const api = {
     get: (id: string | number) => request(`/messages/single/${id}`),
     list: (channelId: string | number, before: string | null = null, limit = 50) => request(`/messages/channel/${channelId}?limit=${limit}${before ? `&before=${encodeURIComponent(before)}` : ''}`),
     listReplies: (parentId: string | number, before: string | null = null, limit = 50) => request(`/messages/${parentId}/replies?limit=${limit}${before ? `&before=${encodeURIComponent(before)}` : ''}`),
-    send: (channelId: string | number, body: string, parentId: string | number | null = null) => request('/messages', { method: 'POST', body: { channelId, body, parentId } }),
+    send: (channelId: string | number, body: string, parentId: string | number | null = null, replyToId: string | number | null = null) => request('/messages', { method: 'POST', body: { channelId, body, parentId, replyToId } }),
     update: (id: string | number, body: string) => request(`/messages/${id}`, { method: 'PATCH', body: { body } }),
     delete: (id: string | number) => request(`/messages/${id}`, { method: 'DELETE' }),
     react: (id: string | number, emoji: string) => request(`/messages/${id}/react`, { method: 'POST', body: { emoji } }),
@@ -143,7 +143,7 @@ export const api = {
     toggleSave: (id: string | number, save: boolean) => request(`/messages/${id}/save`, { method: 'POST', body: { save } }),
     search: (query: string) => request(`/messages/search?q=${encodeURIComponent(query)}`),
     markRead: (messageIds: string[]) => request('/messages/read', { method: 'POST', body: { messageIds } }),
-    sendWithAttachment: async (channelId: string | number, body: string, parentId: string | number | null, fileUri: string, mimeType: string, filename: string) => {
+    sendWithAttachment: async (channelId: string | number, body: string, parentId: string | number | null, fileUri: string, mimeType: string, filename: string, replyToId: string | number | null = null) => {
       const token = await getToken();
       const reqHeaders: any = {};
       if (token) reqHeaders['Authorization'] = `Bearer ${token}`;
@@ -153,10 +153,13 @@ export const api = {
       formData.append('body', body || '');
       if (parentId) formData.append('parentId', String(parentId));
       else formData.append('parentId', 'null'); // For backend to parse null correctly
+      
+      if (replyToId) formData.append('replyToId', String(replyToId));
+      else formData.append('replyToId', 'null');
 
       // @ts-ignore
       formData.append('file', {
-        uri: fileUri,
+        uri: Platform.OS === 'ios' ? decodeURI(fileUri).replace('file://', '') : fileUri,
         type: mimeType || 'application/octet-stream',
         name: filename || 'attachment',
       });

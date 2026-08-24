@@ -2,8 +2,13 @@ const { db } = require('../db/connection');
 
 async function findById(id) {
   const [rows] = await db.query(
-    `SELECT m.*, u.name AS author_name, u.avatar_initials, u.avatar_color, u.role AS author_role
-     FROM messages m JOIN users u ON u.id = m.user_id WHERE m.id = :id AND m.deleted_at IS NULL`,
+    `SELECT m.*, u.name AS author_name, u.avatar_initials, u.avatar_color, u.role AS author_role,
+     rm.body AS reply_to_body, ru.name AS reply_to_author_name
+     FROM messages m 
+     JOIN users u ON u.id = m.user_id 
+     LEFT JOIN messages rm ON rm.id = m.reply_to_id
+     LEFT JOIN users ru ON ru.id = rm.user_id
+     WHERE m.id = :id AND m.deleted_at IS NULL`,
     { id }
   );
   return rows[0] || null;
@@ -11,9 +16,13 @@ async function findById(id) {
 
 async function listByChannel(channelId, { limit = 50, before = null, userId = null } = {}) {
   let sql = `
-    SELECT m.*, u.name AS author_name, u.avatar_initials, u.avatar_color, u.role AS author_role
+    SELECT m.*, u.name AS author_name, u.avatar_initials, u.avatar_color, u.role AS author_role,
+    rm.body AS reply_to_body, ru.name AS reply_to_author_name
     ${userId ? `, (SELECT 1 FROM saved_messages sm WHERE sm.message_id = m.id AND sm.user_id = :userId) AS is_saved` : ''}
-    FROM messages m JOIN users u ON u.id = m.user_id
+    FROM messages m 
+    JOIN users u ON u.id = m.user_id
+    LEFT JOIN messages rm ON rm.id = m.reply_to_id
+    LEFT JOIN users ru ON ru.id = rm.user_id
     WHERE m.channel_id = :channelId AND m.deleted_at IS NULL AND m.parent_id IS NULL`;
   const params = { channelId, limit, userId };
   if (before) {
@@ -27,9 +36,13 @@ async function listByChannel(channelId, { limit = 50, before = null, userId = nu
 
 async function listReplies(parentId, { limit = 50, before = null, userId = null } = {}) {
   let sql = `
-    SELECT m.*, u.name AS author_name, u.avatar_initials, u.avatar_color, u.role AS author_role
+    SELECT m.*, u.name AS author_name, u.avatar_initials, u.avatar_color, u.role AS author_role,
+    rm.body AS reply_to_body, ru.name AS reply_to_author_name
     ${userId ? `, (SELECT 1 FROM saved_messages sm WHERE sm.message_id = m.id AND sm.user_id = :userId) AS is_saved` : ''}
-    FROM messages m JOIN users u ON u.id = m.user_id
+    FROM messages m 
+    JOIN users u ON u.id = m.user_id
+    LEFT JOIN messages rm ON rm.id = m.reply_to_id
+    LEFT JOIN users ru ON ru.id = rm.user_id
     WHERE m.parent_id = :parentId AND m.deleted_at IS NULL`;
   const params = { parentId, limit, userId };
   if (before) {
@@ -65,9 +78,9 @@ async function listAllForExport(channelId) {
 
 async function create(data) {
   await db.query(
-    `INSERT INTO messages (id, channel_id, user_id, parent_id, body, mentions)
-     VALUES (:id, :channel_id, :user_id, :parent_id, :body, :mentions)`,
-    { ...data, mentions: data.mentions ? JSON.stringify(data.mentions) : null }
+    `INSERT INTO messages (id, channel_id, user_id, parent_id, reply_to_id, body, mentions)
+     VALUES (:id, :channel_id, :user_id, :parent_id, :reply_to_id, :body, :mentions)`,
+    { ...data, reply_to_id: data.reply_to_id || null, mentions: data.mentions ? JSON.stringify(data.mentions) : null }
   );
   return findById(data.id);
 }

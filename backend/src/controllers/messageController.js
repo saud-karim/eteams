@@ -14,6 +14,7 @@ const sendSchema = z.object({
   channelId: z.string().uuid(),
   body: z.string().max(10000).optional().default(''),
   parentId: z.string().uuid().nullable().optional(),
+  replyToId: z.string().uuid().nullable().optional(),
 });
 
 async function attachReactions(msgs, authorId = null) {
@@ -118,6 +119,7 @@ async function send(req, res, next) {
     // If formData sends "null" string, convert it to actual null
     const bodyData = { ...req.body };
     if (bodyData.parentId === 'null' || bodyData.parentId === '') bodyData.parentId = null;
+    if (bodyData.replyToId === 'null' || bodyData.replyToId === '') bodyData.replyToId = null;
     
     const data = sendSchema.parse(bodyData);
     
@@ -182,7 +184,7 @@ async function send(req, res, next) {
     const id = uuidv4();
     let msg = await Message.create({
       id, channel_id: data.channelId, user_id: req.user.id,
-      parent_id: data.parentId || null, body: data.body, mentions
+      parent_id: data.parentId || null, reply_to_id: data.replyToId || null, body: data.body, mentions
     });
 
     if (req.file) {

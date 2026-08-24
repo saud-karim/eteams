@@ -92,9 +92,23 @@ export default function ChatScreen() {
   const [selectedMemberForPerms, setSelectedMemberForPerms] = useState<any>(null);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
+  const [viewedImage, setViewedImage] = useState<string | null>(null);
+  const [replyingToMessage, setReplyingToMessage] = useState<any>(null);
+  const [highlightedMessage, setHighlightedMessage] = useState<string | null>(null);
   const slideAnim = useRef(new Animated.Value(300)).current;
 
+  const swipeableRefs = useRef<{ [key: string]: any }>({});
+  const messageLayouts = useRef<{ [key: string]: number }>({});
   const scrollViewRef = useRef<ScrollView>(null);
+
+  const scrollToMessage = (msgId: string) => {
+    const yOffset = messageLayouts.current[msgId];
+    if (yOffset !== undefined && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: yOffset, animated: true });
+      setHighlightedMessage(msgId);
+      setTimeout(() => setHighlightedMessage(null), 2000);
+    }
+  };
 
   useEffect(() => {
     if (!channelObj?.id) return;
@@ -103,9 +117,9 @@ export default function ChatScreen() {
     
     // Mark channel as read
     api.channels.markRead(channelObj.id).catch(console.error);
-    /* if (channelObj.unread_count > 0 && setChannels) {
+    if (channelObj.unread_count > 0 && setChannels) {
       setChannels((prev: any[]) => prev.map(c => c.id === channelObj.id ? { ...c, unread_count: 0 } : c));
-    } */
+    }
 
     const cacheKey = `messages_${channelObj.id}`;
     
@@ -176,6 +190,9 @@ export default function ChatScreen() {
       // If new message is from someone else, mark it as read immediately (we're active in chat)
       if (msg.user_id !== user?.id) {
         api.messages.markRead([msg.id]).catch(console.error);
+        if (setChannels) {
+          setChannels((prev: any[]) => prev.map(c => c.id === channelObj.id ? { ...c, unread_count: 0 } : c));
+        }
       }
     };
 
@@ -349,6 +366,8 @@ export default function ChatScreen() {
     setInputText('');
     setAttachment(null);
     setEditingMessage(null);
+    const replyToId = replyingToMessage?.id || null;
+    setReplyingToMessage(null);
     
     // Stop typing
     if (socket && channelObj?.id) {
@@ -367,10 +386,11 @@ export default function ChatScreen() {
           null,
           attach.uri,
           attach.mimeType || 'application/octet-stream',
-          attach.name || 'attachment'
+          attach.name || 'attachment',
+          replyToId
         );
       } else {
-        await api.messages.send(channelObj.id, body);
+        await api.messages.send(channelObj.id, body, null, replyToId);
       }
     } catch (err) {
       console.error('Send failed', err);
@@ -778,11 +798,21 @@ export default function ChatScreen() {
               };
 
               return (
+                <View 
+                  key={msg.id} 
+                  onLayout={(e) => {
+                    messageLayouts.current[msg.id] = e.nativeEvent.layout.y;
+                  }}
+                  style={highlightedMessage === msg.id ? { backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' } : {}}
+                >
                 <Swipeable
-                  key={msg.id}
+                  ref={ref => {
+                    if (ref) swipeableRefs.current[msg.id] = ref;
+                  }}
                   renderLeftActions={renderLeftActions}
                   onSwipeableWillOpen={() => {
-                    router.push(`/thread/${msg.id}`);
+                    setReplyingToMessage(msg);
+                    swipeableRefs.current[msg.id]?.close();
                   }}
                   friction={2}
                 >
@@ -818,6 +848,26 @@ export default function ChatScreen() {
                         isMe ? styles.chatBubbleSent : styles.chatBubbleReceived,
                         !showHeader && (isMe ? { borderTopRightRadius: 4 } : { borderTopLeftRadius: 4 })
                       ]}>
+                        {msg.reply_to_id && (
+                          <TouchableOpacity 
+                            onPress={() => scrollToMessage(msg.reply_to_id)}
+                            style={{
+                              backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)',
+                              padding: 6,
+                              borderRadius: 4,
+                              marginBottom: 4,
+                              borderLeftWidth: 3,
+                              borderLeftColor: isMe ? '#fff' : colors.primary
+                            }}
+                          >
+                            <Text style={{ color: isMe ? '#fff' : colors.primary, fontSize: 12, fontWeight: 'bold', marginBottom: 2 }}>
+                              {msg.reply_to_author_name || t('chat.user', 'User')}
+                            </Text>
+                            <Text style={{ color: isMe ? 'rgba(255,255,255,0.9)' : colors.text, fontSize: 13 }} numberOfLines={2}>
+                              {msg.reply_to_body || t('chat.attachment', 'Attachment')}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
                         {msg.body ? (
                           <View style={{ flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                             <View style={{ flexShrink: 1 }}>
@@ -868,7 +918,9 @@ export default function ChatScreen() {
                               const fileUrl = att.storage_key.startsWith('http') ? att.storage_key : `${API_BASE_URL.replace('/api', '')}/${att.storage_key}`;
                               const isImage = att.mime_type?.startsWith('image/');
                               return isImage ? (
-                                <Image key={att.id} source={{ uri: fileUrl }} style={{ width: 250, height: 180, borderRadius: 12, backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : colors.pillBg }} resizeMode="cover" />
+                                <TouchableOpacity key={att.id} onPress={() => setViewedImage(fileUrl)}>
+                                  <Image source={{ uri: fileUrl }} style={{ width: 250, height: 180, borderRadius: 12, backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : colors.pillBg }} resizeMode="cover" />
+                                </TouchableOpacity>
                               ) : (
                                 <TouchableOpacity 
                                   key={att.id} 
@@ -888,10 +940,10 @@ export default function ChatScreen() {
                         
                         {renderReactions(msg.reactions)}
                       </View>
-                      
                     </View>
                   </TouchableOpacity>
-              </Swipeable>
+                </Swipeable>
+                </View>
               );
             })}
             </>
@@ -934,12 +986,26 @@ export default function ChatScreen() {
         {canPostInChannel ? (
           <View style={[styles.inputWrapper, (showMentions && filteredMembers.length > 0) ? { borderTopLeftRadius: 0, borderTopRightRadius: 0 } : {}]}>
             {editingMessage && (
-              <View style={{ flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surfaceContainerHigh, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginBottom: 8 }}>
+              <View style={styles.editingBanner}>
                 <View style={{ flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 }}>
                   <MaterialIcons name="edit" size={16} color={colors.primary} />
                   <Text style={{ color: colors.text, fontSize: 13, fontWeight: '600' }}>{t('chat.editing_message', 'Editing message')}</Text>
                 </View>
                 <TouchableOpacity onPress={() => { setEditingMessage(null); setInputText(''); }}>
+                  <MaterialIcons name="close" size={18} color={colors.iconDefault} />
+                </TouchableOpacity>
+              </View>
+            )}
+            {replyingToMessage && !editingMessage && (
+              <View style={styles.editingBanner}>
+                <View style={{ flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                  <MaterialIcons name="reply" size={16} color={colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }} numberOfLines={1}>{replyingToMessage.author_name || t('chat.user', 'User')}</Text>
+                    <Text style={{ color: colors.text, fontSize: 12 }} numberOfLines={1}>{replyingToMessage.body || t('chat.attachment', 'Attachment')}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity onPress={() => setReplyingToMessage(null)}>
                   <MaterialIcons name="close" size={18} color={colors.iconDefault} />
                 </TouchableOpacity>
               </View>
@@ -1371,6 +1437,25 @@ export default function ChatScreen() {
           }}
         />
 
+        <Modal
+          visible={!!viewedImage}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setViewedImage(null)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>
+            <TouchableOpacity 
+              style={{ position: 'absolute', top: 40 + (insets?.top || 0), right: 20, zIndex: 10, padding: 8 }} 
+              onPress={() => setViewedImage(null)}
+            >
+              <MaterialIcons name="close" size={32} color="#fff" />
+            </TouchableOpacity>
+            {viewedImage && (
+              <Image source={{ uri: viewedImage }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+            )}
+          </View>
+        </Modal>
+
       </KeyboardAvoidingView>
     </View>
   );
@@ -1533,6 +1618,16 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
     backgroundColor: colors.background,
     padding: 12,
     paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+  },
+  editingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surfaceContainerHigh,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 8,
   },
   composerContainer: {
     backgroundColor: colors.composerBg,

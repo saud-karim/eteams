@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS messages (
   channel_id    CHAR(36) NOT NULL,
   user_id       CHAR(36) NOT NULL,
   parent_id     CHAR(36) DEFAULT NULL,
+  reply_to_id   CHAR(36) DEFAULT NULL,
   body          TEXT NOT NULL,
   is_pinned     TINYINT(1) NOT NULL DEFAULT 0,
   edited_at     DATETIME DEFAULT NULL,
@@ -16,5 +17,6 @@ CREATE TABLE IF NOT EXISTS messages (
   FULLTEXT idx_body_ft (body),
   FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (parent_id) REFERENCES messages(id) ON DELETE CASCADE
+  FOREIGN KEY (parent_id) REFERENCES messages(id) ON DELETE CASCADE,
+  FOREIGN KEY (reply_to_id) REFERENCES messages(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
