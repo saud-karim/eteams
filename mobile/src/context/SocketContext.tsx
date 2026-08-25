@@ -20,9 +20,20 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     console.log('[SocketProvider] Calling connectSocket for user:', user.id);
-    connectSocket(String(user.id)).then(() => {
+    connectSocket(String(user.id)).then((s) => {
       console.log('[SocketProvider] connectSocket resolved. cancelled:', cancelled);
-      if (!cancelled) setReady(true);
+      if (!cancelled) {
+        setReady(true);
+        s.on('connect', () => {
+          if (user.presence === 'offline' || !user.presence) {
+            // we don't have setUser here, so we just let the backend handle the presence
+          }
+        });
+        // Catch it if it's already connected before the listener is added
+        if (s.connected && (user.presence === 'offline' || !user.presence)) {
+            // handled
+        }
+      }
     });
 
     // Do NOT disconnect on cleanup - the singleton manages its own lifecycle

@@ -20,14 +20,15 @@ import ForwardModal from '../../components/ForwardModal';
 
 export default function ThreadScreen() {
   const { theme, colors } = useTheme();
-  const { id } = useLocalSearchParams();
+  const { id: rawId } = useLocalSearchParams();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors, insets);
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { users, channels } = useWorkspace();
-  const { socket } = useSocket();
+  const socket = useSocket();
 
   const [parentMessage, setParentMessage] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -52,9 +53,16 @@ export default function ThreadScreen() {
 
   useEffect(() => {
     loadThread();
+  }, [id]);
+
+  useEffect(() => {
+    if (!socket || !parentMessage?.channel_id) return;
+
+    socket.emit('channel:join', { channelId: parentMessage.channel_id });
 
     const handleNewMessage = (msg: any) => {
-      if (msg.parent_id === id) {
+      // Use String() for absolute safety against type mismatches
+      if (String(msg.parent_id) === String(id)) {
         setMessages(prev => {
           if (prev.find(m => m.id === msg.id)) return prev;
           return [...prev, msg];
@@ -62,9 +70,6 @@ export default function ThreadScreen() {
         setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
       }
     };
-
-    if (socket) {
-      socket.on('message:new', handleNewMessage);
 
     const handleReaction = (data: any) => {
       setMessages(prev => prev.map(m => {
@@ -84,7 +89,7 @@ export default function ThreadScreen() {
     };
 
     const handleTypingStart = (data: any) => {
-      if (data.userId !== user?.id && data.parentId === id) {
+      if (data.userId !== user?.id && String(data.parentId) === String(id)) {
         setTypingUsers(prev => {
           if (!prev.includes(data.name)) return [...prev, data.name];
           return prev;
@@ -97,27 +102,27 @@ export default function ThreadScreen() {
     };
 
     const handleTypingStop = (data: any) => {
-      if (data.userId !== user?.id && data.parentId === id) {
+      if (data.userId !== user?.id && String(data.parentId) === String(id)) {
         setTypingUsers(prev => prev.filter(name => name !== data.name));
       }
     };
 
+    socket.on('message:new', handleNewMessage);
     socket.on('message:reactions', handleReaction);
     socket.on('message:updated', handleUpdatedMessage);
     socket.on('message:deleted', handleDeletedMessage);
     socket.on('typing:start', handleTypingStart);
     socket.on('typing:stop', handleTypingStop);
   
-      return () => {
-        socket.off('message:new', handleNewMessage);
-        socket.off('message:reactions', handleReaction);
-        socket.off('message:updated', handleUpdatedMessage);
-        socket.off('message:deleted', handleDeletedMessage);
-        socket.off('typing:start', handleTypingStart);
-        socket.off('typing:stop', handleTypingStop);
-      };
-    }
-  }, [id, socket]);
+    return () => {
+      socket.off('message:new', handleNewMessage);
+      socket.off('message:reactions', handleReaction);
+      socket.off('message:updated', handleUpdatedMessage);
+      socket.off('message:deleted', handleDeletedMessage);
+      socket.off('typing:start', handleTypingStart);
+      socket.off('typing:stop', handleTypingStop);
+    };
+  }, [socket, parentMessage?.channel_id, id]);
 
   const loadThread = async () => {
     try {
@@ -126,8 +131,7 @@ export default function ThreadScreen() {
       const pRes = await api.messages.get(id as string);
       setParentMessage(pRes.message);
 
-      if (socket && pRes.message?.channel_id) {
-        socket.emit('channel:join', { channelId: pRes.message.channel_id });
+      if (pRes.message?.channel_id) {
         
         // Find channel slug from context to fetch details
         const cObj = channels?.find((c: any) => c.id === pRes.message.channel_id);
@@ -231,8 +235,21 @@ export default function ThreadScreen() {
     }
   };
 
-  const filteredMembers = users?.filter((m: any) => 
-    (m.name?.toLowerCase().includes(mentionQuery) || m.username?.toLowerCase().includes(mentionQuery)) && m.id !== user?.id
+  const specialMentions = [
+    { id: 'here', name: 'here', fullname: 'Notify only active members', initials: '🔔', special: true },
+    { id: 'channel', name: 'channel', fullname: 'Notify all members', initials: '📢', special: true },
+    { id: 'everyone', name: 'everyone', fullname: 'Notify entire workspace', initials: '🌍', special: true }
+  ];
+
+  const allMentionable = [
+    ...(user?.role === 'superadmin' || user?.permissions?.['at-here'] ? [specialMentions[0]] : []),
+    ...(user?.role === 'superadmin' || user?.permissions?.['at-channel'] ? [specialMentions[1]] : []),
+    ...(user?.role === 'superadmin' || user?.permissions?.['at-everyone'] ? [specialMentions[2]] : []),
+    ...(users || [])
+  ];
+
+  const filteredMembers = allMentionable.filter((m: any) => 
+    ((m.name || '').toLowerCase().includes(mentionQuery) || (m.username || '').toLowerCase().includes(mentionQuery) || (m.fullname || '').toLowerCase().includes(mentionQuery)) && m.id !== user?.id
   ) || [];
 
   const handleSelectMention = (member: any) => {
@@ -417,19 +434,24 @@ export default function ThreadScreen() {
     const canPost = (!!currentMem?.can_post && currentMem.can_post !== 0) || isManager || isSuperadmin;
     canPostInChannel = canPost && (!isReadOnly || isManager || isSuperadmin);
     canPin = (!!currentMem?.can_pin_messages && currentMem.can_pin_messages !== 0) || isManager || isSuperadmin;
+  } else {
+    // Optimistic fallback before details load
+    canPostInChannel = !isReadOnly;
   }
 
-  // Also check thread permission
-  if (parentMessage && !isSuperadmin && !user?.permissions?.['thread']) {
+  // Also check thread permission (default to true if permissions object exists but key is missing, or object is missing)
+  const hasThreadPerm = user?.permissions && user.permissions['thread'] !== undefined ? user.permissions['thread'] : true;
+  if (parentMessage && !isSuperadmin && !hasThreadPerm) {
     canPostInChannel = false;
   }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <Stack.Screen options={{ headerShown: false }} />
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -461,7 +483,12 @@ export default function ThreadScreen() {
           </TouchableOpacity>
         )}
 
-        <ScrollView ref={scrollViewRef} style={styles.canvas} contentContainerStyle={styles.canvasContent}>
+        <ScrollView 
+          ref={scrollViewRef} 
+          style={styles.canvas} 
+          contentContainerStyle={styles.canvasContent}
+          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        >
           {parentMessage ? (
             <View style={styles.originalMessageContainer}>
               <View style={styles.avatarContainer}>
@@ -607,8 +634,17 @@ export default function ThreadScreen() {
                     style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: colors.reactionBorder }}
                     onPress={() => handleSelectMention(member)}
                   >
-                    <Image source={{ uri: avatarUrl }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 8 }} />
-                    <Text style={{ color: colors.text, fontWeight: '500' }}>{member.name || member.username}</Text>
+                    {member.special ? (
+                      <View style={{ width: 24, height: 24, borderRadius: 12, marginRight: 8, backgroundColor: colors.pillBg, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 12 }}>{member.initials}</Text>
+                      </View>
+                    ) : (
+                      <Image source={{ uri: avatarUrl }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 8 }} />
+                    )}
+                    <View>
+                      <Text style={{ color: colors.text, fontWeight: '500' }}>{member.name || member.username}</Text>
+                      {member.fullname && <Text style={{ color: colors.iconDefault, fontSize: 11 }}>{member.fullname}</Text>}
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -706,15 +742,18 @@ export default function ThreadScreen() {
                   <View style={{ width: 40, height: 4, backgroundColor: colors.iconDefault, borderRadius: 2, alignSelf: 'center', marginBottom: 20, opacity: 0.3 }} />
                   
                   {/* Quick Reactions */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, paddingHorizontal: 12 }}>
-                    {['👍', '❤️', '😂', '🎉', '👀'].map(emoji => (
-                      <TouchableOpacity key={emoji} onPress={() => handleReact(selectedMessage.id, emoji)} style={{ backgroundColor: colors.surfaceContainer, width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 24 }}>{emoji}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  
-                  <View style={{ height: 1, backgroundColor: colors.pillBg, marginBottom: 16 }} />
+                  {(user?.role === 'superadmin' || user?.permissions?.['react']) && (
+                    <>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, paddingHorizontal: 12 }}>
+                        {['👍', '❤️', '😂', '🎉', '👀'].map(emoji => (
+                          <TouchableOpacity key={emoji} onPress={() => handleReact(selectedMessage.id, emoji)} style={{ backgroundColor: colors.surfaceContainer, width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={{ fontSize: 24 }}>{emoji}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      <View style={{ height: 1, backgroundColor: colors.pillBg, marginBottom: 16 }} />
+                    </>
+                  )}
                   
                   <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={async () => { 
                     if (selectedMessage?.body) await Clipboard.setStringAsync(selectedMessage.body);
@@ -741,16 +780,29 @@ export default function ThreadScreen() {
                     <Text style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{selectedMessage?.is_saved ? t('chat.unsave_message', 'Unsave message') : t('chat.save_message', 'Save message')}</Text>
                   </TouchableOpacity>
 
-                  {(selectedMessage?.user_id === user?.id || selectedMessage?.author_id === user?.id) && (
+                  {(selectedMessage?.user_id === user?.id || selectedMessage?.author_id === user?.id) ? (
                     <>
-                      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleEditPress}>
-                        <MaterialIcons name="edit" size={24} color={colors.text} style={{ marginRight: 16 }} />
-                        <Text style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.edit_message', 'Edit message')}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleDeletePress}>
-                        <MaterialIcons name="delete-outline" size={24} color="#F43F5E" style={{ marginRight: 16 }} />
-                        <Text style={{ color: '#F43F5E', fontSize: 16, fontWeight: '500' }}>{t('common.delete_message', 'Delete message')}</Text>
-                      </TouchableOpacity>
+                      {(user?.role === 'superadmin' || user?.permissions?.['edit-own']) && (
+                        <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleEditPress}>
+                          <MaterialIcons name="edit" size={24} color={colors.text} style={{ marginRight: 16 }} />
+                          <Text style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.edit_message', 'Edit message')}</Text>
+                        </TouchableOpacity>
+                      )}
+                      {(user?.role === 'superadmin' || user?.permissions?.['delete-own'] || channelDetails?.membership?.can_delete_messages) && (
+                        <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleDeletePress}>
+                          <MaterialIcons name="delete-outline" size={24} color="#F43F5E" style={{ marginRight: 16 }} />
+                          <Text style={{ color: '#F43F5E', fontSize: 16, fontWeight: '500' }}>{t('common.delete_message', 'Delete message')}</Text>
+                        </TouchableOpacity>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {(user?.role === 'superadmin' || channelDetails?.membership?.can_delete_messages) && (
+                        <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleDeletePress}>
+                          <MaterialIcons name="delete-outline" size={24} color="#F43F5E" style={{ marginRight: 16 }} />
+                          <Text style={{ color: '#F43F5E', fontSize: 16, fontWeight: '500' }}>{t('common.delete_message', 'Delete message')}</Text>
+                        </TouchableOpacity>
+                      )}
                     </>
                   )}
                 </Animated.View>

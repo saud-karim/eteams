@@ -445,10 +445,6 @@ async function assignChannelManager(req, res, next) {
     
     const targetUser = await User.findById(userId);
     if (!targetUser) return res.status(404).json({ error: 'User not found' });
-    const targetPerms = typeof targetUser.permissions === 'string' ? JSON.parse(targetUser.permissions) : (targetUser.permissions || {});
-    if (!targetPerms['be-manager'] && targetUser.role !== 'superadmin') {
-      return res.status(403).json({ error: 'Target user lacks the be-manager permission' });
-    }
     
     // Insert or update membership
     await db.query(`

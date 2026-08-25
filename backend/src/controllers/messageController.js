@@ -460,7 +460,10 @@ async function getMentions(req, res, next) {
        JOIN memberships mem ON mem.channel_id = c.id AND mem.user_id = :userId
        WHERE m.deleted_at IS NULL
          AND (
-           JSON_CONTAINS(m.mentions, JSON_QUOTE(:userId))
+           JSON_CONTAINS(m.mentions, JSON_QUOTE(:userId), '$.users')
+           OR JSON_CONTAINS(m.mentions, JSON_QUOTE('channel'), '$.special')
+           OR JSON_CONTAINS(m.mentions, JSON_QUOTE('everyone'), '$.special')
+           OR JSON_CONTAINS(m.mentions, JSON_QUOTE('here'), '$.special')
            OR m.body LIKE :namePattern
          )
        ORDER BY m.created_at DESC

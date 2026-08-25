@@ -11,7 +11,10 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('accessToken');
     if (!token) { setTimeout(() => setLoading(false), 3000); return; }
     api.auth.me()
-      .then(({ user }) => setUser(user))
+      .then(({ user }) => {
+        if (user.presence === 'offline' || !user.presence) { user.presence = 'online'; }
+        setUser(user);
+      })
       .catch(() => { localStorage.clear(); })
       .finally(() => setTimeout(() => setLoading(false), 3000));
   }, []);
@@ -20,6 +23,7 @@ export function AuthProvider({ children }) {
     const { user, accessToken, refreshToken } = await api.auth.login(username, password);
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
+    if (user.presence === 'offline' || !user.presence) { user.presence = 'online'; }
     setUser(user);
   };
 

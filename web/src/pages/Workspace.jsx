@@ -165,8 +165,11 @@ export default function Workspace() {
     if (!socket) return;
     console.log('[badge] socket listener registered, socket id:', socket.id);
     const handleNewMsg = (msg) => {
+      // Ignore thread replies for global channel notifications and sounds
+      if (msg.parent_id) return;
+
+      const currentChannels = channelsRef.current || [];
       const currentUser = userRef.current;
-      const currentChannels = channelsRef.current;
       const activeChannelObj = currentChannels.find(c => c.slug === activeChannelRef.current);
       console.log('[badge] message:new received', {
         msg_channel: msg.channel_id,

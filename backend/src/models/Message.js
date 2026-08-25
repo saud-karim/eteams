@@ -167,6 +167,7 @@ async function getParticipatedThreads(userId) {
      JOIN channels c ON c.id = m.channel_id
      LEFT JOIN messages replies ON replies.parent_id = m.id AND replies.deleted_at IS NULL
      WHERE m.parent_id IS NULL AND m.deleted_at IS NULL
+       AND replies.id IS NOT NULL
        AND (
          m.user_id = :userId
          OR replies.user_id = :userId

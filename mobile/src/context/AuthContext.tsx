@@ -16,6 +16,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         const { user } = await api.auth.me();
+        if (user.presence === 'offline' || !user.presence) { user.presence = 'online'; }
         setUser(user);
       } catch (err) {
         console.error('Auth check failed', err);
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (username: string, password: string) => {
     const { user, accessToken, refreshToken } = await api.auth.login(username, password);
     await saveToken(accessToken);
+    if (user.presence === 'offline' || !user.presence) { user.presence = 'online'; }
     setUser(user);
   };
 

@@ -2,7 +2,7 @@ module.exports = {
   port: process.env.PORT || 4000,
   jwt: {
     secret: process.env.JWT_SECRET || 'dev_secret_change_me',
-    accessTtl: process.env.JWT_ACCESS_TTL || '15m',
+    accessTtl: process.env.JWT_ACCESS_TTL || '30d',
     refreshTtl: process.env.JWT_REFRESH_TTL || '30d',
   },
   upload: {

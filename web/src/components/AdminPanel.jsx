@@ -712,8 +712,6 @@ export default function AdminPanel({ onClose, onJumpToChannel }) {
               <label className="perm-check"><input type="checkbox" checked={userForm.permissions['create-public']} onChange={() => togglePerm('create-public')} /><span>Create Public Channels</span></label>
               <label className="perm-check"><input type="checkbox" checked={userForm.permissions['create-private']} onChange={() => togglePerm('create-private')} /><span>Create Private Channels</span></label>
               <label className="perm-check"><input type="checkbox" checked={userForm.permissions['create-announcement']} onChange={() => togglePerm('create-announcement')} /><span>Create Announcement Channels</span></label>
-              <label className="perm-check"><input type="checkbox" checked={userForm.permissions['join-any']} onChange={() => togglePerm('join-any')} /><span>Join any Private Channel without invite</span></label>
-              <label className="perm-check"><input type="checkbox" checked={userForm.permissions['be-manager']} onChange={() => togglePerm('be-manager')} /><span>Can be assigned as Channel Manager</span></label>
 
               <div className="perm-group-title">📂 Data & Privacy</div>
               <label className="perm-check"><input type="checkbox" checked={userForm.permissions['search-history']} onChange={() => togglePerm('search-history')} /><span>Search all workspace history (eDiscovery)</span></label>
@@ -1146,8 +1144,6 @@ export default function AdminPanel({ onClose, onJumpToChannel }) {
               <label className="perm-check"><input type="checkbox" checked={presetForm.permissions['create-public']} onChange={() => setPresetForm(prev => ({...prev, permissions: {...prev.permissions, 'create-public': !prev.permissions['create-public']}}))} /><span>Create Public Channels</span></label>
               <label className="perm-check"><input type="checkbox" checked={presetForm.permissions['create-private']} onChange={() => setPresetForm(prev => ({...prev, permissions: {...prev.permissions, 'create-private': !prev.permissions['create-private']}}))} /><span>Create Private Channels</span></label>
               <label className="perm-check"><input type="checkbox" checked={presetForm.permissions['create-announcement']} onChange={() => setPresetForm(prev => ({...prev, permissions: {...prev.permissions, 'create-announcement': !prev.permissions['create-announcement']}}))} /><span>Create Announcement Channels</span></label>
-              <label className="perm-check"><input type="checkbox" checked={presetForm.permissions['join-any']} onChange={() => setPresetForm(prev => ({...prev, permissions: {...prev.permissions, 'join-any': !prev.permissions['join-any']}}))} /><span>Join any Private Channel without invite</span></label>
-              <label className="perm-check"><input type="checkbox" checked={presetForm.permissions['be-manager']} onChange={() => setPresetForm(prev => ({...prev, permissions: {...prev.permissions, 'be-manager': !prev.permissions['be-manager']}}))} /><span>Can be assigned as Channel Manager</span></label>
 
               <div className="perm-group-title">📂 Data & Privacy</div>
               <label className="perm-check"><input type="checkbox" checked={presetForm.permissions['search-history']} onChange={() => setPresetForm(prev => ({...prev, permissions: {...prev.permissions, 'search-history': !prev.permissions['search-history']}}))} /><span>Search all workspace history (eDiscovery)</span></label>

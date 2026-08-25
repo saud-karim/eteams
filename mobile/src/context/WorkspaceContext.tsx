@@ -135,6 +135,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       };
 
       const handleNewMessage = (msg: any) => {
+        // Ignore thread replies for global channel notifications and sounds
+        if (msg.parent_id) return;
+
         const isFromMe = msg.user_id === userRef.current?.id;
         if (!isFromMe) {
           playNotificationSound();

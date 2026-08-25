@@ -27,11 +27,11 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors, insets);
   const { t, i18n } = useTranslation();
-  
+
   const { user } = useAuth();
   const { channels, users, setChannels, refreshWorkspace } = useWorkspace();
   const socket = useSocket();
-  
+
   const channelObj = channels?.find((c: any) => c.slug === id);
 
   const getDisplayInfo = (ch: any) => {
@@ -62,7 +62,7 @@ export default function ChatScreen() {
   };
 
   const { displayName } = getDisplayInfo(channelObj);
-  
+
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -71,16 +71,16 @@ export default function ChatScreen() {
   const [attachment, setAttachment] = useState<any>(null);
   const [editingMessage, setEditingMessage] = useState<any>(null);
   const [channelDetails, setChannelDetails] = useState<any>(null);
-  
+
   // Mentions State
   const [showMentions, setShowMentions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
-  
+
   // Typing Indicator State
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const myTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
   // Modal State
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
   const [showReadersModal, setShowReadersModal] = useState(false);
@@ -112,9 +112,9 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (!channelObj?.id) return;
-    
+
     setLoading(true);
-    
+
     // Mark channel as read
     api.channels.markRead(channelObj.id).catch(console.error);
     if (channelObj.unread_count > 0 && setChannels) {
@@ -122,7 +122,7 @@ export default function ChatScreen() {
     }
 
     const cacheKey = `messages_${channelObj.id}`;
-    
+
     // Load cached messages first
     AsyncStorage.getItem(cacheKey).then(cached => {
       if (cached) {
@@ -143,7 +143,7 @@ export default function ChatScreen() {
       .then((res: any) => {
         const msgs = res.messages || [];
         setMessages(msgs);
-        
+
         // Cache the fresh messages
         AsyncStorage.setItem(cacheKey, JSON.stringify(msgs)).catch(console.error);
 
@@ -154,7 +154,7 @@ export default function ChatScreen() {
           .filter((m: any) => m.user_id !== user?.id)
           .map((m: any) => m.id);
         if (unreadIds.length > 0) {
-           api.messages.markRead(unreadIds).catch(console.error);
+          api.messages.markRead(unreadIds).catch(console.error);
         }
       })
       .catch(console.error)
@@ -175,14 +175,14 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (!socket || !channelObj?.id) return;
-    
+
     socket.emit('channel:join', { channelId: channelObj.id });
 
     const handleNewMessage = (msg: any) => {
       // Do not append thread replies to the main channel chat
       if (msg.parent_id) return;
       if (msg.channel_id && msg.channel_id !== channelObj.id) return;
-      
+
       setMessages(prev => {
         if (prev.find(m => m.id === msg.id)) return prev;
         return [...prev, msg];
@@ -205,7 +205,7 @@ export default function ChatScreen() {
         return m;
       }));
     };
-    
+
     const handleUpdatedMessage = (data: any) => {
       setMessages(prev => prev.map(m => m.id === data.id ? { ...m, ...data } : m));
     };
@@ -224,13 +224,15 @@ export default function ChatScreen() {
     };
 
     const handleTypingStart = (data: any) => {
+      // Ignore typing events from threads
+      if (data.parentId) return;
       if (data.channelId && data.channelId !== channelObj.id) return;
       if (data.userId !== user?.id) {
         setTypingUsers(prev => {
           if (!prev.includes(data.name)) return [...prev, data.name];
           return prev;
         });
-        
+
         // Auto clear after 5s if stop event is missed
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = setTimeout(() => {
@@ -240,6 +242,8 @@ export default function ChatScreen() {
     };
 
     const handleTypingStop = (data: any) => {
+      // Ignore typing events from threads
+      if (data.parentId) return;
       if (data.channelId && data.channelId !== channelObj.id) return;
       if (data.userId !== user?.id) {
         setTypingUsers(prev => prev.filter(name => name !== data.name));
@@ -253,7 +257,7 @@ export default function ChatScreen() {
     socket.on('message:read_receipt', handleReadReceipt);
     socket.on('typing:start', handleTypingStart);
     socket.on('typing:stop', handleTypingStop);
-    
+
     return () => {
       socket.off('message:new', handleNewMessage);
       socket.off('message:reactions', handleReaction);
@@ -271,12 +275,12 @@ export default function ChatScreen() {
     if (!channelObj?.id || messages.length === 0 || loadingOlder || !hasMore) return;
     setLoadingOlder(true);
     const oldestMessage = messages[0];
-    
+
     try {
       const res = await api.messages.list(channelObj.id, oldestMessage.created_at, 50);
       const olderMsgs = res.messages || [];
       if (olderMsgs.length < 50) setHasMore(false);
-      
+
       if (olderMsgs.length > 0) {
         setMessages(prev => [...olderMsgs, ...prev]);
       } else {
@@ -299,7 +303,7 @@ export default function ChatScreen() {
 
   const handleTextChange = (text: string) => {
     setInputText(text);
-    
+
     // Typing indicator
     if (socket && channelObj?.id) {
       socket.emit('typing:start', { channelId: channelObj.id });
@@ -308,7 +312,7 @@ export default function ChatScreen() {
         socket.emit('typing:stop', { channelId: channelObj.id });
       }, 2000);
     }
-    
+
     // Mention Detection
     const words = text.split(' ');
     const lastWord = words[words.length - 1];
@@ -326,7 +330,7 @@ export default function ChatScreen() {
     const after = inputText.substring(selection.end);
     const newText = before + text + after;
     setInputText(newText);
-    
+
     // Trigger handleTextChange so mentions or typing indicator work
     handleTextChange(newText);
   };
@@ -354,30 +358,43 @@ export default function ChatScreen() {
     setShowMentions(false);
   };
 
-  const filteredMembers = showMentions && channelDetails?.members ? channelDetails.members.filter((m: any) => 
-    (m.name || '').toLowerCase().includes(mentionQuery) || (m.username || '').toLowerCase().includes(mentionQuery)
+  const specialMentions = [
+    { id: 'here', name: 'here', fullname: 'Notify only active members', initials: '🔔', special: true },
+    { id: 'channel', name: 'channel', fullname: 'Notify all members', initials: '📢', special: true },
+    { id: 'everyone', name: 'everyone', fullname: 'Notify entire workspace', initials: '🌍', special: true }
+  ];
+
+  const allMentionable = [
+    ...(user?.role === 'superadmin' || user?.permissions?.['at-here'] ? [specialMentions[0]] : []),
+    ...(user?.role === 'superadmin' || user?.permissions?.['at-channel'] ? [specialMentions[1]] : []),
+    ...(user?.role === 'superadmin' || user?.permissions?.['at-everyone'] ? [specialMentions[2]] : []),
+    ...(channelDetails?.members || [])
+  ];
+
+  const filteredMembers = showMentions ? allMentionable.filter((m: any) =>
+    (m.name || '').toLowerCase().includes(mentionQuery) || (m.username || '').toLowerCase().includes(mentionQuery) || (m.fullname || '').toLowerCase().includes(mentionQuery)
   ) : [];
 
   const handleSend = async () => {
     if ((!inputText.trim() && !attachment) || !channelObj?.id) return;
-    
+
     const body = inputText.trim();
     const attach = attachment;
     const isEdit = !!editingMessage;
     const editId = editingMessage?.id;
-    
+
     setInputText('');
     setAttachment(null);
     setEditingMessage(null);
     const replyToId = replyingToMessage?.id || null;
     setReplyingToMessage(null);
-    
+
     // Stop typing
     if (socket && channelObj?.id) {
       socket.emit('typing:stop', { channelId: channelObj.id });
     }
     if (myTypingTimeoutRef.current) clearTimeout(myTypingTimeoutRef.current);
-    
+
     try {
       if (isEdit && editId) {
         await api.messages.update(editId, body);
@@ -687,7 +704,7 @@ export default function ChatScreen() {
   const isManager = currentMem?.is_manager;
   const isSuperadmin = user?.role === 'superadmin';
   const isReadOnly = channelObj?.is_readonly || channelDetails?.is_readonly;
-  
+
   let canPostInChannel = false;
   let canPin = false;
   if (channelDetails && channelDetails.members) {
@@ -699,7 +716,7 @@ export default function ChatScreen() {
   return (
     <View style={styles.safeArea}>
       <Stack.Screen options={{ headerShown: false }} />
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
@@ -709,7 +726,7 @@ export default function ChatScreen() {
           <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/')} style={styles.iconButton}>
             <MaterialIcons name="arrow-back-ios" size={20} color={colors.text} />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.headerTitlePill} onPress={() => setShowChannelInfo(true)}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Text style={styles.headerName}>
@@ -733,7 +750,7 @@ export default function ChatScreen() {
 
         {/* Pinned Messages Banner */}
         {messages.filter(m => m.is_pinned).length > 0 && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={{ backgroundColor: theme === 'dark' ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.08)', paddingVertical: 10, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: theme === 'dark' ? 'rgba(37, 99, 235, 0.3)' : 'rgba(37, 99, 235, 0.15)', borderLeftWidth: 4, borderLeftColor: colors.primary, flexDirection: 'row', alignItems: 'center', gap: 12 }}
             onPress={() => { setShowChannelInfo(true); setActiveTab('pinned'); }}
           >
@@ -750,12 +767,13 @@ export default function ChatScreen() {
         )}
 
         {/* Chat Canvas */}
-        <ScrollView 
+        <ScrollView
           ref={scrollViewRef}
-          style={styles.chatCanvas} 
+          style={styles.chatCanvas}
           contentContainerStyle={styles.chatContent}
           onScroll={handleScroll}
           scrollEventThrottle={16}
+          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
         >
           {loading ? (
             <Text style={{ color: '#94A3B8', textAlign: 'center', margin: 20 }}>{t('common.loading')}</Text>
@@ -769,189 +787,189 @@ export default function ChatScreen() {
                 </View>
               )}
               {messages.map((msg, idx) => {
-              const prevMsg = messages[idx - 1];
-              const showHeader = !prevMsg || prevMsg.user_id !== msg.user_id || (new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime() > 5 * 60 * 1000);
-              
-              const msgUser = users?.find((u: any) => u.id === msg.user_id);
-              const authorName = msg.author_name || msgUser?.name || msgUser?.username || 'Unknown';
-              const isMe = msg.user_id === user?.id || msg.author_id === user?.id;
-              
-              let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=1E293B&color=fff`;
-              if (msgUser?.avatar) {
-                avatarUrl = msgUser.avatar.startsWith('http') ? msgUser.avatar : `${API_BASE_URL}${msgUser.avatar}`;
-              }
+                const prevMsg = messages[idx - 1];
+                const showHeader = !prevMsg || prevMsg.user_id !== msg.user_id || (new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime() > 5 * 60 * 1000);
 
-              const renderLeftActions = (progress: any, dragX: any) => {
-                const trans = dragX.interpolate({
-                  inputRange: [0, 50, 100, 101],
-                  outputRange: [-20, 0, 0, 1],
-                });
+                const msgUser = users?.find((u: any) => u.id === msg.user_id);
+                const authorName = msg.author_name || msgUser?.name || msgUser?.username || 'Unknown';
+                const isMe = msg.user_id === user?.id || msg.author_id === user?.id;
+
+                let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=1E293B&color=fff`;
+                if (msgUser?.avatar) {
+                  avatarUrl = msgUser.avatar.startsWith('http') ? msgUser.avatar : `${API_BASE_URL}${msgUser.avatar}`;
+                }
+
+                const renderLeftActions = (progress: any, dragX: any) => {
+                  const trans = dragX.interpolate({
+                    inputRange: [0, 50, 100, 101],
+                    outputRange: [-20, 0, 0, 1],
+                  });
+                  return (
+                    <Animated.View
+                      style={{
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        width: 50,
+                        transform: [{ translateX: trans }],
+                      }}
+                    >
+                      <MaterialIcons name="reply" size={24} color={colors.primary} />
+                    </Animated.View>
+                  );
+                };
+
                 return (
-                  <Animated.View
-                    style={{
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      width: 50,
-                      transform: [{ translateX: trans }],
+                  <View
+                    key={msg.id}
+                    onLayout={(e) => {
+                      messageLayouts.current[msg.id] = e.nativeEvent.layout.y;
                     }}
+                    style={highlightedMessage === msg.id ? { backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' } : {}}
                   >
-                    <MaterialIcons name="reply" size={24} color={colors.primary} />
-                  </Animated.View>
-                );
-              };
+                    <Swipeable
+                      ref={ref => {
+                        if (ref) swipeableRefs.current[msg.id] = ref;
+                      }}
+                      renderLeftActions={renderLeftActions}
+                      onSwipeableWillOpen={() => {
+                        setReplyingToMessage(msg);
+                        swipeableRefs.current[msg.id]?.close();
+                      }}
+                      friction={2}
+                    >
+                      <TouchableOpacity
+                        style={[
+                          styles.messageRow,
+                          !showHeader && styles.messageRowCompact,
+                          { justifyContent: isMe ? 'flex-end' : 'flex-start' }
+                        ]}
+                        onLongPress={() => openModal(msg)}
+                        delayLongPress={250}
+                        activeOpacity={0.7}
+                      >
+                        {!isMe && (
+                          <View style={styles.messageAvatarContainer}>
+                            {showHeader ? (
+                              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                            ) : (
+                              <View style={styles.avatarPlaceholder} />
+                            )}
+                          </View>
+                        )}
 
-              return (
-                <View 
-                  key={msg.id} 
-                  onLayout={(e) => {
-                    messageLayouts.current[msg.id] = e.nativeEvent.layout.y;
-                  }}
-                  style={highlightedMessage === msg.id ? { backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' } : {}}
-                >
-                <Swipeable
-                  ref={ref => {
-                    if (ref) swipeableRefs.current[msg.id] = ref;
-                  }}
-                  renderLeftActions={renderLeftActions}
-                  onSwipeableWillOpen={() => {
-                    setReplyingToMessage(msg);
-                    swipeableRefs.current[msg.id]?.close();
-                  }}
-                  friction={2}
-                >
-                  <TouchableOpacity 
-                    style={[
-                      styles.messageRow, 
-                      !showHeader && styles.messageRowCompact,
-                      { justifyContent: isMe ? 'flex-end' : 'flex-start' }
-                    ]}
-                    onLongPress={() => openModal(msg)}
-                    delayLongPress={250}
-                    activeOpacity={0.7}
-                  >
-                    {!isMe && (
-                      <View style={styles.messageAvatarContainer}>
-                        {showHeader ? (
-                          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-                        ) : (
-                          <View style={styles.avatarPlaceholder} />
-                        )}
-                      </View>
-                    )}
-                    
-                    <View style={[styles.messageContent, isMe ? { alignItems: 'flex-end', marginLeft: 40 } : { alignItems: 'flex-start', marginRight: 40 }]}>
-                      {!isMe && showHeader && (
-                        <View style={styles.messageHeader}>
-                          <Text style={styles.messageAuthor}>{authorName}</Text>
-                        </View>
-                      )}
-                      
-                      <View style={[
-                        styles.chatBubble,
-                        isMe ? styles.chatBubbleSent : styles.chatBubbleReceived,
-                        !showHeader && (isMe ? { borderTopRightRadius: 4 } : { borderTopLeftRadius: 4 })
-                      ]}>
-                        {msg.reply_to_id && (
-                          <TouchableOpacity 
-                            onPress={() => scrollToMessage(msg.reply_to_id)}
-                            style={{
-                              backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)',
-                              padding: 6,
-                              borderRadius: 4,
-                              marginBottom: 4,
-                              borderLeftWidth: 3,
-                              borderLeftColor: isMe ? '#fff' : colors.primary
-                            }}
-                          >
-                            <Text style={{ color: isMe ? '#fff' : colors.primary, fontSize: 12, fontWeight: 'bold', marginBottom: 2 }}>
-                              {msg.reply_to_author_name || t('chat.user', 'User')}
-                            </Text>
-                            <Text style={{ color: isMe ? 'rgba(255,255,255,0.9)' : colors.text, fontSize: 13 }} numberOfLines={2}>
-                              {msg.reply_to_body || t('chat.attachment', 'Attachment')}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                        {msg.body ? (
-                          <View style={{ flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                            <View style={{ flexShrink: 1 }}>
-                              <Markdown
+                        <View style={[styles.messageContent, isMe ? { alignItems: 'flex-end', marginLeft: 40 } : { alignItems: 'flex-start', marginRight: 40 }]}>
+                          {!isMe && showHeader && (
+                            <View style={styles.messageHeader}>
+                              <Text style={styles.messageAuthor}>{authorName}</Text>
+                            </View>
+                          )}
+
+                          <View style={[
+                            styles.chatBubble,
+                            isMe ? styles.chatBubbleSent : styles.chatBubbleReceived,
+                            !showHeader && (isMe ? { borderTopRightRadius: 4 } : { borderTopLeftRadius: 4 })
+                          ]}>
+                            {msg.reply_to_id && (
+                              <TouchableOpacity
+                                onPress={() => scrollToMessage(msg.reply_to_id)}
                                 style={{
-                                  body: { 
-                                    color: isMe ? colors.onPrimary : colors.text, 
-                                    fontSize: 15, 
-                                    textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' 
-                                  },
-                                  paragraph: { marginTop: 2, marginBottom: 2 },
-                                  link: { color: isMe ? '#e0f7fa' : colors.primary },
+                                  backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)',
+                                  padding: 6,
+                                  borderRadius: 4,
+                                  marginBottom: 4,
+                                  borderLeftWidth: 3,
+                                  borderLeftColor: isMe ? '#fff' : colors.primary
                                 }}
                               >
-                                {msg.body}
-                              </Markdown>
-                            </View>
-                            
-                            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, marginTop: 4 }}>
-                              {(msg.is_edited || msg.edited_at) && (
-                                <Text style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault, marginRight: 4 }}>
-                                  ({t('chat.edited', 'edited')})
+                                <Text style={{ color: isMe ? '#fff' : colors.primary, fontSize: 12, fontWeight: 'bold', marginBottom: 2 }}>
+                                  {msg.reply_to_author_name || t('chat.user', 'User')}
                                 </Text>
-                              )}
-                              
-                              <Text style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault, marginRight: 4 }}>
-                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </Text>
+                                <Text style={{ color: isMe ? 'rgba(255,255,255,0.9)' : colors.text, fontSize: 13 }} numberOfLines={2}>
+                                  {msg.reply_to_body || t('chat.attachment', 'Attachment')}
+                                </Text>
+                              </TouchableOpacity>
+                            )}
+                            {msg.body ? (
+                              <View style={{ flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                <View style={{ flexShrink: 1 }}>
+                                  <Markdown
+                                    style={{
+                                      body: {
+                                        color: isMe ? colors.onPrimary : colors.text,
+                                        fontSize: 15,
+                                        textAlign: i18n.dir() === 'rtl' ? 'right' : 'left'
+                                      },
+                                      paragraph: { marginTop: 2, marginBottom: 2 },
+                                      link: { color: isMe ? '#e0f7fa' : colors.primary },
+                                    }}
+                                  >
+                                    {msg.body}
+                                  </Markdown>
+                                </View>
 
-                              {msg.is_pinned ? (
-                                <MaterialIcons name="push-pin" size={12} color={isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault} style={{ marginRight: 4 }} />
-                              ) : null}
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, marginTop: 4 }}>
+                                  {(msg.is_edited || msg.edited_at) && (
+                                    <Text style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault, marginRight: 4 }}>
+                                      ({t('chat.edited', 'edited')})
+                                    </Text>
+                                  )}
 
-                              {isMe && (
-                                <MaterialIcons 
-                                  name="done-all" 
-                                  size={14} 
-                                  color={(msg.readers && msg.readers.length > 0) ? '#4ade80' : 'rgba(255,255,255,0.7)'} 
-                                />
-                              )}
-                            </View>
+                                  <Text style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault, marginRight: 4 }}>
+                                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </Text>
+
+                                  {msg.is_pinned ? (
+                                    <MaterialIcons name="push-pin" size={12} color={isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault} style={{ marginRight: 4 }} />
+                                  ) : null}
+
+                                  {isMe && (
+                                    <MaterialIcons
+                                      name="done-all"
+                                      size={14}
+                                      color={(msg.readers && msg.readers.length > 0) ? '#4ade80' : 'rgba(255,255,255,0.7)'}
+                                    />
+                                  )}
+                                </View>
+                              </View>
+                            ) : null}
+
+                            {msg.attachments && msg.attachments.length > 0 && (
+                              <View style={{ marginTop: 8, gap: 8 }}>
+                                {msg.attachments.map((att: any) => {
+                                  const fileUrl = att.storage_key.startsWith('http') ? att.storage_key : `${API_BASE_URL.replace('/api', '')}/${att.storage_key}`;
+                                  const isImage = att.mime_type?.startsWith('image/');
+                                  return isImage ? (
+                                    <TouchableOpacity key={att.id} onPress={() => setViewedImage(fileUrl)}>
+                                      <Image source={{ uri: fileUrl }} style={{ width: 250, height: 180, borderRadius: 12, backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : colors.pillBg }} resizeMode="cover" />
+                                    </TouchableOpacity>
+                                  ) : (
+                                    <TouchableOpacity
+                                      key={att.id}
+                                      style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : colors.pillBg, padding: 12, borderRadius: 8, maxWidth: 250 }}
+                                      onPress={() => WebBrowser.openBrowserAsync(fileUrl)}
+                                    >
+                                      <MaterialIcons name="insert-drive-file" size={24} color={isMe ? '#fff' : colors.primary} />
+                                      <View style={{ marginLeft: 8, flex: 1 }}>
+                                        <Text style={{ color: isMe ? '#fff' : colors.text, fontWeight: '500' }} numberOfLines={1} ellipsizeMode="middle">{att.original_name || att.filename}</Text>
+                                        <Text style={{ color: isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault, fontSize: 11 }}>{(att.size_bytes / 1024).toFixed(1)} KB</Text>
+                                      </View>
+                                    </TouchableOpacity>
+                                  );
+                                })}
+                              </View>
+                            )}
+
+                            {renderReactions(msg.reactions)}
                           </View>
-                        ) : null}
-
-                        {msg.attachments && msg.attachments.length > 0 && (
-                          <View style={{ marginTop: 8, gap: 8 }}>
-                            {msg.attachments.map((att: any) => {
-                              const fileUrl = att.storage_key.startsWith('http') ? att.storage_key : `${API_BASE_URL.replace('/api', '')}/${att.storage_key}`;
-                              const isImage = att.mime_type?.startsWith('image/');
-                              return isImage ? (
-                                <TouchableOpacity key={att.id} onPress={() => setViewedImage(fileUrl)}>
-                                  <Image source={{ uri: fileUrl }} style={{ width: 250, height: 180, borderRadius: 12, backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : colors.pillBg }} resizeMode="cover" />
-                                </TouchableOpacity>
-                              ) : (
-                                <TouchableOpacity 
-                                  key={att.id} 
-                                  style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : colors.pillBg, padding: 12, borderRadius: 8, maxWidth: 250 }}
-                                  onPress={() => WebBrowser.openBrowserAsync(fileUrl)}
-                                >
-                                  <MaterialIcons name="insert-drive-file" size={24} color={isMe ? '#fff' : colors.primary} />
-                                  <View style={{ marginLeft: 8, flex: 1 }}>
-                                    <Text style={{ color: isMe ? '#fff' : colors.text, fontWeight: '500' }} numberOfLines={1} ellipsizeMode="middle">{att.original_name || att.filename}</Text>
-                                    <Text style={{ color: isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault, fontSize: 11 }}>{(att.size_bytes / 1024).toFixed(1)} KB</Text>
-                                  </View>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </View>
-                        )}
-                        
-                        {renderReactions(msg.reactions)}
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                </Swipeable>
-                </View>
-              );
-            })}
+                        </View>
+                      </TouchableOpacity>
+                    </Swipeable>
+                  </View>
+                );
+              })}
             </>
           )}
-          
+
           {typingUsers.length > 0 && (
             <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
               <Text style={{ color: colors.iconDefault, fontSize: 12, fontStyle: 'italic', textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }}>
@@ -960,7 +978,7 @@ export default function ChatScreen() {
             </View>
           )}
         </ScrollView>
-        
+
         {/* Mentions Autocomplete List */}
         {showMentions && filteredMembers.length > 0 && (
           <View style={{ maxHeight: 150, backgroundColor: colors.surfaceContainerHigh, borderTopLeftRadius: 12, borderTopRightRadius: 12, marginHorizontal: 16, elevation: 4 }}>
@@ -971,13 +989,22 @@ export default function ChatScreen() {
                   avatarUrl = member.avatar.startsWith('http') ? member.avatar : `${API_BASE_URL}${member.avatar}`;
                 }
                 return (
-                  <TouchableOpacity 
-                    key={member.id} 
+                  <TouchableOpacity
+                    key={member.id}
                     style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: colors.reactionBorder }}
                     onPress={() => handleSelectMention(member)}
                   >
-                    <Image source={{ uri: avatarUrl }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 8 }} />
-                    <Text style={{ color: colors.text, fontWeight: '500' }}>{member.name || member.username}</Text>
+                    {member.special ? (
+                      <View style={{ width: 24, height: 24, borderRadius: 12, marginRight: 8, backgroundColor: colors.pillBg, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 12 }}>{member.initials}</Text>
+                      </View>
+                    ) : (
+                      <Image source={{ uri: avatarUrl }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 8 }} />
+                    )}
+                    <View>
+                      <Text style={{ color: colors.text, fontWeight: '500' }}>{member.name || member.username}</Text>
+                      {member.fullname && <Text style={{ color: colors.iconDefault, fontSize: 11 }}>{member.fullname}</Text>}
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -1031,7 +1058,7 @@ export default function ChatScreen() {
                   </TouchableOpacity>
                 </View>
               )}
-              <TextInput 
+              <TextInput
                 style={[styles.textInput, { textAlign: i18n.dir() === 'rtl' ? 'right' : 'left' }]}
                 placeholder={t('chat.type_message')}
                 placeholderTextColor={colors.iconDefault}
@@ -1040,10 +1067,10 @@ export default function ChatScreen() {
                 onChangeText={handleTextChange}
                 onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
               />
-              
+
               <View style={styles.composerFooter}>
                 <View style={styles.composerFooterLeft}>
-                  { (isSuperadmin || user?.permissions?.['upload']) && (
+                  {(isSuperadmin || user?.permissions?.['upload']) && (
                     <TouchableOpacity style={styles.composerPlusBtn} onPress={pickAttachment}>
                       <MaterialIcons name="add" size={20} color={colors.iconDefault} />
                     </TouchableOpacity>
@@ -1054,15 +1081,15 @@ export default function ChatScreen() {
                   <TouchableOpacity style={styles.composerActionBtn} onPress={() => setShowEmojiPicker(true)}>
                     <MaterialIcons name="emoji-emotions" size={20} color={colors.iconDefault} />
                   </TouchableOpacity>
-                  { (isSuperadmin || user?.permissions?.['at-user']) && (
+                  {(isSuperadmin || user?.permissions?.['at-user']) && (
                     <TouchableOpacity style={styles.composerActionBtn} onPress={() => insertText('@')}>
                       <MaterialIcons name="alternate-email" size={20} color={colors.iconDefault} />
                     </TouchableOpacity>
                   )}
                 </View>
-                
-                <TouchableOpacity 
-                  style={[styles.sendButton, !(inputText.trim() || attachment) && { backgroundColor: 'rgba(59, 167, 214, 0.2)' }]} 
+
+                <TouchableOpacity
+                  style={[styles.sendButton, !(inputText.trim() || attachment) && { backgroundColor: 'rgba(59, 167, 214, 0.2)' }]}
                   onPress={handleSend}
                   disabled={!(inputText.trim() || attachment)}
                 >
@@ -1088,35 +1115,40 @@ export default function ChatScreen() {
         >
           <TouchableWithoutFeedback onPress={closeModal}>
             <View style={styles.modalOverlay}>
-              <TouchableWithoutFeedback onPress={() => {}}>
+              <TouchableWithoutFeedback onPress={() => { }}>
                 <Animated.View style={[styles.bottomSheet, { transform: [{ translateY: slideAnim }] }]}>
                   <View style={styles.sheetHandle} />
-                  
+
                   {/* Quick Reactions */}
-                  <View style={styles.quickReactions}>
-                    {['👍', '❤️', '😂', '🎉', '👀'].map(emoji => (
-                      <TouchableOpacity 
-                        key={emoji} 
-                        style={styles.quickReactionBtn}
-                        onPress={() => handleReact(selectedMessage.id, emoji)}
-                      >
-                        <Text style={styles.quickReactionEmoji}>{emoji}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  {(isSuperadmin || user?.permissions?.['react']) && (
+                    <>
+                      <View style={styles.quickReactions}>
+                        {['👍', '❤️', '😂', '🎉', '👀'].map(emoji => (
+                          <TouchableOpacity
+                            key={emoji}
+                            style={styles.quickReactionBtn}
+                            onPress={() => handleReact(selectedMessage.id, emoji)}
+                          >
+                            <Text style={styles.quickReactionEmoji}>{emoji}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      <View style={styles.sheetDivider} />
+                    </>
+                  )}
 
-                  <View style={styles.sheetDivider} />
+                  {(isSuperadmin || user?.permissions?.['thread']) && (
+                    <TouchableOpacity style={styles.sheetOption} onPress={handleThreadReplyPress}>
+                      <MaterialIcons name="chat-bubble-outline" size={24} color={colors.text} style={styles.sheetOptionIcon} />
+                      <Text style={styles.sheetOptionText}>{t('chat.reply_in_thread')}</Text>
+                    </TouchableOpacity>
+                  )}
 
-                  <TouchableOpacity style={styles.sheetOption} onPress={handleThreadReplyPress}>
-                    <MaterialIcons name="chat-bubble-outline" size={24} color={colors.text} style={styles.sheetOptionIcon} />
-                    <Text style={styles.sheetOptionText}>{t('chat.reply_in_thread')}</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity style={styles.sheetOption} onPress={async () => { 
+                  <TouchableOpacity style={styles.sheetOption} onPress={async () => {
                     if (selectedMessage?.body) {
                       await Clipboard.setStringAsync(selectedMessage.body);
                     }
-                    closeModal(); 
+                    closeModal();
                   }}>
                     <MaterialIcons name="content-copy" size={24} color={colors.text} style={styles.sheetOptionIcon} />
                     <Text style={styles.sheetOptionText}>{t('common.copy_text', 'Copy text')}</Text>
@@ -1139,23 +1171,36 @@ export default function ChatScreen() {
                     <Text style={styles.sheetOptionText}>{selectedMessage?.is_saved ? t('chat.unsave_message', 'Unsave message') : t('chat.save_message', 'Save message')}</Text>
                   </TouchableOpacity>
 
-                  {(selectedMessage?.user_id === user?.id || selectedMessage?.author_id === user?.id) && (
+                  {(selectedMessage?.user_id === user?.id || selectedMessage?.author_id === user?.id) ? (
                     <>
-                      <TouchableOpacity style={styles.sheetOption} onPress={handleEditPress}>
-                        <MaterialIcons name="edit" size={24} color={colors.text} style={styles.sheetOptionIcon} />
-                        <Text style={styles.sheetOptionText}>{t('common.edit_message', 'Edit message')}</Text>
-                      </TouchableOpacity>
+                      {(isSuperadmin || user?.permissions?.['edit-own']) && (
+                        <TouchableOpacity style={styles.sheetOption} onPress={handleEditPress}>
+                          <MaterialIcons name="edit" size={24} color={colors.text} style={styles.sheetOptionIcon} />
+                          <Text style={styles.sheetOptionText}>{t('common.edit_message', 'Edit message')}</Text>
+                        </TouchableOpacity>
+                      )}
                       <TouchableOpacity style={styles.sheetOption} onPress={() => { setShowReadersModal(true); }}>
                         <MaterialIcons name="info-outline" size={24} color={colors.text} style={styles.sheetOptionIcon} />
                         <Text style={styles.sheetOptionText}>{t('common.message_info', 'Message info')}</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.sheetOption} onPress={handleDeletePress}>
-                        <MaterialIcons name="delete-outline" size={24} color="#F43F5E" style={styles.sheetOptionIcon} />
-                        <Text style={[styles.sheetOptionText, { color: '#F43F5E' }]}>{t('common.delete_message', 'Delete message')}</Text>
-                      </TouchableOpacity>
+                      {(isSuperadmin || user?.permissions?.['delete-own'] || currentMem?.can_delete_messages) && (
+                        <TouchableOpacity style={styles.sheetOption} onPress={handleDeletePress}>
+                          <MaterialIcons name="delete-outline" size={24} color="#F43F5E" style={styles.sheetOptionIcon} />
+                          <Text style={[styles.sheetOptionText, { color: '#F43F5E' }]}>{t('common.delete_message', 'Delete message')}</Text>
+                        </TouchableOpacity>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {(isSuperadmin || currentMem?.can_delete_messages) && (
+                        <TouchableOpacity style={styles.sheetOption} onPress={handleDeletePress}>
+                          <MaterialIcons name="delete-outline" size={24} color="#F43F5E" style={styles.sheetOptionIcon} />
+                          <Text style={[styles.sheetOptionText, { color: '#F43F5E' }]}>{t('common.delete_message', 'Delete message')}</Text>
+                        </TouchableOpacity>
+                      )}
                     </>
                   )}
-                  
+
                 </Animated.View>
               </TouchableWithoutFeedback>
             </View>
@@ -1180,7 +1225,7 @@ export default function ChatScreen() {
                   <MaterialIcons name="close" size={20} color={colors.iconDefault} />
                 </TouchableOpacity>
               </View>
-              
+
               <ScrollView showsVerticalScrollIndicator={false}>
                 {(selectedMessage?.readers && selectedMessage.readers.length > 0) ? (
                   selectedMessage.readers.map((reader: any) => {
@@ -1205,9 +1250,9 @@ export default function ChatScreen() {
                   </View>
                 )}
               </ScrollView>
-              
-              <TouchableOpacity 
-                onPress={() => setShowReadersModal(false)} 
+
+              <TouchableOpacity
+                onPress={() => setShowReadersModal(false)}
                 style={{ marginTop: 24, backgroundColor: colors.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center' }}
               >
                 <Text style={{ color: colors.onPrimary, fontWeight: '600', fontSize: 16 }}>{t('common.close', 'Done')}</Text>
@@ -1245,43 +1290,43 @@ export default function ChatScreen() {
                   )}
                 </View>
 
-              <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.pillBg, marginBottom: 16 }}>
-                <TouchableOpacity onPress={() => setActiveTab('members')} style={{ flex: 1, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: activeTab === 'members' ? colors.primary : 'transparent', alignItems: 'center' }}>
-                  <Text style={{ color: activeTab === 'members' ? colors.text : colors.iconDefault, fontWeight: '600' }}>Members</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setActiveTab('files')} style={{ flex: 1, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: activeTab === 'files' ? colors.primary : 'transparent', alignItems: 'center' }}>
-                  <Text style={{ color: activeTab === 'files' ? colors.text : colors.iconDefault, fontWeight: '600' }}>Files</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setActiveTab('pinned')} style={{ flex: 1, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: activeTab === 'pinned' ? colors.primary : 'transparent', alignItems: 'center' }}>
-                  <Text style={{ color: activeTab === 'pinned' ? colors.text : colors.iconDefault, fontWeight: '600' }}>Pinned</Text>
-                </TouchableOpacity>
-              </View>
+                <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.pillBg, marginBottom: 16 }}>
+                  <TouchableOpacity onPress={() => setActiveTab('members')} style={{ flex: 1, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: activeTab === 'members' ? colors.primary : 'transparent', alignItems: 'center' }}>
+                    <Text style={{ color: activeTab === 'members' ? colors.text : colors.iconDefault, fontWeight: '600' }}>Members</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setActiveTab('files')} style={{ flex: 1, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: activeTab === 'files' ? colors.primary : 'transparent', alignItems: 'center' }}>
+                    <Text style={{ color: activeTab === 'files' ? colors.text : colors.iconDefault, fontWeight: '600' }}>Files</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setActiveTab('pinned')} style={{ flex: 1, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: activeTab === 'pinned' ? colors.primary : 'transparent', alignItems: 'center' }}>
+                    <Text style={{ color: activeTab === 'pinned' ? colors.text : colors.iconDefault, fontWeight: '600' }}>Pinned</Text>
+                  </TouchableOpacity>
+                </View>
 
-              {activeTab === 'members' && (
-                <View style={{ marginBottom: 24 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }}>
-                      Members ({channelDetails?.members?.length || 0})
-                    </Text>
-                    
-                    {(user?.role === 'superadmin' || user?.permissions?.['is_manager'] || user?.permissions?.['can_add_members']) && (
-                      <TouchableOpacity 
-                        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 }}
-                        onPress={() => setShowAddMemberModal(true)}
-                      >
-                        <MaterialIcons name="person-add" size={16} color={colors.onPrimary} style={{ marginRight: 4 }} />
-                        <Text style={{ color: colors.onPrimary, fontSize: 13, fontWeight: '600' }}>Add</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
+                {activeTab === 'members' && (
+                  <View style={{ marginBottom: 24 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }}>
+                        Members ({channelDetails?.members?.length || 0})
+                      </Text>
 
-                  {channelDetails?.members && channelDetails.members.length > 0 && channelDetails.members.map((member: any) => {
+                      {(user?.role === 'superadmin' || currentMem?.is_manager || currentMem?.can_add_members) && (
+                        <TouchableOpacity
+                          style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 }}
+                          onPress={() => setShowAddMemberModal(true)}
+                        >
+                          <MaterialIcons name="person-add" size={16} color={colors.onPrimary} style={{ marginRight: 4 }} />
+                          <Text style={{ color: colors.onPrimary, fontSize: 13, fontWeight: '600' }}>Add</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {channelDetails?.members && channelDetails.members.length > 0 && channelDetails.members.map((member: any) => {
                       let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || member.username || '?')}&background=1E293B&color=fff`;
                       if (member.avatar) {
                         avatarUrl = member.avatar.startsWith('http') ? member.avatar : `${API_BASE_URL}${member.avatar}`;
                       }
-                      
-                      const canManage = user?.role === 'superadmin' || user?.permissions?.['is_manager'];
+
+                      const canManage = user?.role === 'superadmin' || currentMem?.is_manager;
 
                       return (
                         <View key={member.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.pillBg }}>
@@ -1348,7 +1393,7 @@ export default function ChatScreen() {
                 {channelObj?.type !== 'announcement' && (
                   <View style={{ marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.pillBg }}>
                     {(user?.id === channelObj?.created_by || user?.role === 'superadmin' || channelObj?.type === 'dm' || channelObj?.type === 'group_dm') && (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(244, 63, 94, 0.1)', paddingVertical: 12, borderRadius: 8, marginBottom: 12 }}
                         onPress={handleDeleteChannel}
                       >
@@ -1357,7 +1402,7 @@ export default function ChatScreen() {
                       </TouchableOpacity>
                     )}
                     {channelObj?.type !== 'dm' && channelObj?.type !== 'group_dm' && (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(244, 63, 94, 0.1)', paddingVertical: 12, borderRadius: 8 }}
                         onPress={handleLeaveChannel}
                       >
@@ -1393,9 +1438,9 @@ export default function ChatScreen() {
               </View>
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 40 }}>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-                  {['😀','😃','😄','😁','😆','😅','😂','🤣','🥲','☺️','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'].map(emoji => (
-                    <TouchableOpacity 
-                      key={emoji} 
+                  {['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '☺️', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'].map(emoji => (
+                    <TouchableOpacity
+                      key={emoji}
                       style={{ width: '16.66%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }}
                       onPress={() => handleEmojiSelect(emoji)}
                     >
@@ -1409,11 +1454,11 @@ export default function ChatScreen() {
         </Modal>
 
         <ForwardModal visible={!!forwardMessage} onClose={() => setForwardMessage(null)} message={forwardMessage} />
-        <MemberPermissionsModal 
-          visible={!!selectedMemberForPerms} 
-          onClose={() => setSelectedMemberForPerms(null)} 
-          channelId={channelObj?.id} 
-          member={selectedMemberForPerms} 
+        <MemberPermissionsModal
+          visible={!!selectedMemberForPerms}
+          onClose={() => setSelectedMemberForPerms(null)}
+          channelId={channelObj?.id}
+          member={selectedMemberForPerms}
           onPermissionsUpdated={(memberId, perms) => {
             if (channelDetails?.members) {
               setChannelDetails({
@@ -1447,8 +1492,8 @@ export default function ChatScreen() {
           onRequestClose={() => setViewedImage(null)}
         >
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>
-            <TouchableOpacity 
-              style={{ position: 'absolute', top: 40 + (insets?.top || 0), right: 20, zIndex: 10, padding: 8 }} 
+            <TouchableOpacity
+              style={{ position: 'absolute', top: 40 + (insets?.top || 0), right: 20, zIndex: 10, padding: 8 }}
               onPress={() => setViewedImage(null)}
             >
               <MaterialIcons name="close" size={32} color="#fff" />

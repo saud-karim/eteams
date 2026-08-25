@@ -190,7 +190,6 @@ export default function ProfileScreen() {
                 { id: 'away', label: t('profile.away', 'Away'), color: '#F59E0B' },
                 { id: 'dnd', label: t('profile.dnd', 'Do Not Disturb'), color: '#F43F5E' },
                 { id: 'meeting', label: t('profile.meeting', 'In a Meeting'), color: '#8B5CF6' },
-                { id: 'offline', label: t('profile.offline', 'Offline'), color: '#64748B' },
               ].map(p => (
                 <TouchableOpacity 
                   key={p.id}

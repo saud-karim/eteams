@@ -216,12 +216,14 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Floating Action Button for New Channel/DM */}
-      <TouchableOpacity 
-        style={[styles.fab, { [i18n.dir() === 'rtl' ? 'left' : 'right']: 20 }]}
+      {(user?.role === 'superadmin' || user?.permissions?.['create-public'] || user?.permissions?.['create-private'] || user?.permissions?.['create-announcement']) && (
+        <TouchableOpacity 
+          style={[styles.fab, { [i18n.dir() === 'rtl' ? 'left' : 'right']: 20 }]}
         onPress={() => router.push('/new-channel')}
       >
         <MaterialIcons name="add" size={28} color="#FFFFFF" />
-      </TouchableOpacity>
+        </TouchableOpacity>
+      )}
 
     </View>
   );

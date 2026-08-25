@@ -6,7 +6,7 @@ const SocketContext = createContext(null);
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
 
 export function SocketProvider({ children }) {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
@@ -18,7 +18,12 @@ export function SocketProvider({ children }) {
       transports: ['websocket', 'polling'],
       path: socketPath
     });
-    s.on('connect', () => console.log('[socket] connected'));
+    s.on('connect', () => {
+      console.log('[socket] connected');
+      if (user?.presence === 'offline' || !user?.presence) {
+        setUser(prev => ({ ...prev, presence: 'online' }));
+      }
+    });
     s.on('connect_error', (err) => console.error('[socket] error', err.message));
     setSocket(s);
     return () => { s.disconnect(); };

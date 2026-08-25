@@ -1,6 +1,27 @@
 const { verify } = require('../utils/token');
 const User = require('../models/User');
 
+const DEFAULT_PERMISSIONS = {
+  'edit-own': true,
+  'delete-own': true,
+  'react': true,
+  'thread': true,
+  'dm-anyone': true,
+  'dm-exec': false,
+  'dm-ceo': false,
+  'group-dm': true,
+  'at-user': true,
+  'at-here': true,
+  'at-channel': false,
+  'at-everyone': false,
+  'upload': true,
+  'upload-large': false,
+  'create-public': false,
+  'create-private': false,
+  'create-announcement': false,
+  'search-history': false
+};
+
 async function requireAuth(req, res, next) {
   try {
     const header = req.headers.authorization || '';
@@ -12,12 +33,14 @@ async function requireAuth(req, res, next) {
     
     if (typeof user.permissions === 'string') {
       try {
-        user.permissions = JSON.parse(user.permissions);
+        user.permissions = { ...DEFAULT_PERMISSIONS, ...JSON.parse(user.permissions) };
       } catch (e) {
-        user.permissions = {};
+        user.permissions = { ...DEFAULT_PERMISSIONS };
       }
     } else if (!user.permissions) {
-      user.permissions = {};
+      user.permissions = { ...DEFAULT_PERMISSIONS };
+    } else {
+      user.permissions = { ...DEFAULT_PERMISSIONS, ...user.permissions };
     }
 
     req.user = user;
@@ -36,4 +59,4 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { requireAuth, requireRole };
+module.exports = { requireAuth, requireRole, DEFAULT_PERMISSIONS };

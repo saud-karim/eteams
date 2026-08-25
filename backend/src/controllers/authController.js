@@ -4,6 +4,7 @@ const { z } = require('zod');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
 const { signAccess, signRefresh } = require('../utils/token');
+const { DEFAULT_PERMISSIONS } = require('../middleware/auth');
 
 const loginSchema = z.object({
   username: z.string().min(1).max(191),
@@ -43,6 +44,14 @@ async function login(req, res, next) {
     const refreshToken = signRefresh({ sub: user.id });
 
     const { password_hash, ...safe } = user;
+    if (typeof safe.permissions === 'string') {
+      try { safe.permissions = { ...DEFAULT_PERMISSIONS, ...JSON.parse(safe.permissions) }; } catch (e) { safe.permissions = { ...DEFAULT_PERMISSIONS }; }
+    } else if (!safe.permissions) {
+      safe.permissions = { ...DEFAULT_PERMISSIONS };
+    } else {
+      safe.permissions = { ...DEFAULT_PERMISSIONS, ...safe.permissions };
+    }
+
     res.json({ user: safe, accessToken, refreshToken });
   } catch (err) { next(err); }
 }

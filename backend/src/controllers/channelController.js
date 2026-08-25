@@ -174,11 +174,9 @@ async function addMember(req, res, next) {
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
     const { userId, isManager, permissions } = req.body;
     if (req.user.role !== 'superadmin') {
-      const perms = req.user.permissions || {};
       const isSelfJoin = req.user.id === userId;
-      
       if (isSelfJoin) {
-        if (ch.type === 'private' && !perms['join-any']) {
+        if (ch.type === 'private') {
           return res.status(403).json({ error: 'Cannot join private channel without invite' });
         }
       } else {

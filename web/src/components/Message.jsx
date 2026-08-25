@@ -214,7 +214,7 @@ export default function Message({ message, author, currentUser, onReply, canPin 
       </div>
       {showActions && !editing && (
         <div className="msg-actions">
-          {onReply && (currentUser.role === 'superadmin' || currentUser.permissions?.['thread']) && (
+          {onReply && !isMine && (currentUser.role === 'superadmin' || (currentUser.permissions && currentUser.permissions['thread'] !== undefined ? currentUser.permissions['thread'] : true)) && (
             <button className="msg-action" onClick={onReply} title="Reply" style={{ color: '#C084FC' }}>
               <MessageSquare size={15} />
             </button>
