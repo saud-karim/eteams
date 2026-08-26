@@ -16,7 +16,8 @@ export default function ChannelInfoPanel({ channel, onClose, onLeft }) {
   const [loading, setLoading] = useState(true);
   const [showAddMember, setShowAddMember] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState('');
+  const [selectedUsers, setSelectedUsers] = useState(new Set());
+  const [isAddingMember, setIsAddingMember] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [exportLoading, setExportLoading] = useState(false);
 
@@ -64,15 +65,39 @@ export default function ChannelInfoPanel({ channel, onClose, onLeft }) {
     setShowAddMember(!showAddMember);
   };
 
+  const handleSelectAll = () => {
+    const availableUsers = allUsers.filter(u => !members.find(m => m.id === u.id));
+    if (selectedUsers.size === availableUsers.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(availableUsers.map(u => u.id)));
+    }
+  };
+
+  const handleToggleUser = (userId) => {
+    const newSelected = new Set(selectedUsers);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
+    } else {
+      newSelected.add(userId);
+    }
+    setSelectedUsers(newSelected);
+  };
+
   const handleAddMember = async () => {
-    if (!selectedUser) return;
+    if (selectedUsers.size === 0) return;
+    setIsAddingMember(true);
     try {
-      await api.channels.addMember(channel.id, selectedUser);
+      for (const userId of selectedUsers) {
+        await api.channels.addMember(channel.id, userId);
+      }
       setShowAddMember(false);
-      setSelectedUser('');
+      setSelectedUsers(new Set());
       fetchMembers(); // refresh list
     } catch (err) {
-      alert(err.message || 'Error adding member');
+      alert(err.message || 'Error adding members');
+    } finally {
+      setIsAddingMember(false);
     }
   };
   const handleLeaveChannel = async () => {
@@ -169,19 +194,41 @@ export default function ChannelInfoPanel({ channel, onClose, onLeft }) {
 
         {showAddMember && (
           <div style={{ background: 'var(--panel-2)', border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '8px' }}>Select user to add:</div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <select 
-                value={selectedUser} 
-                onChange={e => setSelectedUser(e.target.value)}
-                style={{ flex: 1, padding: '6px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--panel)', color: 'var(--text)' }}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>Select users to add:</div>
+              <button 
+                onClick={handleSelectAll} 
+                disabled={isAddingMember}
+                style={{ background: 'var(--panel)', color: 'var(--text)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
               >
-                <option value="">-- Choose --</option>
-                {allUsers.filter(u => !members.find(m => m.id === u.id)).map(u => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.username})</option>
-                ))}
-              </select>
-              <button onClick={handleAddMember} style={{ background: 'var(--emerald)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>Add</button>
+                {selectedUsers.size > 0 && selectedUsers.size === allUsers.filter(u => !members.find(m => m.id === u.id)).length ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto', marginBottom: '12px', border: '1px solid var(--border)', borderRadius: '4px', padding: '4px' }}>
+              {allUsers.filter(u => !members.find(m => m.id === u.id)).length === 0 ? (
+                <div style={{ fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center', padding: '8px' }}>No users available</div>
+              ) : (
+                allUsers.filter(u => !members.find(m => m.id === u.id)).map(u => (
+                  <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedUsers.has(u.id)} 
+                      onChange={() => handleToggleUser(u.id)} 
+                      disabled={isAddingMember}
+                    />
+                    <span style={{ fontSize: '13px', color: 'var(--text)' }}>{u.name} ({u.username})</span>
+                  </label>
+                ))
+              )}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={handleAddMember} 
+                disabled={isAddingMember || selectedUsers.size === 0}
+                style={{ background: 'var(--emerald)', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '4px', cursor: selectedUsers.size === 0 ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 'bold', opacity: selectedUsers.size === 0 || isAddingMember ? 0.5 : 1 }}
+              >
+                {isAddingMember ? 'Adding...' : `Add (${selectedUsers.size})`}
+              </button>
             </div>
           </div>
         )}

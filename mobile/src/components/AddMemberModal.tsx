@@ -20,7 +20,7 @@ export default function AddMemberModal({ visible, onClose, channelId, currentMem
   const [isAdding, setIsAdding] = useState(false);
   const { users } = useWorkspace();
   const { t, i18n } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, theme } = useTheme();
   const styles = createStyles(colors);
 
   const isRtl = i18n.dir() === 'rtl';
@@ -44,14 +44,22 @@ export default function AddMemberModal({ visible, onClose, channelId, currentMem
     setSelectedIds(newSelected);
   };
 
+  const handleSelectAll = () => {
+    if (selectedIds.size === availableUsers.length) {
+      setSelectedIds(new Set()); // Deselect all if already all selected
+    } else {
+      setSelectedIds(new Set(availableUsers.map((u: any) => u.id)));
+    }
+  };
+
   const handleAddSelected = async () => {
     if (selectedIds.size === 0) return;
     setIsAdding(true);
     try {
-      const promises = Array.from(selectedIds).map(userId => 
-        api.channels.addMember(channelId, userId)
-      );
-      await Promise.all(promises);
+      // Execute sequentially to avoid backend race conditions or database locks
+      for (const userId of selectedIds) {
+        await api.channels.addMember(channelId, userId);
+      }
       
       // Notify parent about all added members
       const addedUsers = availableUsers.filter(u => selectedIds.has(u.id));
@@ -84,6 +92,11 @@ export default function AddMemberModal({ visible, onClose, channelId, currentMem
                   )}
                 </TouchableOpacity>
               )}
+              <TouchableOpacity onPress={handleSelectAll} disabled={isAdding} style={{ backgroundColor: selectedIds.size > 0 && selectedIds.size === availableUsers.length ? colors.primary : colors.surfaceContainer, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 }}>
+                <Text style={{ color: selectedIds.size > 0 && selectedIds.size === availableUsers.length ? colors.onPrimary : colors.text, fontSize: 13, fontWeight: '600' }}>
+                  All
+                </Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                 <MaterialIcons name="close" size={24} color={colors.iconDefault} />
               </TouchableOpacity>

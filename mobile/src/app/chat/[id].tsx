@@ -1534,12 +1534,14 @@ export default function ChatScreen() {
           channelId={channelObj?.id}
           currentMembers={channelDetails?.members || []}
           onMemberAdded={(newUser) => {
-            if (channelDetails) {
-              setChannelDetails({
-                ...channelDetails,
-                members: [...(channelDetails.members || []), newUser]
-              });
-            }
+            setChannelDetails(prev => {
+              if (!prev) return prev;
+              if (prev.members?.find((m: any) => m.id === newUser.id)) return prev;
+              return {
+                ...prev,
+                members: [...(prev.members || []), newUser]
+              };
+            });
             setShowAddMemberModal(false);
           }}
         />

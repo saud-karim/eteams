@@ -35,6 +35,7 @@ jobs:
       - name: Build Xcode Project
         working-directory: mobile/ios
         run: |
+          set -o pipefail
           xcodebuild build \
             -workspace mobile.xcworkspace \
             -scheme mobile \
@@ -43,7 +44,7 @@ jobs:
             -derivedDataPath $PWD/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGN_IDENTITY="" | xcbeautify
 
       - name: Export Unsigned IPA
         working-directory: mobile/ios
