@@ -463,9 +463,9 @@ export default function ThreadScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/')} style={styles.iconButton}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.primary} style={{ transform: [{ scaleX: i18n.dir() === 'rtl' ? -1 : 1 }] }} />
+            <MaterialIcons name="arrow-back-ios" size={20} color={colors.text} style={{ transform: [{ scaleX: i18n.dir() === 'rtl' ? -1 : 1 }] }} />
           </TouchableOpacity>
-          <View style={styles.headerInfo}>
+          <View style={styles.headerTitlePill}>
             <Text style={styles.headerTitle}>{t('chat.thread', 'Thread')}</Text>
             {parentMessage ? <Text style={styles.headerSubtitle}>#{parentMessage.channel_slug || parentMessage.channel_name || 'channel'}</Text> : null}
           </View>
@@ -497,47 +497,43 @@ export default function ThreadScreen() {
           onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
         >
           {parentMessage ? (
-            <View style={styles.originalMessageContainer}>
-              <View style={styles.avatarContainer}>
+            <View style={{ marginBottom: 16 }}>
+              <View style={{ alignSelf: 'center', backgroundColor: colors.pillBg, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, marginBottom: 12 }}>
+                <Text style={{ fontSize: 11, color: colors.iconDefault, fontWeight: '600' }}>{t('chat.original_message', 'Original Message')}</Text>
+              </View>
+              <View style={styles.messageRow}>
                 <Image 
                   source={{ uri: renderAvatar(parentMessage.author_name || 'User', parentMessage.avatar) }} 
-                  style={styles.avatar} 
+                  style={styles.replyAvatar} 
                 />
-              </View>
-              <View style={styles.messageContent}>
-                <View style={styles.messageMeta}>
-                  <Text style={styles.authorName}>{parentMessage.author_name}</Text>
-                  <Text style={styles.timeText}>
-                    {new Date(parentMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </Text>
-                </View>
-                <View style={styles.bubbleReceived}>
-                  <Markdown style={{ body: { color: colors.text, fontSize: 15 }, paragraph: { marginTop: 2, marginBottom: 2 } }}>
-                    {parentMessage.body}
-                  </Markdown>
-                </View>
-                
-                {/* Attachments for Parent */}
-                {parentMessage.attachments && parentMessage.attachments.length > 0 ? (
-                  <View style={{ marginTop: 8, gap: 8 }}>
-                    {parentMessage.attachments.map((att: any) => {
-                      const fileUrl = att.storage_key.startsWith('http') ? att.storage_key : `${API_BASE_URL.replace('/api', '')}/${att.storage_key}`;
-                      const isImage = att.mime_type?.startsWith('image/');
-                      return isImage ? (
-                        <Image key={att.id} source={{ uri: fileUrl }} style={{ width: 200, height: 150, borderRadius: 12, backgroundColor: colors.pillBg }} resizeMode="cover" />
-                      ) : (
-                        <TouchableOpacity key={att.id} onPress={() => WebBrowser.openBrowserAsync(fileUrl)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.pillBg, padding: 8, borderRadius: 8 }}>
-                           <MaterialIcons name="insert-drive-file" size={20} color={colors.primary} />
-                           <Text style={{ color: colors.text, marginLeft: 8, flex: 1 }} numberOfLines={1}>{att.original_name || att.filename}</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
+                <View style={styles.messageContent}>
+                  <View style={styles.messageMeta}>
+                    <Text style={styles.authorName}>{parentMessage.author_name}</Text>
+                    <Text style={styles.timeText}>
+                      {new Date(parentMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
                   </View>
-                ) : null}
-
-                <View style={styles.repliesCountContainer}>
-                  <Text style={styles.repliesText}>{messages.length} {t('chat.replies', 'replies')}</Text>
-                  <View style={styles.repliesLine} />
+                  <View style={styles.bubbleReceived}>
+                    <Markdown style={{ body: { color: colors.text, fontSize: 15 }, paragraph: { marginTop: 2, marginBottom: 2 } }}>
+                      {parentMessage.body}
+                    </Markdown>
+                    {parentMessage.attachments && parentMessage.attachments.length > 0 && (
+                      <View style={{ marginTop: 8, gap: 8 }}>
+                        {parentMessage.attachments.map((att: any) => {
+                          const fileUrl = att.storage_key.startsWith('http') ? att.storage_key : `${API_BASE_URL.replace('/api', '')}/${att.storage_key}`;
+                          const isImage = att.mime_type?.startsWith('image/');
+                          return isImage ? (
+                            <Image key={att.id} source={{ uri: fileUrl }} style={{ width: 200, height: 150, borderRadius: 12, backgroundColor: colors.pillBg }} resizeMode="cover" />
+                          ) : (
+                            <TouchableOpacity key={att.id} onPress={() => WebBrowser.openBrowserAsync(fileUrl)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.pillBg, padding: 8, borderRadius: 8 }}>
+                               <MaterialIcons name="insert-drive-file" size={20} color={colors.primary} />
+                               <Text style={{ color: colors.text, marginLeft: 8, flex: 1 }} numberOfLines={1}>{att.original_name || att.filename}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
                 </View>
               </View>
             </View>
@@ -581,8 +577,7 @@ export default function ThreadScreen() {
                         </View>
                       </View>
                     )}
-                    <TouchableOpacity style={styles.replyRowSent} onLongPress={() => openModal(msg)} delayLongPress={250} activeOpacity={0.7}>
-                      <View style={styles.connectorLineSent} />
+                    <TouchableOpacity style={styles.messageRowSent} onLongPress={() => openModal(msg)} delayLongPress={250} activeOpacity={0.7}>
                       <View style={styles.messageContentSent}>
                         <View style={styles.messageMetaSent}>
                           <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginRight: 4 }}>
@@ -629,8 +624,7 @@ export default function ThreadScreen() {
                       </View>
                     </View>
                   )}
-                  <TouchableOpacity style={styles.replyRow} onLongPress={() => openModal(msg)} delayLongPress={250} activeOpacity={0.7}>
-                    <View style={styles.connectorLine} />
+                  <TouchableOpacity style={styles.messageRow} onLongPress={() => openModal(msg)} delayLongPress={250} activeOpacity={0.7}>
                     <Image 
                       source={{ uri: renderAvatar(authorName, msgUser.avatar) }} 
                       style={styles.replyAvatar} 
@@ -966,15 +960,18 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
     backgroundColor: 'rgba(5, 20, 36, 0.9)', zIndex: 10,
   },
   iconButton: { padding: 8, borderRadius: 20 },
-  headerInfo: { flex: 1, alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
-  headerSubtitle: { fontSize: 11, color: colors.textDim, marginTop: 2 },
-  canvas: { flex: 1 },
-  canvasContent: { padding: 16, paddingTop: 24, paddingBottom: 40 },
-  originalMessageContainer: { flexDirection: 'row', marginBottom: 24 },
-  avatarContainer: { marginRight: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20 },
+  headerTitlePill: {
+    flex: 1, backgroundColor: colors.pillBg, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, alignItems: 'flex-start', marginHorizontal: 12,
+  },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
+  headerSubtitle: { fontSize: 11, color: colors.iconDefault, marginTop: 2 },
+  canvas: { flex: 1, backgroundColor: colors.background },
+  canvasContent: { paddingBottom: 40, paddingTop: 16 },
+  messageRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 2 },
+  messageRowSent: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 2, justifyContent: 'flex-end' },
+  replyAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 12 },
   messageContent: { flex: 1 },
+  messageContentSent: { flex: 1, alignItems: 'flex-end' },
   messageMeta: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 4 },
   authorName: { fontSize: 12, fontWeight: '600', color: colors.text, marginRight: 8 },
   timeText: { fontSize: 11, color: colors.textDim },
@@ -984,19 +981,6 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
     borderBottomLeftRadius: 16, borderTopLeftRadius: 0,
     borderWidth: 1, borderColor: colors.border,
   },
-  repliesCountContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  repliesText: { fontSize: 11, color: colors.primary, marginRight: 8 },
-  repliesLine: { flex: 1, height: 1, backgroundColor: 'rgba(118, 209, 255, 0.3)' },
-  timelineContainer: {
-    marginLeft: 20, paddingLeft: 16, borderLeftWidth: 2,
-    borderLeftColor: 'rgba(118, 209, 255, 0.3)', gap: 16,
-  },
-  replyRow: { flexDirection: 'row', position: 'relative' },
-  connectorLine: { position: 'absolute', left: -32, top: 16, width: 16, height: 2, backgroundColor: 'rgba(118, 209, 255, 0.3)' },
-  replyAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 12 },
-  replyRowSent: { flexDirection: 'row', justifyContent: 'flex-end', position: 'relative' },
-  connectorLineSent: { position: 'absolute', left: -32, top: 16, width: 16, height: 2, backgroundColor: 'rgba(118, 209, 255, 0.3)' },
-  messageContentSent: { flex: 1, alignItems: 'flex-end' },
   messageMetaSent: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 4 },
   bubbleSent: {
     backgroundColor: colors.primary, padding: 12,
