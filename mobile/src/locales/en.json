@@ -44,6 +44,8 @@
       "no_results_sub": "Try searching for different keywords."
     },
     "common": {
+      "today": "Today",
+      "yesterday": "Yesterday",
       "back": "Back",
       "save": "Save",
       "cancel": "Cancel",

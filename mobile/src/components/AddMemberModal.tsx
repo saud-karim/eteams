@@ -16,7 +16,8 @@ interface AddMemberModalProps {
 
 export default function AddMemberModal({ visible, onClose, channelId, currentMembers, onMemberAdded }: AddMemberModalProps) {
   const [query, setQuery] = useState('');
-  const [addingId, setAddingId] = useState<string | number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
+  const [isAdding, setIsAdding] = useState(false);
   const { users } = useWorkspace();
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
@@ -33,16 +34,34 @@ export default function AddMemberModal({ visible, onClose, channelId, currentMem
     return (u.name || u.username || '').toLowerCase().includes(query.toLowerCase());
   });
 
-  const handleAdd = async (user: any) => {
-    if (addingId) return;
-    setAddingId(user.id);
+  const handleToggleSelect = (user: any) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(user.id)) {
+      newSelected.delete(user.id);
+    } else {
+      newSelected.add(user.id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleAddSelected = async () => {
+    if (selectedIds.size === 0) return;
+    setIsAdding(true);
     try {
-      await api.channels.addMember(channelId, user.id);
-      onMemberAdded(user);
+      const promises = Array.from(selectedIds).map(userId => 
+        api.channels.addMember(channelId, userId)
+      );
+      await Promise.all(promises);
+      
+      // Notify parent about all added members
+      const addedUsers = availableUsers.filter(u => selectedIds.has(u.id));
+      addedUsers.forEach(u => onMemberAdded(u));
+      
+      onClose();
     } catch (err: any) {
-      alert(err.error || err.message || 'Failed to add member');
+      alert(err.error || err.message || 'Failed to add members');
     } finally {
-      setAddingId(null);
+      setIsAdding(false);
     }
   };
 
@@ -55,9 +74,20 @@ export default function AddMemberModal({ visible, onClose, channelId, currentMem
               <MaterialIcons name="person-add" size={20} color={colors.text} style={isRtl ? {marginLeft: 8} : {marginRight: 8}} />
               <Text style={styles.headerTitle}>{t('chat.add_member', 'Add Member')}</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <MaterialIcons name="close" size={24} color={colors.iconDefault} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: isRtl ? 'row-reverse' : 'row', alignItems: 'center', gap: 12 }}>
+              {selectedIds.size > 0 && (
+                <TouchableOpacity onPress={handleAddSelected} disabled={isAdding} style={{ backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, flexDirection: 'row', alignItems: 'center' }}>
+                  {isAdding ? <ActivityIndicator size="small" color={colors.onPrimary} /> : (
+                    <Text style={{ color: colors.onPrimary, fontSize: 13, fontWeight: '600' }}>
+                      {t('common.add', 'Add')} ({selectedIds.size})
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                <MaterialIcons name="close" size={24} color={colors.iconDefault} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.field}>
@@ -87,21 +117,25 @@ export default function AddMemberModal({ visible, onClose, channelId, currentMem
                     avatarUrl = item.avatar.startsWith('http') ? item.avatar : `${API_BASE_URL}${item.avatar}`;
                   }
                   
+                  const isSelected = selectedIds.has(item.id);
+                  
                   return (
-                    <View style={[styles.userRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
-                      <Image source={{ uri: avatarUrl }} style={[styles.avatar, isRtl ? { marginLeft: 12 } : { marginRight: 12 }]} />
-                      <View style={{ flex: 1, alignItems: isRtl ? 'flex-end' : 'flex-start' }}>
-                        <Text style={styles.userName}>{item.name || item.username}</Text>
-                        {!!item.job_title && <Text style={styles.userJob}>{item.job_title}</Text>}
+                    <TouchableOpacity 
+                      style={[styles.userRow, { flexDirection: isRtl ? 'row-reverse' : 'row', backgroundColor: isSelected ? (theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)') : 'transparent' }]}
+                      onPress={() => handleToggleSelect(item)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={{ flexDirection: isRtl ? 'row-reverse' : 'row', alignItems: 'center', flex: 1 }}>
+                        <Image source={{ uri: avatarUrl }} style={[styles.avatar, isRtl ? { marginLeft: 12 } : { marginRight: 12 }]} />
+                        <View style={{ flex: 1, alignItems: isRtl ? 'flex-end' : 'flex-start' }}>
+                          <Text style={styles.userName}>{item.name || item.username}</Text>
+                          {!!item.job_title && <Text style={styles.userJob}>{item.job_title}</Text>}
+                        </View>
                       </View>
-                      <TouchableOpacity 
-                        style={styles.addBtn} 
-                        onPress={() => handleAdd(item)}
-                        disabled={!!addingId}
-                      >
-                        {addingId === item.id ? <ActivityIndicator size="small" color={colors.onPrimary} /> : <Text style={styles.addBtnText}>{t('common.add', 'Add')}</Text>}
-                      </TouchableOpacity>
-                    </View>
+                      <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: isSelected ? colors.primary : colors.iconDefault, backgroundColor: isSelected ? colors.primary : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                        {isSelected && <MaterialIcons name="check" size={16} color={colors.onPrimary} />}
+                      </View>
+                    </TouchableOpacity>
                   );
                 }}
               />

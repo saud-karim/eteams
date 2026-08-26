@@ -8,7 +8,7 @@ import { api } from '../api/client';
 import { MessageCard } from '../components/MessageCard';
 import { UserAvatar } from '../components/UserAvatar';
 import { useTranslation } from 'react-i18next';
-import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
+// import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 
 export default function SearchScreen() {
   const { colors } = useTheme();
@@ -54,6 +54,7 @@ export default function SearchScreen() {
       return;
     }
 
+    /*
     try {
       Voice.onSpeechResults = (e: SpeechResultsEvent) => {
         if (e.value && e.value.length > 0) {
@@ -78,6 +79,7 @@ export default function SearchScreen() {
         } catch (error) {}
       }
     };
+    */
   }, []);
 
   const { listen } = useLocalSearchParams();
@@ -138,7 +140,7 @@ export default function SearchScreen() {
 
     if (isListening) {
       try {
-        await Voice.stop();
+        // await Voice.stop();
         setIsListening(false);
       } catch (e) {
         console.error(e);
@@ -147,11 +149,12 @@ export default function SearchScreen() {
       try {
         setQuery('');
         setIsListening(true);
-        await Voice.start(i18n.language === 'ar' ? 'ar-SA' : 'en-US');
+        // await Voice.start(i18n.language === 'ar' ? 'ar-SA' : 'en-US');
+        Alert.alert('Notice', 'Voice search requires a custom development build. It is disabled in Expo Go.');
+        setIsListening(false);
       } catch (e) {
         console.error(e);
         setIsListening(false);
-        Alert.alert(t('common.error'), 'Could not start voice recognition. Ensure you are running a custom Dev Build.');
       }
     }
   };

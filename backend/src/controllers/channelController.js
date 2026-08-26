@@ -71,13 +71,13 @@ async function create(req, res, next) {
     // Add the creator as a manager
     await Channel.addMember(id, req.user.id, { is_manager: 1, can_post: 1, can_add_members: 1, can_remove_members: 1, can_pin_messages: 1, can_edit_topic: 1, can_delete_messages: 1 });
     
-    // If mandatory, add all active users
-    if (data.is_mandatory) {
-      const allUsers = await User.findAll();
-      for (const u of allUsers) {
-        if (u.id !== req.user.id) {
+    // Fetch all users to handle mandatory channels and auto-add superadmins
+    const allUsers = await User.findAll();
+    for (const u of allUsers) {
+      if (u.id !== req.user.id) {
+        if (data.is_mandatory || u.role === 'superadmin') {
           // Announcement logic means only superadmins or managers can post, so defaults are fine.
-          await Channel.addMember(id, u.id, { is_manager: 0 });
+          await Channel.addMember(id, u.id, { is_manager: u.role === 'superadmin' ? 1 : 0 });
         }
       }
     }
@@ -221,6 +221,10 @@ async function removeMember(req, res, next) {
       if (!mem || (!mem.can_remove_members && !mem.is_manager)) return res.status(403).json({ error: 'Cannot remove members' });
     }
     const { userId } = req.params;
+    const targetUser = await User.findById(userId);
+    if (targetUser && targetUser.role === 'superadmin') {
+      return res.status(403).json({ error: 'Cannot remove superadmins from channels' });
+    }
     await Channel.removeMember(ch.id, userId);
     await AuditLog.log(req.user.id, 'channel.remove_member', 'channel', ch.id, { userId }, req.ip);
     res.json({ ok: true });

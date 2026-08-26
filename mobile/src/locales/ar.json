@@ -44,6 +44,8 @@
       "no_results_sub": "حاول البحث بكلمات مختلفة."
     },
     "common": {
+      "today": "اليوم",
+      "yesterday": "امس",
       "back": "رجوع",
       "save": "حفظ",
       "cancel": "إلغاء",

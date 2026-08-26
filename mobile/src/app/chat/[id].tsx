@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, KeyboardAvoidingView, Platform, Modal, TouchableWithoutFeedback, Animated, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, KeyboardAvoidingView, Platform, Modal, TouchableWithoutFeedback, Animated, Alert, Keyboard } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -83,7 +83,7 @@ export default function ChatScreen() {
 
   // Modal State
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
-  const [showReadersModal, setShowReadersModal] = useState(false);
+  const [activeReadersMessage, setActiveReadersMessage] = useState<any>(null);
   const [showChannelInfo, setShowChannelInfo] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [forwardMessage, setForwardMessage] = useState<any>(null);
@@ -788,7 +788,29 @@ export default function ChatScreen() {
               )}
               {messages.map((msg, idx) => {
                 const prevMsg = messages[idx - 1];
-                const showHeader = !prevMsg || prevMsg.user_id !== msg.user_id || (new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime() > 5 * 60 * 1000);
+
+                const msgDate = new Date(msg.created_at);
+                const prevMsgDate = prevMsg ? new Date(prevMsg.created_at) : null;
+
+                let showDateHeader = false;
+                let dateHeaderText = '';
+
+                if (!prevMsgDate || msgDate.toDateString() !== prevMsgDate.toDateString()) {
+                  showDateHeader = true;
+                  const today = new Date();
+                  const yesterday = new Date();
+                  yesterday.setDate(yesterday.getDate() - 1);
+
+                  if (msgDate.toDateString() === today.toDateString()) {
+                    dateHeaderText = t('common.today') || 'Today';
+                  } else if (msgDate.toDateString() === yesterday.toDateString()) {
+                    dateHeaderText = t('common.yesterday') || 'Yesterday';
+                  } else {
+                    dateHeaderText = msgDate.toLocaleDateString(i18n.language || 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+                  }
+                }
+
+                const showHeader = !prevMsg || prevMsg.user_id !== msg.user_id || (new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime() > 5 * 60 * 1000) || showDateHeader;
 
                 const msgUser = users?.find((u: any) => u.id === msg.user_id);
                 const authorName = msg.author_name || msgUser?.name || msgUser?.username || 'Unknown';
@@ -826,6 +848,13 @@ export default function ChatScreen() {
                     }}
                     style={highlightedMessage === msg.id ? { backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' } : {}}
                   >
+                    {showDateHeader && (
+                      <View style={{ alignItems: 'center', marginTop: 12, marginBottom: 4 }}>
+                        <View style={{ backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
+                          <Text style={{ color: colors.iconDefault, fontSize: 12, fontWeight: '500' }}>{dateHeaderText}</Text>
+                        </View>
+                      </View>
+                    )}
                     <Swipeable
                       ref={ref => {
                         if (ref) swipeableRefs.current[msg.id] = ref;
@@ -907,29 +936,31 @@ export default function ChatScreen() {
                                   </Markdown>
                                 </View>
 
-                                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, marginTop: 4 }}>
-                                  {(msg.is_edited || msg.edited_at) && (
+                                {(!msg.attachments || msg.attachments.length === 0) && (
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, marginTop: 4 }}>
+                                    {(msg.is_edited || msg.edited_at) && (
+                                      <Text style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault, marginRight: 4 }}>
+                                        ({t('chat.edited', 'edited')})
+                                      </Text>
+                                    )}
+
                                     <Text style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault, marginRight: 4 }}>
-                                      ({t('chat.edited', 'edited')})
+                                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </Text>
-                                  )}
 
-                                  <Text style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault, marginRight: 4 }}>
-                                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </Text>
+                                    {msg.is_pinned ? (
+                                      <MaterialIcons name="push-pin" size={12} color={isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault} style={{ marginRight: 4 }} />
+                                    ) : null}
 
-                                  {msg.is_pinned ? (
-                                    <MaterialIcons name="push-pin" size={12} color={isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault} style={{ marginRight: 4 }} />
-                                  ) : null}
-
-                                  {isMe && (
-                                    <MaterialIcons
-                                      name="done-all"
-                                      size={14}
-                                      color={(msg.readers && msg.readers.length > 0) ? '#4ade80' : 'rgba(255,255,255,0.7)'}
-                                    />
-                                  )}
-                                </View>
+                                    {isMe && (
+                                      <MaterialIcons
+                                        name="done-all"
+                                        size={14}
+                                        color={(msg.readers && msg.readers.length > 0) ? '#4ade80' : 'rgba(255,255,255,0.7)'}
+                                      />
+                                    )}
+                                  </View>
+                                )}
                               </View>
                             ) : null}
 
@@ -956,6 +987,30 @@ export default function ChatScreen() {
                                     </TouchableOpacity>
                                   );
                                 })}
+
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
+                                  {(msg.is_edited || msg.edited_at) && (
+                                    <Text style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault, marginRight: 4 }}>
+                                      ({t('chat.edited', 'edited')})
+                                    </Text>
+                                  )}
+
+                                  <Text style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault, marginRight: 4 }}>
+                                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </Text>
+
+                                  {msg.is_pinned ? (
+                                    <MaterialIcons name="push-pin" size={12} color={isMe ? 'rgba(255,255,255,0.7)' : colors.iconDefault} style={{ marginRight: 4 }} />
+                                  ) : null}
+
+                                  {isMe && (
+                                    <MaterialIcons
+                                      name="done-all"
+                                      size={14}
+                                      color={(msg.readers && msg.readers.length > 0) ? '#4ade80' : 'rgba(255,255,255,0.7)'}
+                                    />
+                                  )}
+                                </View>
                               </View>
                             )}
 
@@ -1003,7 +1058,7 @@ export default function ChatScreen() {
                     )}
                     <View>
                       <Text style={{ color: colors.text, fontWeight: '500' }}>{member.name || member.username}</Text>
-                      {member.fullname && <Text style={{ color: colors.iconDefault, fontSize: 11 }}>{member.fullname}</Text>}
+                      {member.fullname ? <Text style={{ color: colors.iconDefault, fontSize: 11 }}>{member.fullname}</Text> : null}
                     </View>
                   </TouchableOpacity>
                 );
@@ -1066,6 +1121,7 @@ export default function ChatScreen() {
                 value={inputText}
                 onChangeText={handleTextChange}
                 onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+                onFocus={() => setShowEmojiPicker(false)}
               />
 
               <View style={styles.composerFooter}>
@@ -1078,7 +1134,10 @@ export default function ChatScreen() {
                   <TouchableOpacity style={styles.composerActionBtn} onPress={handleBold}>
                     <MaterialIcons name="format-bold" size={20} color={colors.iconDefault} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.composerActionBtn} onPress={() => setShowEmojiPicker(true)}>
+                  <TouchableOpacity style={styles.composerActionBtn} onPress={() => {
+                    if (!showEmojiPicker) Keyboard.dismiss();
+                    setShowEmojiPicker(!showEmojiPicker);
+                  }}>
                     <MaterialIcons name="emoji-emotions" size={20} color={colors.iconDefault} />
                   </TouchableOpacity>
                   {(isSuperadmin || user?.permissions?.['at-user']) && (
@@ -1120,7 +1179,7 @@ export default function ChatScreen() {
                   <View style={styles.sheetHandle} />
 
                   {/* Quick Reactions */}
-                  {(isSuperadmin || user?.permissions?.['react']) && (
+                  {(isSuperadmin || user?.permissions?.['react']) ? (
                     <>
                       <View style={styles.quickReactions}>
                         {['👍', '❤️', '😂', '🎉', '👀'].map(emoji => (
@@ -1135,14 +1194,14 @@ export default function ChatScreen() {
                       </View>
                       <View style={styles.sheetDivider} />
                     </>
-                  )}
+                  ) : null}
 
-                  {(isSuperadmin || user?.permissions?.['thread']) && (
+                  {(isSuperadmin || user?.permissions?.['thread']) ? (
                     <TouchableOpacity style={styles.sheetOption} onPress={handleThreadReplyPress}>
                       <MaterialIcons name="chat-bubble-outline" size={24} color={colors.text} style={styles.sheetOptionIcon} />
                       <Text style={styles.sheetOptionText}>{t('chat.reply_in_thread')}</Text>
                     </TouchableOpacity>
-                  )}
+                  ) : null}
 
                   <TouchableOpacity style={styles.sheetOption} onPress={async () => {
                     if (selectedMessage?.body) {
@@ -1173,31 +1232,35 @@ export default function ChatScreen() {
 
                   {(selectedMessage?.user_id === user?.id || selectedMessage?.author_id === user?.id) ? (
                     <>
-                      {(isSuperadmin || user?.permissions?.['edit-own']) && (
+                      {((isSuperadmin || user?.permissions?.['edit-own']) && (new Date().getTime() - new Date(selectedMessage.created_at + (selectedMessage.created_at.endsWith('Z') ? '' : 'Z')).getTime() < 15 * 60 * 1000)) ? (
                         <TouchableOpacity style={styles.sheetOption} onPress={handleEditPress}>
                           <MaterialIcons name="edit" size={24} color={colors.text} style={styles.sheetOptionIcon} />
                           <Text style={styles.sheetOptionText}>{t('common.edit_message', 'Edit message')}</Text>
                         </TouchableOpacity>
-                      )}
-                      <TouchableOpacity style={styles.sheetOption} onPress={() => { setShowReadersModal(true); }}>
+                      ) : null}
+                      <TouchableOpacity style={styles.sheetOption} onPress={() => {
+                        const msg = selectedMessage;
+                        closeModal();
+                        setTimeout(() => setActiveReadersMessage(msg), 300);
+                      }}>
                         <MaterialIcons name="info-outline" size={24} color={colors.text} style={styles.sheetOptionIcon} />
                         <Text style={styles.sheetOptionText}>{t('common.message_info', 'Message info')}</Text>
                       </TouchableOpacity>
-                      {(isSuperadmin || user?.permissions?.['delete-own'] || currentMem?.can_delete_messages) && (
+                      {(isSuperadmin || user?.permissions?.['delete-own'] || currentMem?.can_delete_messages) ? (
                         <TouchableOpacity style={styles.sheetOption} onPress={handleDeletePress}>
                           <MaterialIcons name="delete-outline" size={24} color="#F43F5E" style={styles.sheetOptionIcon} />
                           <Text style={[styles.sheetOptionText, { color: '#F43F5E' }]}>{t('common.delete_message', 'Delete message')}</Text>
                         </TouchableOpacity>
-                      )}
+                      ) : null}
                     </>
                   ) : (
                     <>
-                      {(isSuperadmin || currentMem?.can_delete_messages) && (
+                      {(isSuperadmin || currentMem?.can_delete_messages) ? (
                         <TouchableOpacity style={styles.sheetOption} onPress={handleDeletePress}>
                           <MaterialIcons name="delete-outline" size={24} color="#F43F5E" style={styles.sheetOptionIcon} />
                           <Text style={[styles.sheetOptionText, { color: '#F43F5E' }]}>{t('common.delete_message', 'Delete message')}</Text>
                         </TouchableOpacity>
-                      )}
+                      ) : null}
                     </>
                   )}
 
@@ -1209,10 +1272,10 @@ export default function ChatScreen() {
 
         {/* Readers Modal */}
         <Modal
-          visible={showReadersModal}
+          visible={!!activeReadersMessage}
           transparent={true}
           animationType="slide"
-          onRequestClose={() => setShowReadersModal(false)}
+          onRequestClose={() => setActiveReadersMessage(null)}
         >
           <View style={[styles.modalOverlay, { justifyContent: 'flex-end', margin: 0, padding: 0 }]}>
             <View style={{ backgroundColor: colors.background, padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, width: '100%', maxHeight: '70%', shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 10 }}>
@@ -1221,14 +1284,14 @@ export default function ChatScreen() {
                   <MaterialIcons name="done-all" size={24} color={colors.primary} />
                   <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text }}>{t('chat.read_by', 'Read by')}</Text>
                 </View>
-                <TouchableOpacity onPress={() => setShowReadersModal(false)} style={{ backgroundColor: colors.pillBg, padding: 6, borderRadius: 20 }}>
+                <TouchableOpacity onPress={() => setActiveReadersMessage(null)} style={{ backgroundColor: colors.pillBg, padding: 6, borderRadius: 20 }}>
                   <MaterialIcons name="close" size={20} color={colors.iconDefault} />
                 </TouchableOpacity>
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false}>
-                {(selectedMessage?.readers && selectedMessage.readers.length > 0) ? (
-                  selectedMessage.readers.map((reader: any) => {
+                {(activeReadersMessage?.readers && activeReadersMessage.readers.length > 0) ? (
+                  activeReadersMessage.readers.map((reader: any) => {
                     let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(reader.name || reader.username || '?')}&background=1E293B&color=fff`;
                     if (reader.avatar) {
                       avatarUrl = reader.avatar.startsWith('http') ? reader.avatar : `${API_BASE_URL}${reader.avatar}`;
@@ -1252,7 +1315,7 @@ export default function ChatScreen() {
               </ScrollView>
 
               <TouchableOpacity
-                onPress={() => setShowReadersModal(false)}
+                onPress={() => setActiveReadersMessage(null)}
                 style={{ marginTop: 24, backgroundColor: colors.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center' }}
               >
                 <Text style={{ color: colors.onPrimary, fontWeight: '600', fontSize: 16 }}>{t('common.close', 'Done')}</Text>
@@ -1309,18 +1372,21 @@ export default function ChatScreen() {
                         Members ({channelDetails?.members?.length || 0})
                       </Text>
 
-                      {(user?.role === 'superadmin' || currentMem?.is_manager || currentMem?.can_add_members) && (
+                      {(user?.role === 'superadmin' || currentMem?.is_manager || currentMem?.can_add_members) ? (
                         <TouchableOpacity
                           style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 }}
-                          onPress={() => setShowAddMemberModal(true)}
+                          onPress={() => {
+                            setShowChannelInfo(false);
+                            setTimeout(() => setShowAddMemberModal(true), 300);
+                          }}
                         >
                           <MaterialIcons name="person-add" size={16} color={colors.onPrimary} style={{ marginRight: 4 }} />
                           <Text style={{ color: colors.onPrimary, fontSize: 13, fontWeight: '600' }}>Add</Text>
                         </TouchableOpacity>
-                      )}
+                      ) : null}
                     </View>
 
-                    {channelDetails?.members && channelDetails.members.length > 0 && channelDetails.members.map((member: any) => {
+                    {(channelDetails?.members && channelDetails.members.length > 0) ? channelDetails.members.map((member: any) => {
                       let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || member.username || '?')}&background=1E293B&color=fff`;
                       if (member.avatar) {
                         avatarUrl = member.avatar.startsWith('http') ? member.avatar : `${API_BASE_URL}${member.avatar}`;
@@ -1333,23 +1399,26 @@ export default function ChatScreen() {
                           <Image source={{ uri: avatarUrl }} style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }} />
                           <View style={{ flex: 1 }}>
                             <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>{member.name || member.username}</Text>
-                            {member.is_manager && <Text style={{ color: colors.primary, fontSize: 12 }}>Manager</Text>}
+                            {member.is_manager ? <Text style={{ color: colors.primary, fontSize: 12 }}>Manager</Text> : null}
                           </View>
-                          {canManage && (
+                          {canManage ? (
                             <View style={{ flexDirection: 'row', gap: 8 }}>
-                              <TouchableOpacity onPress={() => setSelectedMemberForPerms(member)} style={{ padding: 6, backgroundColor: colors.surfaceContainer, borderRadius: 6 }}>
+                              <TouchableOpacity onPress={() => {
+                                setShowChannelInfo(false);
+                                setTimeout(() => setSelectedMemberForPerms(member), 300);
+                              }} style={{ padding: 6, backgroundColor: colors.surfaceContainer, borderRadius: 6 }}>
                                 <MaterialIcons name="settings" size={18} color={colors.iconDefault} />
                               </TouchableOpacity>
-                              {member.id !== user?.id && (
+                              {member.id !== user?.id && member.role !== 'superadmin' && users?.find((u: any) => u.id === member.id)?.role !== 'superadmin' && (
                                 <TouchableOpacity onPress={() => handleRemoveMember(member.id, member.name || member.username)} style={{ padding: 6, backgroundColor: 'rgba(244,63,94,0.1)', borderRadius: 6 }}>
                                   <MaterialIcons name="person-remove" size={18} color="#F43F5E" />
                                 </TouchableOpacity>
                               )}
                             </View>
-                          )}
+                          ) : null}
                         </View>
                       );
-                    })}
+                    }) : null}
                   </View>
                 )}
 
@@ -1418,40 +1487,30 @@ export default function ChatScreen() {
           </View>
         </Modal>
 
-        {/* Emoji Picker Modal */}
-        <Modal
-          visible={showEmojiPicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowEmojiPicker(false)}
-        >
-          <View style={[styles.modalOverlay, { justifyContent: 'flex-end', margin: 0, padding: 0 }]}>
-            <View style={{ backgroundColor: colors.composerBg, borderTopLeftRadius: 24, borderTopRightRadius: 24, width: '100%', height: 450, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 10 }}>
-              <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
-                <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12 }}>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text }}>{t('chat.emojis') || 'Emojis'}</Text>
-                <TouchableOpacity onPress={() => setShowEmojiPicker(false)} style={{ backgroundColor: colors.pillBg, padding: 6, borderRadius: 20 }}>
-                  <MaterialIcons name="keyboard-arrow-down" size={24} color={colors.iconDefault} />
-                </TouchableOpacity>
-              </View>
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 40 }}>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-                  {['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '☺️', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'].map(emoji => (
-                    <TouchableOpacity
-                      key={emoji}
-                      style={{ width: '16.66%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }}
-                      onPress={() => handleEmojiSelect(emoji)}
-                    >
-                      <Text style={{ fontSize: 32 }}>{emoji}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
+        {/* Inline Emoji Picker */}
+        {showEmojiPicker && (
+          <View style={{ backgroundColor: colors.composerBg, height: 320, width: '100%', borderTopWidth: 1, borderTopColor: colors.border }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>{t('chat.emojis') || 'Emojis'}</Text>
+              <TouchableOpacity onPress={() => setShowEmojiPicker(false)} style={{ backgroundColor: colors.pillBg, padding: 6, borderRadius: 20 }}>
+                <MaterialIcons name="close" size={20} color={colors.iconDefault} />
+              </TouchableOpacity>
             </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 20 }} keyboardShouldPersistTaps="handled">
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+                {['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '☺️', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'].map(emoji => (
+                  <TouchableOpacity
+                    key={emoji}
+                    style={{ width: '16.66%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }}
+                    onPress={() => handleEmojiSelect(emoji)}
+                  >
+                    <Text style={{ fontSize: 28 }}>{emoji}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
           </View>
-        </Modal>
+        )}
 
         <ForwardModal visible={!!forwardMessage} onClose={() => setForwardMessage(null)} message={forwardMessage} />
         <MemberPermissionsModal

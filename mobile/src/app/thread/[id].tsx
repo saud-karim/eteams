@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, KeyboardAvoidingView, Platform, Modal, TouchableWithoutFeedback, Animated, Keyboard } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -14,7 +14,6 @@ import * as WebBrowser from 'expo-web-browser';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Clipboard from 'expo-clipboard';
-import { Modal, TouchableWithoutFeedback, Animated, Alert } from 'react-native';
 import ForwardModal from '../../components/ForwardModal';
 
 
@@ -45,8 +44,10 @@ export default function ThreadScreen() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const myTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  const [activeReadersMessage, setActiveReadersMessage] = useState<any>(null);
   const [forwardMessage, setForwardMessage] = useState<any>(null);
-  const [showReadersModal, setShowReadersModal] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
   const slideAnim = useRef(new Animated.Value(300)).current;
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -233,6 +234,12 @@ export default function ThreadScreen() {
     } else {
       setShowMentions(false);
     }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    const newBody = body.slice(0, selection.start) + emoji + body.slice(selection.end);
+    setBody(newBody);
+    setSelection({ start: selection.start + emoji.length, end: selection.start + emoji.length });
   };
 
   const specialMentions = [
@@ -538,74 +545,114 @@ export default function ThreadScreen() {
 
           <View style={styles.timelineContainer}>
             {messages.map((msg, idx) => {
+              const prevMsg = messages[idx - 1];
+              const msgDate = new Date(msg.created_at);
+              const prevMsgDate = prevMsg ? new Date(prevMsg.created_at) : null;
+              
+              let showDateHeader = false;
+              let dateHeaderText = '';
+
+              if (!prevMsgDate || msgDate.toDateString() !== prevMsgDate.toDateString()) {
+                showDateHeader = true;
+                const today = new Date();
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                if (msgDate.toDateString() === today.toDateString()) {
+                  dateHeaderText = t('common.today') || 'Today';
+                } else if (msgDate.toDateString() === yesterday.toDateString()) {
+                  dateHeaderText = t('common.yesterday') || 'Yesterday';
+                } else {
+                  dateHeaderText = msgDate.toLocaleDateString(i18n.language || 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+                }
+              }
+
               const isMe = msg.user_id === user?.id;
               const msgUser = users?.find((u: any) => u.id === msg.user_id) || {};
               const authorName = msg.author_name || msgUser.name || 'Unknown';
               
               if (isMe) {
                 return (
-                  <TouchableOpacity key={msg.id} style={styles.replyRowSent} onLongPress={() => openModal(msg)} delayLongPress={250} activeOpacity={0.7}>
-                    <View style={styles.connectorLineSent} />
-                    <View style={styles.messageContentSent}>
-                      <View style={styles.messageMetaSent}>
-                        <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginRight: 4 }}>
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
-                        {msg.is_pinned ? (
-                          <MaterialIcons name="push-pin" size={12} color={'rgba(255,255,255,0.7)'} style={{ marginRight: 4 }} />
-                        ) : null}
+                  <React.Fragment key={msg.id}>
+                    {showDateHeader && (
+                      <View style={{ alignItems: 'center', marginTop: 12, marginBottom: 8, zIndex: 10 }}>
+                        <View style={{ backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
+                          <Text style={{ color: colors.iconDefault, fontSize: 12, fontWeight: '500' }}>{dateHeaderText}</Text>
+                        </View>
                       </View>
-                      <View style={styles.bubbleSent}>
-                        <Markdown style={{ body: { color: colors.onPrimary, fontSize: 15 }, paragraph: { marginTop: 2, marginBottom: 2 } }}>
-                          {msg.body}
-                        </Markdown>
-                        {msg.attachments && msg.attachments.length > 0 && (
-                          <View style={{ marginTop: 8, gap: 8 }}>
-                            {msg.attachments.map((att: any) => {
-                              const fileUrl = att.storage_key.startsWith('http') ? att.storage_key : `${API_BASE_URL.replace('/api', '')}/${att.storage_key}`;
-                              const isImage = att.mime_type?.startsWith('image/');
-                              return isImage ? (
-                                <Image key={att.id} source={{ uri: fileUrl }} style={{ width: 200, height: 150, borderRadius: 12 }} resizeMode="cover" />
-                              ) : (
-                                <TouchableOpacity key={att.id} onPress={() => WebBrowser.openBrowserAsync(fileUrl)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.1)', padding: 8, borderRadius: 8 }}>
-                                   <MaterialIcons name="insert-drive-file" size={20} color={'#fff'} />
-                                   <Text style={{ color: '#fff', marginLeft: 8, flex: 1 }} numberOfLines={1}>{att.original_name || att.filename}</Text>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </View>
-                        )}
-                        {renderReactions(msg.reactions)}
+                    )}
+                    <TouchableOpacity style={styles.replyRowSent} onLongPress={() => openModal(msg)} delayLongPress={250} activeOpacity={0.7}>
+                      <View style={styles.connectorLineSent} />
+                      <View style={styles.messageContentSent}>
+                        <View style={styles.messageMetaSent}>
+                          <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginRight: 4 }}>
+                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </Text>
+                          {msg.is_pinned ? (
+                            <MaterialIcons name="push-pin" size={12} color={'rgba(255,255,255,0.7)'} style={{ marginRight: 4 }} />
+                          ) : null}
+                        </View>
+                        <View style={styles.bubbleSent}>
+                          <Markdown style={{ body: { color: colors.onPrimary, fontSize: 15 }, paragraph: { marginTop: 2, marginBottom: 2 } }}>
+                            {msg.body}
+                          </Markdown>
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <View style={{ marginTop: 8, gap: 8 }}>
+                              {msg.attachments.map((att: any) => {
+                                const fileUrl = att.storage_key.startsWith('http') ? att.storage_key : `${API_BASE_URL.replace('/api', '')}/${att.storage_key}`;
+                                const isImage = att.mime_type?.startsWith('image/');
+                                return isImage ? (
+                                  <Image key={att.id} source={{ uri: fileUrl }} style={{ width: 200, height: 150, borderRadius: 12 }} resizeMode="cover" />
+                                ) : (
+                                  <TouchableOpacity key={att.id} onPress={() => WebBrowser.openBrowserAsync(fileUrl)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.1)', padding: 8, borderRadius: 8 }}>
+                                    <MaterialIcons name="insert-drive-file" size={20} color={'#fff'} />
+                                    <Text style={{ color: '#fff', marginLeft: 8, flex: 1 }} numberOfLines={1}>{att.original_name || att.filename}</Text>
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </View>
+                          )}
+                          {renderReactions(msg.reactions)}
+                        </View>
                       </View>
-                    </View>
-                  </TouchableOpacity>
+                    </TouchableOpacity>
+                  </React.Fragment>
                 );
               }
 
               return (
-                <TouchableOpacity key={msg.id} style={styles.replyRow} onLongPress={() => openModal(msg)} delayLongPress={250} activeOpacity={0.7}>
-                  <View style={styles.connectorLine} />
-                  <Image 
-                    source={{ uri: renderAvatar(authorName, msgUser.avatar) }} 
-                    style={styles.replyAvatar} 
-                  />
-                  <View style={styles.messageContent}>
-                    <View style={styles.messageMeta}>
-                      <Text style={styles.authorName}>{authorName}</Text>
-                      <Text style={styles.timeText}>
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
-                      {msg.is_pinned ? (
-                        <MaterialIcons name="push-pin" size={12} color={colors.iconDefault} style={{ marginLeft: 4 }} />
-                      ) : null}
+                <React.Fragment key={msg.id}>
+                  {showDateHeader && (
+                    <View style={{ alignItems: 'center', marginTop: 12, marginBottom: 8, zIndex: 10 }}>
+                      <View style={{ backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
+                        <Text style={{ color: colors.iconDefault, fontSize: 12, fontWeight: '500' }}>{dateHeaderText}</Text>
+                      </View>
                     </View>
-                    <View style={styles.bubbleReceived}>
-                      <Markdown style={{ body: { color: colors.text, fontSize: 15 }, paragraph: { marginTop: 2, marginBottom: 2 } }}>
-                        {msg.body}
-                      </Markdown>
+                  )}
+                  <TouchableOpacity style={styles.replyRow} onLongPress={() => openModal(msg)} delayLongPress={250} activeOpacity={0.7}>
+                    <View style={styles.connectorLine} />
+                    <Image 
+                      source={{ uri: renderAvatar(authorName, msgUser.avatar) }} 
+                      style={styles.replyAvatar} 
+                    />
+                    <View style={styles.messageContent}>
+                      <View style={styles.messageMeta}>
+                        <Text style={styles.authorName}>{authorName}</Text>
+                        <Text style={styles.timeText}>
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                        {msg.is_pinned ? (
+                          <MaterialIcons name="push-pin" size={12} color={colors.iconDefault} style={{ marginLeft: 4 }} />
+                        ) : null}
+                      </View>
+                      <View style={styles.bubbleReceived}>
+                        <Markdown style={{ body: { color: colors.text, fontSize: 15 }, paragraph: { marginTop: 2, marginBottom: 2 } }}>
+                          {msg.body}
+                        </Markdown>
+                      </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                </React.Fragment>
               );
             })}
           </View>
@@ -643,7 +690,7 @@ export default function ThreadScreen() {
                     )}
                     <View>
                       <Text style={{ color: colors.text, fontWeight: '500' }}>{member.name || member.username}</Text>
-                      {member.fullname && <Text style={{ color: colors.iconDefault, fontSize: 11 }}>{member.fullname}</Text>}
+                      {member.fullname ? <Text style={{ color: colors.iconDefault, fontSize: 11 }}>{member.fullname}</Text> : null}
                     </View>
                   </TouchableOpacity>
                 );
@@ -691,6 +738,8 @@ export default function ThreadScreen() {
                 multiline
                 value={body}
                 onChangeText={handleTextChange}
+                onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+                onFocus={() => setShowEmojiPicker(false)}
               />
               
               <View style={styles.composerFooter}>
@@ -703,7 +752,10 @@ export default function ThreadScreen() {
                   <TouchableOpacity style={styles.composerActionBtn} onPress={() => setBody(prev => prev + '**bold** ')}>
                     <MaterialIcons name="format-bold" size={20} color={colors.iconDefault} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.composerActionBtn} onPress={() => setBody(prev => prev + '😂')}>
+                  <TouchableOpacity style={{ padding: 8, borderRadius: 20 }} onPress={() => {
+                    if (!showEmojiPicker) Keyboard.dismiss();
+                    setShowEmojiPicker(!showEmojiPicker);
+                  }}>
                     <MaterialIcons name="emoji-emotions" size={20} color={colors.iconDefault} />
                   </TouchableOpacity>
                   { (user?.role === 'superadmin' || user?.permissions?.['at-user']) && (
@@ -733,6 +785,31 @@ export default function ThreadScreen() {
 
       </KeyboardAvoidingView>
 
+        {/* Inline Emoji Picker */}
+        {showEmojiPicker && (
+          <View style={{ backgroundColor: colors.composerBg, height: 320, width: '100%', borderTopWidth: 1, borderTopColor: colors.border }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>{t('chat.emojis') || 'Emojis'}</Text>
+              <TouchableOpacity onPress={() => setShowEmojiPicker(false)} style={{ backgroundColor: colors.pillBg, padding: 6, borderRadius: 20 }}>
+                <MaterialIcons name="close" size={20} color={colors.iconDefault} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 20 }} keyboardShouldPersistTaps="handled">
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+                {['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '☺️', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'].map(emoji => (
+                  <TouchableOpacity
+                    key={emoji}
+                    style={{ width: '16.66%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }}
+                    onPress={() => handleEmojiSelect(emoji)}
+                  >
+                    <Text style={{ fontSize: 28 }}>{emoji}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        )}
+
         {/* Long Press Bottom Sheet Modal */}
         <Modal visible={!!selectedMessage} transparent={true} animationType="fade" onRequestClose={closeModal}>
           <TouchableWithoutFeedback onPress={closeModal}>
@@ -742,7 +819,7 @@ export default function ThreadScreen() {
                   <View style={{ width: 40, height: 4, backgroundColor: colors.iconDefault, borderRadius: 2, alignSelf: 'center', marginBottom: 20, opacity: 0.3 }} />
                   
                   {/* Quick Reactions */}
-                  {(user?.role === 'superadmin' || user?.permissions?.['react']) && (
+                  {(user?.role === 'superadmin' || user?.permissions?.['react']) ? (
                     <>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, paddingHorizontal: 12 }}>
                         {['👍', '❤️', '😂', '🎉', '👀'].map(emoji => (
@@ -753,7 +830,7 @@ export default function ThreadScreen() {
                       </View>
                       <View style={{ height: 1, backgroundColor: colors.pillBg, marginBottom: 16 }} />
                     </>
-                  )}
+                  ) : null}
                   
                   <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={async () => { 
                     if (selectedMessage?.body) await Clipboard.setStringAsync(selectedMessage.body);
@@ -780,35 +857,98 @@ export default function ThreadScreen() {
                     <Text style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{selectedMessage?.is_saved ? t('chat.unsave_message', 'Unsave message') : t('chat.save_message', 'Save message')}</Text>
                   </TouchableOpacity>
 
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => { 
+                        const msg = selectedMessage;
+                        closeModal(); 
+                        setTimeout(() => setActiveReadersMessage(msg), 300);
+                      }}>
+                        <MaterialIcons name="info-outline" size={24} color={colors.text} style={{ marginRight: 16 }} />
+                        <Text style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.message_info', 'Message info')}</Text>
+                  </TouchableOpacity>
+
                   {(selectedMessage?.user_id === user?.id || selectedMessage?.author_id === user?.id) ? (
                     <>
-                      {(user?.role === 'superadmin' || user?.permissions?.['edit-own']) && (
+                      {((user?.role === 'superadmin' || user?.permissions?.['edit-own']) && (new Date().getTime() - new Date(selectedMessage.created_at + (selectedMessage.created_at.endsWith('Z') ? '' : 'Z')).getTime() < 15 * 60 * 1000)) ? (
                         <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleEditPress}>
                           <MaterialIcons name="edit" size={24} color={colors.text} style={{ marginRight: 16 }} />
                           <Text style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{t('common.edit_message', 'Edit message')}</Text>
                         </TouchableOpacity>
-                      )}
-                      {(user?.role === 'superadmin' || user?.permissions?.['delete-own'] || channelDetails?.membership?.can_delete_messages) && (
+                      ) : null}
+                      {(user?.role === 'superadmin' || user?.permissions?.['delete-own'] || channelDetails?.membership?.can_delete_messages) ? (
                         <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleDeletePress}>
                           <MaterialIcons name="delete-outline" size={24} color="#F43F5E" style={{ marginRight: 16 }} />
                           <Text style={{ color: '#F43F5E', fontSize: 16, fontWeight: '500' }}>{t('common.delete_message', 'Delete message')}</Text>
                         </TouchableOpacity>
-                      )}
+                      ) : null}
                     </>
                   ) : (
                     <>
-                      {(user?.role === 'superadmin' || channelDetails?.membership?.can_delete_messages) && (
+                      {(user?.role === 'superadmin' || channelDetails?.membership?.can_delete_messages) ? (
                         <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleDeletePress}>
                           <MaterialIcons name="delete-outline" size={24} color="#F43F5E" style={{ marginRight: 16 }} />
                           <Text style={{ color: '#F43F5E', fontSize: 16, fontWeight: '500' }}>{t('common.delete_message', 'Delete message')}</Text>
                         </TouchableOpacity>
-                      )}
+                      ) : null}
                     </>
                   )}
                 </Animated.View>
               </TouchableWithoutFeedback>
             </View>
           </TouchableWithoutFeedback>
+        </Modal>
+
+        {/* Readers Modal */}
+        <Modal
+          visible={!!activeReadersMessage}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setActiveReadersMessage(null)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: colors.background, padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, width: '100%', maxHeight: '70%' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <MaterialIcons name="done-all" size={24} color={colors.primary} />
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text }}>{t('chat.read_by', 'Read by')}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setActiveReadersMessage(null)} style={{ backgroundColor: colors.pillBg, padding: 6, borderRadius: 20 }}>
+                  <MaterialIcons name="close" size={20} color={colors.iconDefault} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {(activeReadersMessage?.readers && activeReadersMessage.readers.length > 0) ? (
+                  activeReadersMessage.readers.map((reader: any) => {
+                    let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(reader.name || reader.username || '?')}&background=1E293B&color=fff`;
+                    if (reader.avatar) {
+                      avatarUrl = reader.avatar.startsWith('http') ? reader.avatar : `${API_BASE_URL}${reader.avatar}`;
+                    }
+                    return (
+                      <View key={reader.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.pillBg }}>
+                        <Image source={{ uri: avatarUrl }} style={{ width: 44, height: 44, borderRadius: 22, marginRight: 16 }} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }}>{reader.name || reader.username}</Text>
+                        </View>
+                        <MaterialIcons name="check-circle" size={16} color={colors.primary} />
+                      </View>
+                    );
+                  })
+                ) : (
+                  <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                    <MaterialIcons name="visibility-off" size={48} color={colors.iconDefault} style={{ marginBottom: 12, opacity: 0.5 }} />
+                    <Text style={{ color: colors.iconDefault, fontSize: 16, textAlign: 'center' }}>{t('chat.no_readers_yet', 'No one has read this message yet.')}</Text>
+                  </View>
+                )}
+              </ScrollView>
+
+              <TouchableOpacity
+                onPress={() => setActiveReadersMessage(null)}
+                style={{ marginTop: 24, backgroundColor: colors.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center' }}
+              >
+                <Text style={{ color: colors.onPrimary, fontWeight: '600', fontSize: 16 }}>{t('common.close', 'Done')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </Modal>
 
         <ForwardModal visible={!!forwardMessage} onClose={() => setForwardMessage(null)} message={forwardMessage} />
