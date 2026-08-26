@@ -32,25 +32,24 @@ jobs:
         working-directory: mobile/ios
         run: pod install
 
-      - name: Build Xcode Archive
+      - name: Build Xcode Project
         working-directory: mobile/ios
         run: |
-          xcodebuild -workspace mobile.xcworkspace \
+          xcodebuild build \
+            -workspace mobile.xcworkspace \
             -scheme mobile \
             -configuration Release \
             -sdk iphoneos \
-            -archivePath $PWD/build/mobile.xcarchive \
-            archive \
+            -derivedDataPath $PWD/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES
+            CODE_SIGN_IDENTITY=""
 
       - name: Export Unsigned IPA
         working-directory: mobile/ios
         run: |
           mkdir -p Payload
-          cp -r build/mobile.xcarchive/Products/Applications/mobile.app Payload/
+          cp -r DerivedData/Build/Products/Release-iphoneos/mobile.app Payload/
           zip -r mobile.ipa Payload
 
       - name: Upload IPA Artifact
