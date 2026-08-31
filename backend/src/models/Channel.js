@@ -67,7 +67,7 @@ async function memberCount(channelId) {
 
 async function listMembers(channelId) {
   const [rows] = await db.query(
-    `SELECT u.id, u.name, u.avatar_initials, u.avatar_color, u.role, u.job_title, u.presence,
+    `SELECT u.id, u.name, u.avatar, u.avatar_initials, u.avatar_color, u.role, u.job_title, u.presence,
             m.is_manager, m.can_post, m.can_add_members, m.can_remove_members, m.can_pin_messages, m.can_edit_topic, m.can_delete_messages, m.joined_at
      FROM memberships m
      JOIN users u ON u.id = m.user_id

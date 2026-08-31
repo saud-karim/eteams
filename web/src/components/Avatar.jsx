@@ -60,7 +60,7 @@ export default function Avatar({ user, size = 32, className = '', style = {}, sh
       >
         {user.avatar ? (
           <img 
-            src={user.avatar.startsWith('http') ? user.avatar : `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}${user.avatar}`} 
+            src={user.avatar.startsWith('http') ? user.avatar : `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}${user.avatar.startsWith('/') ? '' : '/'}${user.avatar}`} 
             alt={user.name} 
             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
             onError={(e) => {

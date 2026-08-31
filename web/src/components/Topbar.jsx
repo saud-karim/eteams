@@ -279,7 +279,7 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
                     <span className="dot dnd"></span><span>{t('dnd')}</span>
                   </button>
                   <button className={`status-opt ${user?.presence === 'meeting' ? 'active-status' : ''}`} onClick={e => { e.stopPropagation(); handleSetPresence('meeting'); }}>
-                    <span className="dot" style={{ background: '#8B5CF6' }}></span><span>In a Meeting</span>
+                    <span className="dot" style={{ background: '#8B5CF6' }}></span><span>{t('meeting')}</span>
                   </button>
                   <div className="status-divider"></div>
                   <button className="status-action" onClick={e => { e.stopPropagation(); setStatusOpen(false); onOpenProfile?.(); }}>

@@ -1312,6 +1312,12 @@
       inset-inline-start: 0;
       box-shadow: 10px 0 30px rgba(0,0,0,0.5);
     }
+    .sidebar-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 40;
+    }
     .admin-panel {
       flex-direction: column;
     }

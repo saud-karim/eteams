@@ -51,7 +51,7 @@ async function request(path: string, { method = 'GET', body = null, headers = {}
     'Content-Type': 'application/json',
     ...headers,
   };
-  
+
   if (token) {
     reqHeaders['Authorization'] = `Bearer ${token}`;
   }
@@ -93,7 +93,7 @@ export const api = {
       const token = await getToken();
       const reqHeaders: any = {};
       if (token) reqHeaders['Authorization'] = `Bearer ${token}`;
-      
+
       const formData = new FormData();
       // @ts-ignore
       formData.append('avatar', {
@@ -147,13 +147,13 @@ export const api = {
       const token = await getToken();
       const reqHeaders: any = {};
       if (token) reqHeaders['Authorization'] = `Bearer ${token}`;
-      
+
       const formData = new FormData();
       formData.append('channelId', String(channelId));
       formData.append('body', body || '');
       if (parentId) formData.append('parentId', String(parentId));
       else formData.append('parentId', 'null'); // For backend to parse null correctly
-      
+
       if (replyToId) formData.append('replyToId', String(replyToId));
       else formData.append('replyToId', 'null');
 

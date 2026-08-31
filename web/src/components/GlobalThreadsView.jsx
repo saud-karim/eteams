@@ -6,8 +6,10 @@ import { MessageSquare } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function GlobalThreadsView() {
+  const { t } = useLanguage();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeThreadMsg, setActiveThreadMsg] = useState(null);
@@ -67,16 +69,16 @@ export default function GlobalThreadsView() {
         <div className="chat-header">
         <div className="chat-title">
           <MessageSquare size={20} />
-          <h2>Threads</h2>
+          <h2>{t('threadsTitle') || t('threads') || 'Threads'}</h2>
         </div>
       </div>
       <div className="messages right-scroll" style={{ flex: 1, overflowY: 'auto' }}>
-        {loading && <div style={{ padding: 20 }}>Loading threads...</div>}
+        {loading && <div style={{ padding: 20 }}>{t('loadingThreads') || 'Loading threads...'}</div>}
         {!loading && messages.length === 0 && (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-dim)' }}>
             <MessageSquare size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-            <h3>No threads yet</h3>
-            <p style={{ marginTop: 8 }}>When you reply to a message or are mentioned in a thread, it will appear here.</p>
+            <h3>{t('noThreads') || 'No threads yet'}</h3>
+            <p style={{ marginTop: 8 }}>{t('noThreadsDesc') || 'When you reply to a message or are mentioned in a thread, it will appear here.'}</p>
           </div>
         )}
         {!loading && messages.map(msg => {
@@ -84,7 +86,7 @@ export default function GlobalThreadsView() {
           return (
             <div key={msg.id} style={{ borderBottom: '1px solid var(--border)' }}>
               <div style={{ padding: '8px 20px', fontSize: '11px', color: 'var(--text-dim)', background: 'var(--panel-2)' }}>
-                Thread in <strong>#{msg.channel_name || msg.channel_slug}</strong>
+                {t('repliedIn') || 'Replied in'} <strong>#{msg.channel_name || msg.channel_slug}</strong>
               </div>
               <Message 
                 message={msg} 

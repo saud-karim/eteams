@@ -6,8 +6,10 @@ import { Bookmark } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function GlobalSavedView() {
+  const { t } = useLanguage();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeThreadMsg, setActiveThreadMsg] = useState(null);
@@ -66,16 +68,16 @@ export default function GlobalSavedView() {
       <div className="chat-header">
         <div className="chat-title">
           <Bookmark size={20} />
-          <h2>Saved items</h2>
+          <h2>{t('savedItems') || 'Saved items'}</h2>
         </div>
       </div>
       <div className="messages right-scroll" style={{ flex: 1, overflowY: 'auto' }}>
-        {loading && <div style={{ padding: 20 }}>Loading saved items...</div>}
+        {loading && <div style={{ padding: 20 }}>{t('loadingSaved') || 'Loading saved items...'}</div>}
         {!loading && messages.length === 0 && (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-dim)' }}>
             <Bookmark size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-            <h3>No saved items</h3>
-            <p style={{ marginTop: 8 }}>You haven't saved any messages yet. Click the bookmark icon on a message to save it for later.</p>
+            <h3>{t('noSaved') || 'No saved items'}</h3>
+            <p style={{ marginTop: 8 }}>{t('noSavedDesc') || "You haven't saved any messages yet. Click the bookmark icon on a message to save it for later."}</p>
           </div>
         )}
         {!loading && messages.map(msg => {
@@ -83,7 +85,7 @@ export default function GlobalSavedView() {
           return (
             <div key={msg.id} style={{ borderBottom: '1px solid var(--border)' }}>
               <div style={{ padding: '8px 20px', fontSize: '11px', color: 'var(--text-dim)', background: 'var(--panel-2)' }}>
-                Saved from <strong>#{msg.channel_name || msg.channel_slug}</strong>
+                {t('savedFrom') || 'Saved from'} <strong>#{msg.channel_name || msg.channel_slug}</strong>
               </div>
               <Message
                 message={msg}

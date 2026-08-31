@@ -283,9 +283,17 @@ export default function Workspace() {
       />
       
       <div className="main">
+        {sidebarOpen && (
+          <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+        )}
         <SidebarRail 
           activeView={activeView} 
-          setActiveView={setActiveView} 
+          setActiveView={(view) => {
+            setActiveView(view);
+            if (view !== 'activity') {
+              setSidebarOpen(true);
+            }
+          }} 
           onLogout={() => { localStorage.clear(); window.location.href = '/login'; }}
           onOpenProfile={() => setShowProfileSettings(true)}
           hasUnreadDMs={hasUnreadDMs}

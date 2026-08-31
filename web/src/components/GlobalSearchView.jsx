@@ -5,8 +5,10 @@ import ThreadPanel from './ThreadPanel';
 import { Search } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function GlobalSearchView({ searchQuery, onJumpToChannel }) {
+  const { t } = useLanguage();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeThreadMsg, setActiveThreadMsg] = useState(null);
@@ -49,16 +51,16 @@ export default function GlobalSearchView({ searchQuery, onJumpToChannel }) {
       <div className="chat-header">
         <div className="chat-title">
           <Search size={20} />
-          <h2>Search Results for "{searchQuery}"</h2>
+          <h2>{t('searchResultsFor') || 'Search Results for'} "{searchQuery}"</h2>
         </div>
       </div>
       <div className="messages right-scroll" style={{ flex: 1, overflowY: 'auto' }}>
-        {loading && <div style={{ padding: 20 }}>Searching...</div>}
+        {loading && <div style={{ padding: 20 }}>{t('searching') || 'Searching...'}</div>}
         {!loading && messages.length === 0 && (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-dim)' }}>
             <Search size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-            <h3>No results found</h3>
-            <p style={{ marginTop: 8 }}>Try adjusting your search terms.</p>
+            <h3>{t('noResults') || 'No results found'}</h3>
+            <p style={{ marginTop: 8 }}>{t('tryAdjusting') || 'Try adjusting your search terms.'}</p>
           </div>
         )}
         {!loading && messages.map(msg => {
@@ -70,6 +72,9 @@ export default function GlobalSearchView({ searchQuery, onJumpToChannel }) {
               style={{ cursor: 'pointer' }}
               className="search-result-message-wrapper"
             >
+              <div style={{ padding: '8px 20px', fontSize: '11px', color: 'var(--text-dim)', background: 'var(--panel-2)' }}>
+                {t('postedIn') || 'Posted in'} <strong>#{msg.channel_name || msg.channel_slug}</strong>
+              </div>
               <Message
                 message={msg}
                 author={author}

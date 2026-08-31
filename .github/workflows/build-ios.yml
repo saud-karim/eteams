@@ -1,68 +1,68 @@
-name: Build iOS IPA
+# name: Build iOS IPA
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+# on:
+#   push:
+#     branches:
+#       - main
+#   workflow_dispatch: # Allows manual trigger from GitHub UI
 
-jobs:
-  build:
-    name: Build unsigned IPA
-    runs-on: macos-latest
+# jobs:
+#   build:
+#     name: Build unsigned IPA
+#     runs-on: macos-latest
     
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: '20'
 
-      - name: Install dependencies
-        working-directory: mobile
-        run: npm ci
+#       - name: Install dependencies
+#         working-directory: mobile
+#         run: npm ci
 
-      - name: Prebuild iOS project
-        working-directory: mobile
-        run: npx expo prebuild -p ios --clean
+#       - name: Prebuild iOS project
+#         working-directory: mobile
+#         run: npx expo prebuild -p ios --clean
 
-      - name: Install CocoaPods
-        working-directory: mobile/ios
-        run: pod install
+#       - name: Install CocoaPods
+#         working-directory: mobile/ios
+#         run: pod install
 
-      - name: Build Xcode Project
-        working-directory: mobile/ios
-        run: |
-          set -o pipefail
-          xcodebuild build \
-            -workspace mobile.xcworkspace \
-            -scheme mobile \
-            -configuration Release \
-            -sdk iphoneos \
-            -derivedDataPath $PWD/DerivedData \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" | tee xcodebuild.log | xcbeautify
+#       - name: Build Xcode Project
+#         working-directory: mobile/ios
+#         run: |
+#           set -o pipefail
+#           xcodebuild build \
+#             -workspace mobile.xcworkspace \
+#             -scheme mobile \
+#             -configuration Release \
+#             -sdk iphoneos \
+#             -derivedDataPath $PWD/DerivedData \
+#             CODE_SIGNING_ALLOWED=NO \
+#             CODE_SIGNING_REQUIRED=NO \
+#             CODE_SIGN_IDENTITY="" | tee xcodebuild.log | xcbeautify
 
-      - name: Upload Xcode Logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: xcodebuild-logs
-          path: mobile/ios/xcodebuild.log
+#       - name: Upload Xcode Logs
+#         if: failure()
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: xcodebuild-logs
+#           path: mobile/ios/xcodebuild.log
 
-      - name: Export Unsigned IPA
-        working-directory: mobile/ios
-        run: |
-          mkdir -p Payload
-          cp -r DerivedData/Build/Products/Release-iphoneos/mobile.app Payload/
-          zip -r mobile.ipa Payload
+#       - name: Export Unsigned IPA
+#         working-directory: mobile/ios
+#         run: |
+#           mkdir -p Payload
+#           cp -r DerivedData/Build/Products/Release-iphoneos/mobile.app Payload/
+#           zip -r mobile.ipa Payload
 
-      - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: eteams-ios-ipa
-          path: mobile/ios/mobile.ipa
-          retention-days: 7
+#       - name: Upload IPA Artifact
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: eteams-ios-ipa
+#           path: mobile/ios/mobile.ipa
+#           retention-days: 7

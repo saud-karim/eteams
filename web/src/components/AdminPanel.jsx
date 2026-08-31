@@ -391,7 +391,7 @@ export default function AdminPanel({ onClose, onJumpToChannel }) {
     ...u,
     dept: u.department || (u.role === 'superadmin' ? 'Executive' : 'Operations'),
     last: u.presence === 'online' ? 'Now' : '15 min ago',
-    avatar: u.avatar_initials || u.name.substring(0, 2).toUpperCase(),
+    avatar_initials: u.avatar_initials || u.name.substring(0, 2).toUpperCase(),
     color: u.avatar_color || 'var(--emerald)'
   }));
 

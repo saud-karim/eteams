@@ -80,7 +80,7 @@ export default function SavedMessagesScreen() {
           renderItem={({ item }) => (
               <MessageCard
                 message={item}
-                onPress={() => router.push(item.parent_id ? `/thread/${item.parent_id}` : `/chat/${item.channel_id}`)}
+                onPress={() => router.push(item.parent_id ? `/thread/${item.parent_id}` : `/chat/${item.channel_slug}`)}
               />
           )}
           contentContainerStyle={styles.listContent}

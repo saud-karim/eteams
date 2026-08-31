@@ -13,11 +13,11 @@ async function exportChannel(req, res, next) {
     const membership = await Channel.getMembership(channelId, req.user.id);
     const isChannelManager = membership && membership.is_manager;
     
-    if (ch.type === 'private' && !membership && !isSuperAdmin) {
-      return res.status(403).json({ error: 'Not a member' });
+    if (!isSuperAdmin && !isChannelManager) {
+      return res.status(403).json({ error: 'Only channel managers or superadmins can export the chat.' });
     }
 
-    const canExportDeleted = isSuperAdmin || isChannelManager;
+    const canExportDeleted = true; // since they are already manager/admin
 
     const msgs = await Message.listAllForExport(channelId);
     

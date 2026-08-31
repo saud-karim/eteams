@@ -269,11 +269,11 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
   const handleExport = async () => {
     try {
       const text = await api.channels.export(channelObj.id);
-      const blob = new Blob([text], { type: 'text/plain' });
+      const blob = new Blob([text], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${channelObj?.name || channelObj?.slug || 'export'}-chat.txt`;
+      a.download = `${channelObj?.name || channelObj?.slug || 'export'}-chat.html`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -413,8 +413,10 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
                 </div>
               )}
             </div>
-
-            <button className="chat-icon-btn" title="Export conversation" onClick={handleExport}><Download size={15} /></button>
+            
+            {(isManager || user?.role === 'superadmin') && (
+              <button className="chat-icon-btn" title="Export conversation" onClick={handleExport}><Download size={15} /></button>
+            )}
           </div>
         </div>
         

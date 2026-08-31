@@ -526,7 +526,7 @@ export default function ChatScreen() {
     try {
       const isCurrentlyPinned = selectedMessage.is_pinned;
       const res = await api.messages.togglePin(selectedMessage.id, !isCurrentlyPinned);
-      setMessages(prev => prev.map(m => m.id === selectedMessage.id ? { ...m, is_pinned: res.pinned } : m));
+      setMessages(prev => prev.map(m => m.id === selectedMessage.id ? { ...m, is_pinned: res.message.is_pinned } : m));
     } catch (err: any) {
       Alert.alert(t('common.error'), err.message || 'Failed to pin/unpin message');
     } finally {
