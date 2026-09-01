@@ -1,0 +1,52 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main # يتم التشغيل عند الرفع على فرع main
+    paths:
+      - 'backend/**' # فقط عند وجود تعديلات في الباك اند
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Zip Backend Files
+        working-directory: ./backend
+        run: zip -r backend.zip . -x "node_modules/*" -x ".env*" -x "uploads/*"
+
+      - name: Copy Zip to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          source: "backend/backend.zip"
+          target: "/tmp"
+          strip_components: 1
+
+      - name: Unzip, Install & Restart Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script: |
+            # إنشاء مجلد الباك اند إن لم يكن موجوداً
+            mkdir -p ${{ secrets.SERVER_TARGET_BACKEND_PATH }}
+            # فك الضغط في المجلد
+            unzip -o /tmp/backend.zip -d ${{ secrets.SERVER_TARGET_BACKEND_PATH }}
+            cd ${{ secrets.SERVER_TARGET_BACKEND_PATH }}
+            # تثبيت الحزم
+            npm install --production
+            # تحديث قاعدة البيانات إن وجدت
+            npm run migrate || true
+            # إعادة تشغيل السيرفر عن طريق PM2
+            pm2 restart eteams-backend || pm2 start src/server.js --name "eteams-backend"
+            # تنظيف ملف الضغط
+            rm /tmp/backend.zip
