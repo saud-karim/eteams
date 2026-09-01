@@ -29,7 +29,7 @@ jobs:
           target: "/tmp"
           strip_components: 1
 
-      - name: Unzip, Install & Restart Server
+      - name: Deploy via Docker Compose
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -37,16 +37,13 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
+            set -e
             # إنشاء مجلد الباك اند إن لم يكن موجوداً
             mkdir -p ${{ secrets.SERVER_TARGET_BACKEND_PATH }}
-            # فك الضغط في المجلد
+            # فك الضغط في المجلد (بدون حذف .env.production أو uploads الموجودين مسبقاً)
             unzip -o /tmp/backend.zip -d ${{ secrets.SERVER_TARGET_BACKEND_PATH }}
-            cd ${{ secrets.SERVER_TARGET_BACKEND_PATH }}
-            # تثبيت الحزم
-            npm install --production
-            # تحديث قاعدة البيانات إن وجدت
-            npm run migrate || true
-            # إعادة تشغيل السيرفر عن طريق PM2
-            pm2 restart eteams-backend || pm2 start src/server.js --name "eteams-backend"
-            # تنظيف ملف الضغط
             rm /tmp/backend.zip
+            # إعادة بناء وتشغيل حاوية الباك اند فقط عبر Docker Compose
+            cd $(dirname ${{ secrets.SERVER_TARGET_BACKEND_PATH }})
+            docker compose -f docker-compose.prod.yml build backend
+            docker compose -f docker-compose.prod.yml up -d backend
