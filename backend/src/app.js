@@ -10,12 +10,18 @@ const app = express();
 
 app.use(helmet({ crossOriginResourcePolicy: false }));
 
+const env = require('./config/env');
 const allowedOrigins = ['http://localhost:5173', 'http://localhost:8081', 'http://10.0.2.2:8081'];
+if (env.cors.origin) {
+  env.cors.origin.split(',').forEach(o => allowedOrigins.push(o.trim()));
+}
 app.use(cors({ 
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://192.168.')) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://192.168.') || origin === env.cors.origin) {
       callback(null, true);
     } else {
+      console.error('[ERROR] Not allowed by CORS Error: Not allowed by CORS', origin);
       callback(new Error('Not allowed by CORS'));
     }
   }, 
