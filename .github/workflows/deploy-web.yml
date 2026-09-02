@@ -9,41 +9,20 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Zip Web Source
-        working-directory: ./web
-        run: zip -r web.zip . -x "node_modules/*" -x "dist/*"
-
-      - name: Copy Zip to Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
-          source: "web/web.zip"
-          target: "/tmp"
-          strip_components: 1
-
-      - name: Deploy via Docker Compose
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
-          script: |
-            set -e
-            # إنشاء مجلد الفرونت اند (سياق بناء الـ Docker) إن لم يكن موجوداً
-            mkdir -p ${{ secrets.SERVER_TARGET_WEB_PATH }}
-            # فك الضغط في نفس المجلد (سيتم بناء صورة Docker من هذا الكود لاحقاً)
-            unzip -o /tmp/web.zip -d ${{ secrets.SERVER_TARGET_WEB_PATH }}
-            rm /tmp/web.zip
-            # إعادة بناء وتشغيل حاوية nginx (تحتوي الفرونت اند المبني) فقط
-            cd $(dirname ${{ secrets.SERVER_TARGET_WEB_PATH }})
-            docker compose -f docker-compose.prod.yml build nginx
-            docker compose -f docker-compose.prod.yml up -d nginx
+      - name: Deploy Web to Target Directory
+        run: |
+          mkdir -p ${{ secrets.SERVER_TARGET_WEB_PATH }}
+          # Copy files from repository to the target path
+          # We use rsync to avoid overwriting existing .env or node_modules
+          rsync -av --exclude 'node_modules' --exclude 'dist' --exclude '.env*' ./web/ ${{ secrets.SERVER_TARGET_WEB_PATH }}/
+          
+      - name: Build and Start Nginx Container
+        run: |
+          cd $(dirname ${{ secrets.SERVER_TARGET_WEB_PATH }})
+          docker compose -f docker-compose.prod.yml build nginx
+          docker compose -f docker-compose.prod.yml up -d nginx

@@ -9,41 +9,20 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Zip Backend Files
-        working-directory: ./backend
-        run: zip -r backend.zip . -x "node_modules/*" -x ".env*" -x "uploads/*"
-
-      - name: Copy Zip to Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
-          source: "backend/backend.zip"
-          target: "/tmp"
-          strip_components: 1
-
-      - name: Deploy via Docker Compose
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
-          script: |
-            set -e
-            # إنشاء مجلد الباك اند إن لم يكن موجوداً
-            mkdir -p ${{ secrets.SERVER_TARGET_BACKEND_PATH }}
-            # فك الضغط في المجلد (بدون حذف .env.production أو uploads الموجودين مسبقاً)
-            unzip -o /tmp/backend.zip -d ${{ secrets.SERVER_TARGET_BACKEND_PATH }}
-            rm /tmp/backend.zip
-            # إعادة بناء وتشغيل حاوية الباك اند فقط عبر Docker Compose
-            cd $(dirname ${{ secrets.SERVER_TARGET_BACKEND_PATH }})
-            docker compose -f docker-compose.prod.yml build backend
-            docker compose -f docker-compose.prod.yml up -d backend
+      - name: Deploy Backend to Target Directory
+        run: |
+          mkdir -p ${{ secrets.SERVER_TARGET_BACKEND_PATH }}
+          # Copy files from repository to the target path
+          # We use rsync to avoid overwriting existing .env, uploads, or node_modules
+          rsync -av --exclude 'node_modules' --exclude 'dist' --exclude 'uploads' --exclude '.env*' ./backend/ ${{ secrets.SERVER_TARGET_BACKEND_PATH }}/
+          
+      - name: Build and Start Backend Container
+        run: |
+          cd $(dirname ${{ secrets.SERVER_TARGET_BACKEND_PATH }})
+          docker compose -f docker-compose.prod.yml build backend
+          docker compose -f docker-compose.prod.yml up -d backend
