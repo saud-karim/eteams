@@ -76,7 +76,7 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
   const handleOpenNotifications = async () => {
     const next = !showNotifications;
     setShowNotifications(next);
-    if (next && mentions.length === 0) {
+    if (next) {
       setMentionsLoading(true);
       try {
         const res = await api.messages.getMentions();
@@ -230,7 +230,7 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
                     </div>
                   )}
                   {!mentionsLoading && mentions.map(m => (
-                    <div key={m.id} onClick={() => { if (onJumpToChannel) onJumpToChannel(m.channel_slug); setShowNotifications(false); }}
+                    <div key={m.id} onClick={() => { if (onJumpToChannel) onJumpToChannel(m.channel_slug, m.id); setShowNotifications(false); }}
                       style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--hover)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
