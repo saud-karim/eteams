@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../api/client.js';
+import { api, BASE } from '../api/client.js';
 import { Download, File as FileIcon, Forward, CheckCheck, MessageSquare, SmilePlus, Bookmark, Pin, Edit2, Trash2 } from 'lucide-react';
 import ForwardModal from './ForwardModal';
 import { useConfirm } from '../context/ConfirmContext';
@@ -173,7 +173,7 @@ export default function Message({ message, author, currentUser, onReply, canPin 
           <div style={{ marginTop: '8px' }}>
             {message.attachments.map(att => {
               const isImage = att.mime_type.startsWith('image/');
-              const url = `http://localhost:4000/${att.storage_key}`;
+              const url = `${BASE}/${att.storage_key}`;
               return (
                 <div key={att.id} className="attachment">
                   {isImage ? (
@@ -185,7 +185,7 @@ export default function Message({ message, author, currentUser, onReply, canPin 
                         <div className="file-name">{att.original_name}</div>
                         <div className="file-meta">{(att.size_bytes / 1024).toFixed(1)} KB</div>
                       </div>
-                      <a href={`http://localhost:4000/api/messages/download/${att.id}?token=${localStorage.getItem('accessToken')}`} download={att.original_name} target="_blank" rel="noreferrer" className="attachment-download">
+                      <a href={`${BASE}/api/messages/download/${att.id}?token=${localStorage.getItem('accessToken')}`} download={att.original_name} target="_blank" rel="noreferrer" className="attachment-download">
                         <Download size={16} />
                       </a>
                     </div>

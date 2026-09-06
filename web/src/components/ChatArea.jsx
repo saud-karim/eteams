@@ -11,7 +11,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../api/client';
+import { api, BASE } from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import Avatar from './Avatar';
 import ChannelIcon from './ChannelIcon';
@@ -509,7 +509,7 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
                           </div>
                         </div>
                       </div>
-                      <a href={`http://localhost:4000/${att.storage_key}`} download={att.original_name} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', padding: '6px 16px', fontSize: '13px', background: 'var(--emerald)', color: 'white', borderRadius: '6px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <a href={`${BASE}/${att.storage_key}`} download={att.original_name} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', padding: '6px 16px', fontSize: '13px', background: 'var(--emerald)', color: 'white', borderRadius: '6px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Download size={14} /> Download
                       </a>
                     </div>
