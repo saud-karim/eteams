@@ -60,8 +60,23 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
         audio.play().catch(e=>console.log(e));
       }
     };
+
+    const handleDm = (payload) => {
+      // Do NOT increment unreadCount for DMs on the Bell Icon
+      if (notifSound) {
+        const audio = new Audio('/notif.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(e=>console.log(e));
+      }
+    };
+
     socket.on('notification:mention', handleMention);
-    return () => socket.off('notification:mention', handleMention);
+    socket.on('notification:dm', handleDm);
+    
+    return () => {
+      socket.off('notification:mention', handleMention);
+      socket.off('notification:dm', handleDm);
+    };
   }, [socket, notifSound]);
 
   const handleSetPresence = (presence) => {

@@ -238,7 +238,8 @@ async function send(req, res, next) {
         }
         
         if (shouldNotify) {
-          emitToUser(m.id, 'notification:mention', { id: msg.id, channel_slug: channelObj.slug, body: noteText });
+          const isDM = channelObj.type === 'direct' || channelObj.type === 'dm';
+          emitToUser(m.id, isDM ? 'notification:dm' : 'notification:mention', { id: msg.id, channel_slug: channelObj.slug, body: noteText });
           
           // Collect for push notification if they are offline or we just want to push to all devices
           if (m.presence === 'offline' || m.presence === 'away' || m.presence === 'dnd' || true) {
