@@ -17,14 +17,16 @@ export default function SidebarRail({ activeView, setActiveView, onLogout, onOpe
           title={t('channels') || 'Channels'}
         >
           <Hash size={24} />
+          <span className="rail-label">{t('channels') || 'Channels'}</span>
         </div>
         <div 
           className={`rail-item ${activeView === 'dms' ? 'active' : ''}`}
           onClick={() => setActiveView('dms')}
-          title={t('directMessages') || 'Direct Messages'}
+          title={t('directMessages') || 'DMs'}
           style={{ position: 'relative' }}
         >
           <MessageSquare size={24} />
+          <span className="rail-label">DMs</span>
           {hasUnreadDMs && <div className="unread-dot" />}
         </div>
         <div 
@@ -33,6 +35,7 @@ export default function SidebarRail({ activeView, setActiveView, onLogout, onOpe
           title={t('activity') || 'Activity'}
         >
           <Bell size={24} />
+          <span className="rail-label">{t('activity') || 'Activity'}</span>
         </div>
       </div>
       <div className="rail-bottom">

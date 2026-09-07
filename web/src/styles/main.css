@@ -1624,7 +1624,7 @@
 
 /* ============ SIDEBAR RAIL ============ */
 .sidebar-rail {
-  width: 60px;
+  width: 72px;
   background: var(--panel);
   border-right: 1px solid var(--border);
   display: flex;
@@ -1650,10 +1650,12 @@
   padding-bottom: 12px;
 }
 .rail-item {
-  width: 44px;
-  height: 44px;
+  width: 64px;
+  height: 56px;
   border-radius: 12px;
   display: flex;
+  flex-direction: column;
+  gap: 4px;
   align-items: center;
   justify-content: center;
   color: var(--text-mute);
@@ -1693,4 +1695,10 @@
   background-color: #ef4444; /* red-500 */
   border-radius: 50%;
   border: 2px solid var(--panel);
+}
+
+.rail-label {
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 500;
 }

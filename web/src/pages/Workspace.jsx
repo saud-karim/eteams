@@ -269,7 +269,7 @@ export default function Workspace() {
     setSidebarOpen(false);
   };
 
-  const hasUnreadDMs = channels?.some(ch => ch.type === 'direct' && unreadCounts[ch.id]?.count > 0) || false;
+  const hasUnreadDMs = channels?.some(ch => (ch.type === 'direct' || ch.type === 'dm' || ch.type === 'group_dm') && unreadCounts[ch.id]?.count > 0) || false;
 
   return (
     <div className="workspace active">
