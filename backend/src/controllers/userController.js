@@ -63,6 +63,19 @@ async function saveFcmToken(req, res, next) {
   } catch (e) { next(e); }
 }
 
+async function removeFcmToken(req, res, next) {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'Token required' });
+    const { db } = require('../db/connection');
+    await db.query(
+      `DELETE FROM fcm_tokens WHERE user_id = :userId AND token = :token`,
+      { userId: req.user.id, token }
+    );
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+}
+
 async function uploadAvatar(req, res, next) {
   try {
     if (!req.file) {
@@ -102,4 +115,7 @@ async function removeFavorite(req, res, next) {
   } catch (e) { next(e); }
 }
 
-module.exports = { list, updateMyPresence, updateMe, updateMyPassword, saveFcmToken, uploadAvatar, getFavorites, addFavorite, removeFavorite };
+module.exports = {
+  list, updateMe, updateMyPresence, updateMyPassword, uploadAvatar,
+  getFavorites, addFavorite, removeFavorite, saveFcmToken, removeFcmToken
+};

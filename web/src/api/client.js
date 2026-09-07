@@ -40,6 +40,7 @@ export const api = {
     updatePassword: (currentPassword, newPassword) => request('/users/me/password', { method: 'PUT', body: { currentPassword, newPassword } }),
     setPresence: (presence, statusText) => request('/users/me/presence', { method: 'PUT', body: { presence, statusText } }),
     saveFcmToken: (token) => request('/users/fcm-token', { method: 'POST', body: { token } }),
+    removeFcmToken: (token) => request('/users/fcm-token', { method: 'DELETE', body: { token } }),
     updateAvatar: async (file) => {
       const fd = new FormData();
       fd.append('avatar', file);

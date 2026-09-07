@@ -19,6 +19,7 @@ router.put('/me', ctrl.updateMe);
 router.put('/me/presence', ctrl.updateMyPresence);
 router.put('/me/password', ctrl.updateMyPassword);
 router.post('/fcm-token', ctrl.saveFcmToken);
+router.delete('/fcm-token', ctrl.removeFcmToken);
 router.post('/me/avatar', upload.single('avatar'), ctrl.uploadAvatar);
 router.get('/favorites', ctrl.getFavorites);
 router.post('/favorites/:id', ctrl.addFavorite);

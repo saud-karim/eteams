@@ -19,7 +19,13 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
   const [unreadCount, setUnreadCount] = useState(0);
   const [showPreferences, setShowPreferences] = useState(false);
   const [notifSound, setNotifSound] = useState(() => localStorage.getItem('notifSound') !== 'off');
-  const [desktopNotif, setDesktopNotif] = useState(() => typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted');
+  const [desktopNotif, setDesktopNotif] = useState(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (localStorage.getItem('desktopNotifPref') === 'off') return false;
+      return Notification.permission === 'granted';
+    }
+    return false;
+  });
   
   const { lang, toggleLang, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
@@ -346,26 +352,44 @@ export default function Topbar({ user, onOpenProfile, onToggleSidebar, onJumpToC
               </div>
               <button
                 onClick={async () => {
-                  if ('Notification' in window) {
-                    if (Notification.permission === 'denied') {
-                      alert("You have blocked notifications in your browser settings. Please click the lock icon in the address bar to allow them.");
-                      return;
-                    }
-                    const token = await requestFirebaseNotificationPermission();
-                    if (token) {
-                      try {
-                        await api.users.saveFcmToken(token);
-                        setDesktopNotif(true);
-                        new Notification("Enabled", { body: "You will now receive desktop notifications!" });
-                      } catch (err) {
-                        console.error('Error saving FCM token:', err);
-                        alert("Failed to save notification token. Please try again.");
+                  if (desktopNotif) {
+                    // Turn OFF
+                    try {
+                      const token = await requestFirebaseNotificationPermission();
+                      if (token) {
+                        await api.users.removeFcmToken(token);
                       }
-                    } else {
-                      alert("Please allow notifications in your browser settings.");
+                      setDesktopNotif(false);
+                      // Optional: save preference locally so it doesn't auto-enable
+                      localStorage.setItem('desktopNotifPref', 'off');
+                    } catch (err) {
+                      console.error('Error removing FCM token:', err);
+                      alert("Failed to disable desktop notifications. Please try again.");
                     }
                   } else {
-                    alert("Your browser does not support desktop notifications.");
+                    // Turn ON
+                    if ('Notification' in window) {
+                      if (Notification.permission === 'denied') {
+                        alert("You have blocked notifications in your browser settings. Please click the lock icon in the address bar to allow them.");
+                        return;
+                      }
+                      const token = await requestFirebaseNotificationPermission();
+                      if (token) {
+                        try {
+                          await api.users.saveFcmToken(token);
+                          setDesktopNotif(true);
+                          localStorage.setItem('desktopNotifPref', 'on');
+                          new Notification("Enabled", { body: "You will now receive desktop notifications!" });
+                        } catch (err) {
+                          console.error('Error saving FCM token:', err);
+                          alert("Failed to save notification token. Please try again.");
+                        }
+                      } else {
+                        alert("Please allow notifications in your browser settings.");
+                      }
+                    } else {
+                      alert("Your browser does not support desktop notifications.");
+                    }
                   }
                 }}
                 style={{ background: desktopNotif ? 'var(--emerald)' : 'var(--panel-2)', color: desktopNotif ? 'white' : 'var(--text-dim)', border: '1px solid var(--border)', borderRadius: '20px', padding: '4px 18px', cursor: 'pointer', fontWeight: 700, fontSize: '13px', transition: 'all 0.2s' }}
