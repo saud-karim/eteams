@@ -121,11 +121,14 @@ export default function Message({ message, author, currentUser, onReply, canPin 
     } catch { setIsSaved(!isSaved); }
   };
 
+  const isReadByMe = (message.readers || []).some(r => r.user_id === currentUser?.id);
+
   return (
     <div
       id={`msg-${message.id}`}
       data-msg-id={message.id}
       data-user-id={message.user_id}
+      data-read-by-me={isReadByMe}
       className={`message ${isPinnedToDisplay ? 'pinned' : ''}`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}

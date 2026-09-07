@@ -121,8 +121,8 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
       { threshold: 0.5 }
     );
 
-    // Observe existing messages
-    const els = messagesContainerRef.current?.querySelectorAll('[data-msg-id]');
+    // Observe existing messages that haven't been read by me
+    const els = messagesContainerRef.current?.querySelectorAll('[data-msg-id]:not([data-read-by-me="true"])');
     els?.forEach(el => observerRef.current.observe(el));
 
     return () => {
