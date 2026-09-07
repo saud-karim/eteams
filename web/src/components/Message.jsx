@@ -121,7 +121,7 @@ export default function Message({ message, author, currentUser, onReply, canPin 
     } catch { setIsSaved(!isSaved); }
   };
 
-  const isReadByMe = (message.readers || []).some(r => r.user_id === currentUser?.id);
+  const isReadByMe = (message.readers || []).some(r => r.id === currentUser?.id);
 
   return (
     <div
