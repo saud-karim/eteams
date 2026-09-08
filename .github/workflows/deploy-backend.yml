@@ -25,7 +25,5 @@ jobs:
         run: |
           cd $(dirname ${{ secrets.SERVER_TARGET_BACKEND_PATH }})
           docker compose -f docker-compose.prod.yml build backend
+
           docker compose -f docker-compose.prod.yml up -d backend
-          
-          # Run database migrations automatically after the container starts
-          docker compose -f docker-compose.prod.yml exec -T backend npm run migrate
