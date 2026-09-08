@@ -68,14 +68,18 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
 
   const [fetchedChannel, setFetchedChannel] = useState(null);
 
-  useEffect(() => {
+  useEffect(() => {
     if (!activeChannel) return;
     const found = channels?.find(c => c.slug === activeChannel);
     if (!found) {
       api.channels.get(activeChannel).then(res => {
         if (res.channel) setFetchedChannel(res.channel);
       }).catch((err) => {
-        if (!err.message?.includes('404')) {
+        if (err.status === 404 || err.message?.toLowerCase().includes('not found')) {
+          if (setActiveChannel && channels && channels.length > 0) {
+            setActiveChannel(channels[0].slug);
+          }
+        } else {
           console.error(err);
         }
       });

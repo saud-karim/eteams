@@ -43,8 +43,10 @@ async function request(path, { method = 'GET', body, headers = {}, responseType 
       if (window.location.pathname !== '/login') window.location.href = '/login';
     }
     
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `HTTP ${res.status}`);
+    const errBody = await res.json().catch(() => ({}));
+    const error = new Error(errBody.error || `HTTP ${res.status}`);
+    error.status = res.status;
+    throw error;
   }
   if (responseType === 'text') return res.text();
   if (responseType === 'blob') return res.blob();

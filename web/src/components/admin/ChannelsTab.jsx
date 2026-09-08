@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import Pagination from './Pagination';
 
+// TEMPORARY SECURITY RESTRICTION:
+// 1-to-1 DMs are temporarily not opened from the Channels list
+// because DM conversations may contain sensitive information.
+// Remove this guard when DM review/access from Channels is approved.
+const ENABLE_DM_FROM_CHANNELS = false;
+
+
 export default function ChannelsTab({
   localChannels,
   handleExportChannels,
@@ -81,8 +88,19 @@ export default function ChannelsTab({
           {paginatedChannels.map((c, idx) => (
             <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
               <td 
-                style={{ padding: '12px', fontWeight: 'bold', color: 'var(--accent)', cursor: 'pointer' }}
-                onClick={() => onJumpToChannel(c.slug)}
+                style={{ 
+                  padding: '12px', 
+                  fontWeight: 'bold', 
+                  color: (c.type === 'dm' && !ENABLE_DM_FROM_CHANNELS) ? 'var(--text-mute)' : 'var(--accent)', 
+                  cursor: (c.type === 'dm' && !ENABLE_DM_FROM_CHANNELS) ? 'not-allowed' : 'pointer' 
+                }}
+                onClick={() => {
+                  if (c.type === 'dm' && !ENABLE_DM_FROM_CHANNELS) {
+                    return;
+                  }
+                  onJumpToChannel(c.slug);
+                }}
+                title={(c.type === 'dm' && !ENABLE_DM_FROM_CHANNELS) ? 'Direct messages are temporarily unavailable from this view.' : ''}
               >
                 #{c.name}
                 {c.deleted_at && <span style={{ marginLeft: '8px', background: 'rgba(239,68,68,0.1)', color: 'var(--danger)', padding: '2px 6px', borderRadius: '4px', fontSize: '10px' }}>Deleted</span>}
