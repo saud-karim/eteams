@@ -295,7 +295,11 @@ export default function Workspace() {
               setSidebarOpen(true);
             }
           }} 
-          onLogout={() => { localStorage.clear(); window.location.href = '/login'; }}
+          onLogout={async () => {
+            try { await api.auth.logout(); } catch(e) {}
+            localStorage.clear();
+            window.location.href = '/login';
+          }}
           onOpenProfile={() => setShowProfileSettings(true)}
           hasUnreadDMs={hasUnreadDMs}
         />
