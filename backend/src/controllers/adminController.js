@@ -7,10 +7,22 @@ const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/connection');
 
+function parsePagination(query) {
+  let limit = parseInt(query.limit, 10);
+  if (isNaN(limit) || limit < 1) limit = 50;
+  limit = Math.min(limit, 100);
+
+  let offset = parseInt(query.offset, 10);
+  if (isNaN(offset) || offset < 0) offset = 0;
+
+  return { limit, offset };
+}
+
 async function getAuditLogs(req, res, next) {
   try {
     if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
-    const logs = await AuditLog.list({ limit: 100, offset: 0 });
+    const { limit, offset } = parsePagination(req.query);
+    const logs = await AuditLog.list({ limit, offset });
     res.json({ logs });
   } catch (err) {
     next(err);
@@ -85,7 +97,11 @@ async function getUsers(req, res, next) {
   try {
     if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { db } = require('../db/connection');
-    const [rows] = await db.query('SELECT id, username, name, avatar_initials, avatar_color, role, department, job_title, company_rank, presence, status_text, last_seen_at, is_active, reports_to, employment_type, role_preset, permissions, approval_status FROM users WHERE approval_status = "approved" ORDER BY name ASC');
+    const { limit, offset } = parsePagination(req.query);
+    const [rows] = await db.query(
+      'SELECT id, username, name, avatar_initials, avatar_color, role, department, job_title, company_rank, presence, status_text, last_seen_at, is_active, reports_to, employment_type, role_preset, permissions, approval_status FROM users WHERE approval_status = "approved" ORDER BY name ASC LIMIT :limit OFFSET :offset',
+      { limit, offset }
+    );
     res.json({ users: rows });
   } catch (err) {
     next(err);
@@ -224,18 +240,44 @@ async function createUser(req, res, next) {
     const avatar_initials = name.substring(0, 2).toUpperCase();
     const avatar_color = 'var(--emerald)'; // Default color
     
-    const user = await User.create({
-      id, username, password_hash, name, avatar_initials, avatar_color, role: role || 'user', department: department || '', job_title: job_title || '', company_rank: company_rank || 'employee',
-      reports_to: reports_to || null, employment_type: employment_type || 'Full-time employee', role_preset: role_preset || 'standard', permissions: permissions || null
-    });
+    const { db } = require('../db/connection');
+    const conn = await db.getConnection();
+    await conn.beginTransaction();
+    try {
+      await conn.query(
+        `INSERT INTO users (id, username, password_hash, name, avatar_initials, avatar_color, role, department, job_title, company_rank, reports_to, employment_type, role_preset, permissions, is_active, token_version)
+         VALUES (:id, :username, :password_hash, :name, :avatar_initials, :avatar_color, :role, :department, :job_title, :company_rank, :reports_to, :employment_type, :role_preset, :permissions, 1, 1)`,
+        {
+          id, username, password_hash, name, avatar_initials, avatar_color,
+          role: role || 'user', department: department || '', job_title: job_title || '',
+          company_rank: company_rank || 'employee', reports_to: reports_to || null,
+          employment_type: employment_type || 'Full-time employee', role_preset: role_preset || 'standard',
+          permissions: permissions ? JSON.stringify(permissions) : null
+        }
+      );
 
-    if (Array.isArray(initial_channels) && initial_channels.length > 0) {
-      const Channel = require('../models/Channel');
-      for (const channelId of initial_channels) {
-        await Channel.addMember(channelId, id);
+      if (Array.isArray(initial_channels) && initial_channels.length > 0) {
+        for (const channelId of initial_channels) {
+          const chId = uuidv4();
+          const [chRows] = await conn.query('SELECT is_readonly FROM channels WHERE id = :channelId', { channelId });
+          if (chRows.length === 0) throw new Error(`Channel ${channelId} not found`);
+          const isReadOnly = chRows[0]?.is_readonly ? 1 : 0;
+          await conn.query(
+            `INSERT IGNORE INTO memberships (id, channel_id, user_id, is_manager, can_post, can_add_members, can_remove_members, can_pin_messages, can_edit_topic, can_delete_messages)
+             VALUES (:id, :channelId, :userId, 0, :can_post, 0, 0, 0, 0, 0)`,
+            { id: chId, channelId, userId: id, can_post: isReadOnly ? 0 : 1 }
+          );
+        }
       }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
     
+    const user = await User.findById(id);
     await AuditLog.log(req.user.id, 'user.create', 'user', id, { username, role_preset }, req.ip);
     
     res.json({ success: true, user });
@@ -262,21 +304,51 @@ async function updateUser(req, res, next) {
     const { id } = req.params;
     const { name, username, department, role, job_title, company_rank, reports_to, employment_type, role_preset, permissions, initial_channels } = req.body;
     
-    const user = await User.update(id, { name, username, department, role, job_title: job_title || '', company_rank: company_rank || 'employee', reports_to: reports_to || null, employment_type: employment_type || 'Full-time employee', role_preset: role_preset || 'standard', permissions: permissions || null });
-    
-    if (Array.isArray(initial_channels)) {
-      const Channel = require('../models/Channel');
-      const { db } = require('../db/connection');
-      const [rows] = await db.query('SELECT channel_id FROM memberships WHERE user_id = :id', { id });
-      const currentChannelIds = rows.map(r => r.channel_id);
+    const { db } = require('../db/connection');
+    const conn = await db.getConnection();
+    await conn.beginTransaction();
+    try {
+      await conn.query(
+        `UPDATE users SET name = :name, username = :username, department = :department, role = :role, job_title = :job_title, company_rank = :company_rank, reports_to = :reports_to, employment_type = :employment_type, role_preset = :role_preset, permissions = :permissions WHERE id = :id`,
+        {
+          id, name, username, department, role,
+          job_title: job_title || '', company_rank: company_rank || 'employee',
+          reports_to: reports_to || null, employment_type: employment_type || 'Full-time employee',
+          role_preset: role_preset || 'standard', permissions: permissions ? JSON.stringify(permissions) : null
+        }
+      );
       
-      const toAdd = initial_channels.filter(cId => !currentChannelIds.includes(cId));
-      const toRemove = currentChannelIds.filter(cId => !initial_channels.includes(cId));
+      if (Array.isArray(initial_channels)) {
+        const [rows] = await conn.query('SELECT channel_id FROM memberships WHERE user_id = :id', { id });
+        const currentChannelIds = rows.map(r => r.channel_id);
+        
+        const toAdd = initial_channels.filter(cId => !currentChannelIds.includes(cId));
+        const toRemove = currentChannelIds.filter(cId => !initial_channels.includes(cId));
 
-      for (const cId of toAdd) await Channel.addMember(cId, id);
-      for (const cId of toRemove) await Channel.removeMember(cId, id);
+        for (const cId of toAdd) {
+          const chId = uuidv4();
+          const [chRows] = await conn.query('SELECT is_readonly FROM channels WHERE id = :channelId', { channelId: cId });
+          if (chRows.length === 0) throw new Error(`Channel ${cId} not found`);
+          const isReadOnly = chRows[0]?.is_readonly ? 1 : 0;
+          await conn.query(
+            `INSERT IGNORE INTO memberships (id, channel_id, user_id, is_manager, can_post, can_add_members, can_remove_members, can_pin_messages, can_edit_topic, can_delete_messages)
+             VALUES (:id, :channelId, :userId, 0, :can_post, 0, 0, 0, 0, 0)`,
+            { id: chId, channelId: cId, userId: id, can_post: isReadOnly ? 0 : 1 }
+          );
+        }
+        for (const cId of toRemove) {
+          await conn.query('DELETE FROM memberships WHERE channel_id = :channelId AND user_id = :userId', { channelId: cId, userId: id });
+        }
+      }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
 
+    const user = await User.findById(id);
     await AuditLog.log(req.user.id, 'user.update', 'user', id, { name, username, department, role }, req.ip);
 
     emitToUser(id, 'user:permissions_updated', { role, permissions, role_preset });
@@ -326,7 +398,8 @@ async function importUsers(req, res, next) {
 async function getChannels(req, res, next) {
   try {
     if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
-    const channels = await Channel.adminListAll();
+    const { limit, offset } = parsePagination(req.query);
+    const channels = await Channel.adminListAll({ limit, offset });
     res.json({ channels });
   } catch (err) {
     next(err);

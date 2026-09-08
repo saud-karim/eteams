@@ -25,11 +25,17 @@ const DEFAULT_PERMISSIONS = {
 async function requireAuth(req, res, next) {
   try {
     const header = req.headers.authorization || '';
-    const token = header.startsWith('Bearer ') ? header.slice(7) : (req.query.token || null);
+    if (!header.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing or invalid Authorization header' });
+    }
+    const token = header.slice(7);
     if (!token) return res.status(401).json({ error: 'Missing token' });
     const payload = verify(token);
     const user = await User.findById(payload.sub);
     if (!user) return res.status(401).json({ error: 'User not found' });
+    if (payload.token_version !== user.token_version) {
+      return res.status(401).json({ error: 'Session expired' });
+    }
     
     if (typeof user.permissions === 'string') {
       try {

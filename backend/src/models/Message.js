@@ -109,6 +109,7 @@ async function listReactions(messageId) {
 }
 
 async function search(userId, query, hasGlobalSearch, { limit = 30 } = {}) {
+  const escapedQuery = query.replace(/([%_\\])/g, '\\$1');
   let sql;
   if (hasGlobalSearch) {
     // Can search anything they are a member of, PLUS any public channel
@@ -117,7 +118,7 @@ async function search(userId, query, hasGlobalSearch, { limit = 30 } = {}) {
       JOIN users u ON u.id = m.user_id
       JOIN channels c ON c.id = m.channel_id
       LEFT JOIN memberships mem ON mem.channel_id = c.id AND mem.user_id = :userId
-      WHERE m.deleted_at IS NULL AND m.body LIKE CONCAT('%', :q, '%')
+      WHERE m.deleted_at IS NULL AND m.body LIKE CONCAT('%', :q, '%') ESCAPE '\\\\'
       AND (mem.user_id = :userId OR c.type = 'public' OR c.type = 'announce')
       ORDER BY m.created_at DESC LIMIT :limit`;
   } else {
@@ -127,11 +128,11 @@ async function search(userId, query, hasGlobalSearch, { limit = 30 } = {}) {
       JOIN users u ON u.id = m.user_id
       JOIN channels c ON c.id = m.channel_id
       JOIN memberships mem ON mem.channel_id = c.id AND mem.user_id = :userId
-      WHERE m.deleted_at IS NULL AND m.body LIKE CONCAT('%', :q, '%')
+      WHERE m.deleted_at IS NULL AND m.body LIKE CONCAT('%', :q, '%') ESCAPE '\\\\'
       ORDER BY m.created_at DESC LIMIT :limit`;
   }
 
-  const [rows] = await db.query(sql, { userId, q: query, limit });
+  const [rows] = await db.query(sql, { userId, q: escapedQuery, limit });
   return rows;
 }
 

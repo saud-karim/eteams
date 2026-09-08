@@ -9,6 +9,8 @@ const Attachment = require('../models/Attachment');
 const MessageRead = require('../models/MessageRead');
 const { parseMentions } = require('../utils/mentions');
 const { emitToChannel, emitToUser } = require('../sockets');
+const { processUpload, rollbackUpload } = require('../utils/upload');
+const { db } = require('../db/connection');
 
 const sendSchema = z.object({
   channelId: z.string().uuid(),
@@ -159,12 +161,28 @@ async function send(req, res, next) {
       return res.status(403).json({ error: 'Missing at-here permission' });
     }
 
+    let storageKey = null;
+    let finalFileProps = null;
+
     if (req.file) {
       if (!perms['upload'] && !perms['upload-large'] && req.user.role !== 'superadmin') {
         return res.status(403).json({ error: 'Missing upload permission' });
       }
       if (req.file.size > 25 * 1024 * 1024 && !perms['upload-large'] && req.user.role !== 'superadmin') {
         return res.status(403).json({ error: 'File too large and missing upload-large permission' });
+      }
+      
+      try {
+        storageKey = await processUpload(req.file.path, req.file.originalname, req.file.filename, req.user.id, req.file.size);
+        finalFileProps = {
+          filename: req.file.filename,
+          original_name: req.file.originalname,
+          mime_type: req.file.mimetype,
+          size_bytes: req.file.size,
+          storage_key: storageKey
+        };
+      } catch (err) {
+        return res.status(400).json({ error: err.message });
       }
     }
 
@@ -178,27 +196,48 @@ async function send(req, res, next) {
     const mentions = parseMentions(data.body, memberLookup);
     
     if (mentions.users.length > 0 && !perms['at-user'] && req.user.role !== 'superadmin') {
+      if (storageKey) await rollbackUpload(storageKey, req.user.id, req.file.size);
       return res.status(403).json({ error: 'Missing at-user permission to mention users' });
     }
 
     const id = uuidv4();
-    let msg = await Message.create({
-      id, channel_id: data.channelId, user_id: req.user.id,
-      parent_id: data.parentId || null, reply_to_id: data.replyToId || null, body: data.body, mentions
-    });
+    let msg;
+    
+    const conn = await db.getConnection();
+    await conn.beginTransaction();
+    try {
+      // Create Message
+      await conn.query(
+        `INSERT INTO messages (id, channel_id, user_id, parent_id, reply_to_id, body, mentions)
+         VALUES (:id, :channel_id, :user_id, :parent_id, :reply_to_id, :body, :mentions)`,
+        {
+          id, channel_id: data.channelId, user_id: req.user.id,
+          parent_id: data.parentId || null, reply_to_id: data.replyToId || null, body: data.body,
+          mentions: JSON.stringify(mentions)
+        }
+      );
 
-    if (req.file) {
-      await Attachment.create({
-        message_id: id,
-        filename: req.file.filename,
-        original_name: req.file.originalname,
-        mime_type: req.file.mimetype,
-        size_bytes: req.file.size,
-        storage_key: `uploads/${req.file.filename}`
-      });
-      msg.attachments = await Attachment.listByMessage(id);
-    } else {
-      msg.attachments = [];
+      if (finalFileProps) {
+        // Create Attachment
+        await conn.query(
+          `INSERT INTO attachments (message_id, filename, original_name, mime_type, size_bytes, storage_key)
+           VALUES (:message_id, :filename, :original_name, :mime_type, :size_bytes, :storage_key)`,
+          { message_id: id, ...finalFileProps }
+        );
+      }
+      
+      await conn.commit();
+      
+      // Fetch the created message with populated fields
+      msg = await Message.findById(id);
+      msg.attachments = finalFileProps ? await Attachment.listByMessage(id) : [];
+      
+    } catch (dbErr) {
+      await conn.rollback();
+      if (storageKey) await rollbackUpload(storageKey, req.user.id, req.file.size);
+      return next(dbErr);
+    } finally {
+      conn.release();
     }
 
     msg.reactions = [];
@@ -482,6 +521,23 @@ async function downloadAttachment(req, res, next) {
     const [rows] = await db.query('SELECT * FROM attachments WHERE id = :attachmentId', { attachmentId });
     if (rows.length === 0) return res.status(404).json({ error: 'Attachment not found' });
     const att = rows[0];
+
+    const Message = require('../models/Message');
+    const Channel = require('../models/Channel');
+    const { canViewChannel } = require('../utils/permissions');
+
+    const msg = await Message.findById(att.message_id);
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+
+    const channel = await Channel.findByIdWithArchived(msg.channel_id);
+    if (!channel) return res.status(404).json({ error: 'Channel not found' });
+
+    const membership = await Channel.getMembership(channel.id, req.user.id);
+
+    if (!canViewChannel(req.user, channel, membership)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
     const path = require('path');
     const fs = require('fs');
     const filePath = path.join(__dirname, '..', '..', att.storage_key);
@@ -490,7 +546,11 @@ async function downloadAttachment(req, res, next) {
       return res.status(404).json({ error: 'File not found on server' });
     }
     
-    res.download(filePath, att.original_name);
+    res.set({
+      'Content-Disposition': `attachment; filename="${att.original_name}"`,
+      'X-Content-Type-Options': 'nosniff'
+    });
+    res.sendFile(filePath);
   } catch (err) {
     next(err);
   }

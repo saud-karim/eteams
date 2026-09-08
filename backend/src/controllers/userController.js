@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const RefreshToken = require('../models/RefreshToken');
+const { getIo } = require('../sockets');
 
 async function list(req, res, next) {
   try { res.json({ users: await User.findAll() }); } catch (e) { next(e); }
@@ -39,13 +41,37 @@ const bcrypt = require('bcrypt');
 
 async function updateMyPassword(req, res, next) {
   try {
-    const { newPassword } = req.body;
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword) return res.status(400).json({ error: 'Old password is required' });
     if (!newPassword || newPassword.length < 6) {
       return res.status(400).json({ error: 'Valid new password (min 6 chars) required' });
     }
     
+    // Fetch full user record to check old password
+    const user = await User.findByIdAnyStatus(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    // Wait, User.findByIdAnyStatus doesn't return password_hash. I must use findByUsername.
+    const userWithHash = await User.findByUsername(user.username);
+    const ok = await bcrypt.compare(oldPassword, userWithHash.password_hash);
+    if (!ok) return res.status(401).json({ error: 'Incorrect old password' });
+    
     const hash = await bcrypt.hash(newPassword, 10);
     await User.updatePassword(req.user.id, hash);
+    
+    // Invalidate sessions
+    await User.incrementTokenVersion(req.user.id);
+    await RefreshToken.revokeUserSessions(req.user.id);
+    
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+    
+    const io = getIo();
+    if (io) io.in(`user:${req.user.id}`).disconnectSockets();
+    
     res.json({ ok: true });
   } catch (e) { next(e); }
 }

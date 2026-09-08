@@ -1,9 +1,13 @@
+if (!process.env.JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is missing. Application cannot start securely.');
+}
+
 module.exports = {
   port: process.env.PORT || 4000,
   jwt: {
-    secret: process.env.JWT_SECRET || 'dev_secret_change_me',
-    accessTtl: process.env.JWT_ACCESS_TTL || '30d',
-    refreshTtl: process.env.JWT_REFRESH_TTL || '30d',
+    secret: process.env.JWT_SECRET,
+    accessTtl: process.env.JWT_ACCESS_TTL || '15m',
+    refreshTtl: process.env.JWT_REFRESH_TTL || '7d',
   },
   upload: {
     dir: process.env.UPLOAD_DIR || './uploads',

@@ -1,11 +1,15 @@
-export const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+export const BASE = import.meta.env.VITE_API_URL || '';
 
-function getToken() { return localStorage.getItem('accessToken'); }
+let memoryToken = null;
+
+export function setToken(token) { memoryToken = token; }
+export function getToken() { return memoryToken; }
 
 async function request(path, { method = 'GET', body, headers = {}, responseType = 'json' } = {}) {
   const token = getToken();
   const res = await fetch(`${BASE}/api${path}`, {
     method,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -14,12 +18,31 @@ async function request(path, { method = 'GET', body, headers = {}, responseType 
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    if (res.status === 401) {
-      localStorage.removeItem('accessToken');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+    if (res.status === 401 && path !== '/auth/refresh' && path !== '/auth/login') {
+      try {
+        const refreshData = await api.auth.refresh();
+        if (refreshData?.accessToken) {
+          setToken(refreshData.accessToken);
+          // Retry original request
+          const newHeaders = { ...headers, 'Content-Type': 'application/json', Authorization: `Bearer ${refreshData.accessToken}` };
+          const retryRes = await fetch(`${BASE}/api${path}`, {
+            method, credentials: 'include', headers: newHeaders, body: body ? JSON.stringify(body) : undefined
+          });
+          if (retryRes.ok) {
+            if (responseType === 'text') return retryRes.text();
+            if (responseType === 'blob') return retryRes.blob();
+            return retryRes.json();
+          }
+        }
+      } catch (err) {
+        setToken(null);
+        if (window.location.pathname !== '/login') window.location.href = '/login';
       }
+    } else if (res.status === 401) {
+      setToken(null);
+      if (window.location.pathname !== '/login') window.location.href = '/login';
     }
+    
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `HTTP ${res.status}`);
   }
@@ -28,11 +51,19 @@ async function request(path, { method = 'GET', body, headers = {}, responseType 
   return res.json();
 }
 
+let refreshPromise = null;
+
 export const api = {
   auth: {
     login: (username, password) => request('/auth/login', { method: 'POST', body: { username, password } }),
     register: (data) => request('/auth/register', { method: 'POST', body: data }),
     signup: (data) => request('/auth/signup', { method: 'POST', body: data }),
+    refresh: () => {
+      if (!refreshPromise) {
+        refreshPromise = request('/auth/refresh', { method: 'POST' }).finally(() => { refreshPromise = null; });
+      }
+      return refreshPromise;
+    },
     getManagers: () => request('/auth/managers'),
     me: () => request('/auth/me'),
     logout: () => request('/auth/logout', { method: 'POST' }),
@@ -53,6 +84,7 @@ export const api = {
       const token = getToken();
       const res = await fetch(`${BASE}/api/users/me/avatar`, {
         method: 'POST',
+        credentials: 'include',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: fd
       });
@@ -93,6 +125,7 @@ export const api = {
       const token = getToken();
       const res = await fetch(`${BASE}/api/messages`, {
         method: 'POST',
+        credentials: 'include',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: fd
       });
@@ -108,6 +141,7 @@ export const api = {
     togglePin: (id, pinned) => request(`/messages/${id}/pin`, { method: 'POST', body: { pinned } }),
     toggleSave: (id, saved) => request(`/messages/${id}/save`, { method: 'POST', body: { saved } }),
     markRead: (messageIds) => request('/messages/read', { method: 'POST', body: { messageIds } }),
+    download: (id) => request(`/messages/download/${id}`, { responseType: 'blob' }),
   },
   broadcasts: {
     list: () => request('/broadcasts'),

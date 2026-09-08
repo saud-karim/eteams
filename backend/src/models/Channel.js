@@ -40,13 +40,15 @@ async function listForUser(userId) {
   return rows;
 }
 
-async function adminListAll() {
+async function adminListAll({ limit = 100, offset = 0 } = {}) {
   const [rows] = await db.query(
     `SELECT c.*,
             (SELECT COUNT(*) FROM memberships m WHERE m.channel_id = c.id) AS member_count,
             (SELECT COUNT(*) FROM messages msg WHERE msg.channel_id = c.id AND msg.deleted_at IS NULL) AS message_count
      FROM channels c
-     ORDER BY c.created_at DESC`
+     ORDER BY c.created_at DESC
+     LIMIT :limit OFFSET :offset`,
+    { limit, offset }
   );
   return rows;
 }

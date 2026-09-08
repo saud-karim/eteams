@@ -3,8 +3,27 @@ const { v4: uuidv4 } = require('uuid');
 const { z } = require('zod');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
-const { signAccess, signRefresh } = require('../utils/token');
+const { signAccess, signRefresh, hashToken } = require('../utils/token');
 const { DEFAULT_PERMISSIONS } = require('../middleware/auth');
+const RefreshToken = require('../models/RefreshToken');
+const { getIo } = require('../sockets/index');
+
+function setRefreshCookie(res, token) {
+  res.cookie('refreshToken', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  });
+}
+
+function clearRefreshCookie(res) {
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
+  });
+}
 
 const loginSchema = z.object({
   username: z.string().min(1).max(191),
@@ -40,8 +59,13 @@ async function login(req, res, next) {
     await User.updatePresence(user.id, 'online');
     await AuditLog.log(user.id, 'user.login', 'user', user.id, null, req.ip);
 
-    const accessToken = signAccess({ sub: user.id, role: user.role });
-    const refreshToken = signRefresh({ sub: user.id });
+    const accessToken = signAccess({ sub: user.id, role: user.role, token_version: user.token_version });
+    const refreshToken = signRefresh();
+    const tokenHash = hashToken(refreshToken);
+    const tokenFamily = uuidv4();
+    
+    await RefreshToken.create(uuidv4(), user.id, tokenHash, tokenFamily, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), req.headers['user-agent']);
+    setRefreshCookie(res, refreshToken);
 
     const { password_hash, ...safe } = user;
     if (typeof safe.permissions === 'string') {
@@ -52,7 +76,7 @@ async function login(req, res, next) {
       safe.permissions = { ...DEFAULT_PERMISSIONS, ...safe.permissions };
     }
 
-    res.json({ user: safe, accessToken, refreshToken });
+    res.json({ user: safe, accessToken });
   } catch (err) { next(err); }
 }
 
@@ -81,10 +105,15 @@ async function register(req, res, next) {
 
     await AuditLog.log(user.id, 'user.register', 'user', user.id, null, req.ip);
 
-    const accessToken = signAccess({ sub: user.id, role: user.role });
-    const refreshToken = signRefresh({ sub: user.id });
+    const accessToken = signAccess({ sub: user.id, role: user.role, token_version: user.token_version });
+    const refreshToken = signRefresh();
+    const tokenHash = hashToken(refreshToken);
+    const tokenFamily = uuidv4();
+    
+    await RefreshToken.create(uuidv4(), user.id, tokenHash, tokenFamily, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), req.headers['user-agent']);
+    setRefreshCookie(res, refreshToken);
 
-    res.status(201).json({ user, accessToken, refreshToken });
+    res.status(201).json({ user, accessToken });
   } catch (err) { next(err); }
 }
 
@@ -136,7 +165,85 @@ async function me(req, res) {
 async function logout(req, res) {
   await User.updatePresence(req.user.id, 'offline');
   await AuditLog.log(req.user.id, 'user.logout', 'user', req.user.id, null, req.ip);
+  
+  const token = req.cookies?.refreshToken;
+  if (token) {
+    const tokenHash = hashToken(token);
+    const stored = await RefreshToken.findByHash(tokenHash);
+    if (stored) {
+      await RefreshToken.revoke(stored.id);
+    }
+  }
+  clearRefreshCookie(res);
+  
+  const io = getIo();
+  if (io) io.in(`user:${req.user.id}`).disconnectSockets();
+  
   res.json({ ok: true });
 }
 
-module.exports = { login, register, signup, getManagers, me, logout };
+async function refresh(req, res, next) {
+  try {
+    const token = req.cookies?.refreshToken;
+    if (!token) return res.status(401).json({ error: 'Missing refresh token' });
+
+    const tokenHash = hashToken(token);
+    const stored = await RefreshToken.findByHash(tokenHash);
+
+    if (!stored) {
+      clearRefreshCookie(res);
+      return res.status(401).json({ error: 'Invalid refresh token' });
+    }
+
+    const user = await User.findById(stored.user_id);
+    if (!user) {
+      clearRefreshCookie(res);
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    if (stored.revoked_at) {
+      // Reuse detection!
+      await RefreshToken.revokeFamily(stored.token_family);
+      await User.incrementTokenVersion(user.id);
+      clearRefreshCookie(res);
+      
+      const io = getIo();
+      if (io) io.in(`user:${user.id}`).disconnectSockets();
+      
+      return res.status(401).json({ error: 'Session compromised. Please login again.' });
+    }
+
+    if (new Date() > new Date(stored.expires_at)) {
+      clearRefreshCookie(res);
+      return res.status(401).json({ error: 'Refresh token expired' });
+    }
+
+    // Rotate
+    const newRefresh = signRefresh();
+    const newHash = hashToken(newRefresh);
+    const newId = uuidv4();
+
+    const replaced = await RefreshToken.markReplacedAtomic(stored.id, newId);
+    
+    if (!replaced) {
+      // It was already revoked concurrently! Treat as reuse.
+      await RefreshToken.revokeFamily(stored.token_family);
+      await User.incrementTokenVersion(user.id);
+      clearRefreshCookie(res);
+      
+      const io = getIo();
+      if (io) io.in(`user:${user.id}`).disconnectSockets();
+      
+      return res.status(401).json({ error: 'Session compromised. Please login again.' });
+    }
+
+    await RefreshToken.create(newId, user.id, newHash, stored.token_family, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), req.headers['user-agent']);
+    
+    setRefreshCookie(res, newRefresh);
+    const accessToken = signAccess({ sub: user.id, role: user.role, token_version: user.token_version });
+
+    res.json({ accessToken });
+  } catch (err) { next(err); }
+}
+
+module.exports = { login, register, signup, getManagers, me, logout, refresh };

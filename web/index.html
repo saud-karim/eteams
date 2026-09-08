@@ -3,6 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 
+      Development CSP: Allows unsafe-inline and unsafe-eval for Vite HMR.
+      In Production, this should be removed and replaced by a stricter header via the Web Server (e.g. Nginx).
+    -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval';
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: blob: https://ui-avatars.com;
+      connect-src 'self' http://localhost:4000 http://localhost:3000 ws://localhost:4000 ws://localhost:3000 ws://localhost:5173 https://fcmregistrations.googleapis.com https://firebaseinstallations.googleapis.com;
+      frame-src 'none';
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+    ">
     <link rel="icon" type="image/png" href="/tog.png" />
     <title>ETeams — EDARA IFM</title>
   </head>

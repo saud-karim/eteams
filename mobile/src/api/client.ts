@@ -63,6 +63,29 @@ async function request(path: string, { method = 'GET', body = null, headers = {}
   });
 
   if (!res.ok) {
+    if (res.status === 401 && path !== '/auth/refresh' && path !== '/auth/login') {
+      try {
+        const refreshData = await api.auth.refresh();
+        if (refreshData?.accessToken) {
+          await setToken(refreshData.accessToken);
+          // Retry original request
+          const retryHeaders = { ...reqHeaders, Authorization: `Bearer ${refreshData.accessToken}` };
+          const retryRes = await fetch(`${API_BASE_URL}/api${path}`, {
+            method, headers: retryHeaders, body: body ? JSON.stringify(body) : undefined,
+          });
+          if (retryRes.ok) {
+            if (responseType === 'text') return retryRes.text();
+            if (responseType === 'blob') return retryRes.blob();
+            return retryRes.json();
+          }
+        }
+      } catch (err) {
+        await clearToken();
+        // UI should listen to missing token and navigate to login
+      }
+    } else if (res.status === 401) {
+      await clearToken();
+    }
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `HTTP ${res.status}`);
   }
@@ -72,12 +95,20 @@ async function request(path: string, { method = 'GET', body = null, headers = {}
   return res.json();
 }
 
+let refreshPromise: any = null;
+
 export const api = {
   auth: {
     login: (username: string, password: string) => request('/auth/login', { method: 'POST', body: { username, password } }),
     getManagers: () => request('/auth/managers'),
     signup: (data: any) => request('/auth/signup', { method: 'POST', body: data }),
     me: () => request('/auth/me'),
+    refresh: () => {
+      if (!refreshPromise) {
+        refreshPromise = request('/auth/refresh', { method: 'POST' }).finally(() => { refreshPromise = null; });
+      }
+      return refreshPromise;
+    },
     logout: () => request('/auth/logout', { method: 'POST' }),
   },
   users: {
@@ -102,15 +133,31 @@ export const api = {
         name: filename || 'avatar.jpg',
       });
 
-      const res = await fetch(`${API_BASE_URL}/api/users/me/avatar`, {
+      let res = await fetch(`${API_BASE_URL}/api/users/me/avatar`, {
         method: 'POST',
         headers: reqHeaders,
         body: formData,
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        if (res.status === 401) {
+          try {
+            const refreshData = await api.auth.refresh();
+            if (refreshData?.accessToken) {
+              await setToken(refreshData.accessToken);
+              reqHeaders['Authorization'] = `Bearer ${refreshData.accessToken}`;
+              res = await fetch(`${API_BASE_URL}/api/users/me/avatar`, {
+                method: 'POST', headers: reqHeaders, body: formData,
+              });
+            }
+          } catch (err) {
+            await clearToken();
+          }
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
       }
       return res.json();
     },
@@ -164,15 +211,31 @@ export const api = {
         name: filename || 'attachment',
       });
 
-      const res = await fetch(`${API_BASE_URL}/api/messages`, {
+      let res = await fetch(`${API_BASE_URL}/api/messages`, {
         method: 'POST',
         headers: reqHeaders, // no Content-Type so fetch sets boundary for FormData automatically
         body: formData,
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        if (res.status === 401) {
+          try {
+            const refreshData = await api.auth.refresh();
+            if (refreshData?.accessToken) {
+              await setToken(refreshData.accessToken);
+              reqHeaders['Authorization'] = `Bearer ${refreshData.accessToken}`;
+              res = await fetch(`${API_BASE_URL}/api/messages`, {
+                method: 'POST', headers: reqHeaders, body: formData,
+              });
+            }
+          } catch (err) {
+            await clearToken();
+          }
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
       }
       return res.json();
     }

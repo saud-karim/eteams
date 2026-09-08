@@ -75,7 +75,6 @@ const translations = {
     // Login
     signInTitle: 'Sign in to your workspace',
     signInSub: 'Stay connected. Work together. Get things done.',
-    username: 'Username',
     password: 'Password',
     signInBtn: 'Sign In',
     signingIn: 'Signing in…',
@@ -192,7 +191,6 @@ const translations = {
     // Login
     signInTitle: 'تسجيل الدخول لمساحة العمل',
     signInSub: 'ابقى على اتصال. اعملوا معاً. أنجزوا المهام.',
-    username: 'اسم المستخدم',
     password: 'كلمة المرور',
     signInBtn: 'تسجيل الدخول',
     signingIn: 'جاري تسجيل الدخول…',

@@ -8,5 +8,6 @@ router.post('/signup', ctrl.signup);
 router.get('/managers', ctrl.getManagers);
 router.get('/me', requireAuth, ctrl.me);
 router.post('/logout', requireAuth, ctrl.logout);
+router.post('/refresh', ctrl.refresh);
 
 module.exports = router;

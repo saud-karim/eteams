@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { api } from '../api/client.js';
+import { api, setToken } from '../api/client.js';
 
 const AuthContext = createContext(null);
 
@@ -8,28 +8,34 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) { setTimeout(() => setLoading(false), 3000); return; }
-    api.auth.me()
+    api.auth.refresh()
+      .then(({ accessToken }) => {
+        setToken(accessToken);
+        return api.auth.me();
+      })
       .then(({ user }) => {
         if (user.presence === 'offline' || !user.presence) { user.presence = 'online'; }
         setUser(user);
       })
-      .catch(() => { localStorage.clear(); })
+      .catch(() => { 
+        setToken(null);
+        localStorage.removeItem('accessToken'); // Clean up any legacy token
+      })
       .finally(() => setTimeout(() => setLoading(false), 3000));
   }, []);
 
   const login = async (username, password) => {
-    const { user, accessToken, refreshToken } = await api.auth.login(username, password);
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+    const { user, accessToken } = await api.auth.login(username, password);
+    setToken(accessToken);
+    // refreshToken is delivered ONLY via HttpOnly cookie — never stored in JS
     if (user.presence === 'offline' || !user.presence) { user.presence = 'online'; }
     setUser(user);
   };
 
   const logout = async () => {
     try { await api.auth.logout(); } catch {}
-    localStorage.clear();
+    setToken(null);
+    localStorage.removeItem('accessToken');
     setUser(null);
   };
 

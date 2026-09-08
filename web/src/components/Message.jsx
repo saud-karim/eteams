@@ -15,10 +15,77 @@ function renderBody(body) {
     .replace(/~~(.+?)~~/g, '<s>$1</s>')
     .replace(/~(.+?)~/g, '<s>$1</s>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => {
+      const safe = /^(https?|mailto):/i.test(url.trim()) ? url.trim() : '#';
+      return `<a href="${safe}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    })
     .replace(/@(channel|here|everyone)\b/g, '<span class="mention channel-wide">@$1</span>')
     .replace(/@([a-zA-Z0-9._-]+)/g, '<span class="mention">@$1</span>')
     .replace(/\n/g, '<br>');
+}
+
+function AuthenticatedAttachment({ att }) {
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const isImage = att.mime_type.startsWith('image/');
+
+  useEffect(() => {
+    if (isImage) {
+      api.messages.download(att.id)
+        .then(blob => {
+          const url = URL.createObjectURL(blob);
+          setBlobUrl(url);
+        })
+        .catch(console.error);
+    }
+    return () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [att.id, isImage]);
+
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    if (loading) return;
+    setLoading(true);
+    try {
+      const blob = await api.messages.download(att.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = att.original_name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="attachment">
+      {isImage ? (
+        blobUrl ? (
+          <img src={blobUrl} alt={att.original_name} style={{ maxWidth: '100%', maxHeight: '300px', display: 'block', objectFit: 'contain', background: 'var(--panel-2)' }} />
+        ) : (
+          <div style={{ padding: '20px', color: 'var(--text-dim)' }}>Loading image...</div>
+        )
+      ) : (
+        <div className="attachment-file">
+          <div className="file-icon"><FileIcon size={20} /></div>
+          <div className="file-info">
+            <div className="file-name">{att.original_name}</div>
+            <div className="file-meta">{(att.size_bytes / 1024).toFixed(1)} KB</div>
+          </div>
+          <button onClick={handleDownload} disabled={loading} className="attachment-download" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}>
+            <Download size={16} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function Message({ message, author, currentUser, onReply, canPin = false, canDeleteOthers = false, showReaders = false }) {
@@ -174,28 +241,9 @@ export default function Message({ message, author, currentUser, onReply, canPin 
 
         {message.attachments && message.attachments.length > 0 && (
           <div style={{ marginTop: '8px' }}>
-            {message.attachments.map(att => {
-              const isImage = att.mime_type.startsWith('image/');
-              const url = `${BASE}/${att.storage_key}`;
-              return (
-                <div key={att.id} className="attachment">
-                  {isImage ? (
-                    <img src={url} alt={att.original_name} style={{ maxWidth: '100%', maxHeight: '300px', display: 'block', objectFit: 'contain', background: 'var(--panel-2)' }} />
-                  ) : (
-                    <div className="attachment-file">
-                      <div className="file-icon"><FileIcon size={20} /></div>
-                      <div className="file-info">
-                        <div className="file-name">{att.original_name}</div>
-                        <div className="file-meta">{(att.size_bytes / 1024).toFixed(1)} KB</div>
-                      </div>
-                      <a href={`${BASE}/api/messages/download/${att.id}?token=${localStorage.getItem('accessToken')}`} download={att.original_name} target="_blank" rel="noreferrer" className="attachment-download">
-                        <Download size={16} />
-                      </a>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {message.attachments.map(att => (
+              <AuthenticatedAttachment key={att.id} att={att} />
+            ))}
           </div>
         )}
 

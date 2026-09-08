@@ -3,6 +3,7 @@ const http = require('http');
 const app = require('./app');
 const { initSocket } = require('./sockets');
 const { db } = require('./db/connection');
+const { startCleanupJob } = require('./utils/cleanup');
 
 const PORT = process.env.PORT || 4000;
 
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 4000;
 
     const server = http.createServer(app);
     initSocket(server);
+    startCleanupJob();
 
     server.listen(PORT, () => {
       console.log(`✓ ETeams backend running on http://localhost:${PORT}`);

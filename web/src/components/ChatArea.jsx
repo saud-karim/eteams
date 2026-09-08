@@ -16,6 +16,37 @@ import { useConfirm } from '../context/ConfirmContext';
 import Avatar from './Avatar';
 import ChannelIcon from './ChannelIcon';
 
+function DownloadButton({ att, children }) {
+  const [loading, setLoading] = useState(false);
+  
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    if (loading) return;
+    setLoading(true);
+    try {
+      const blob = await api.messages.download(att.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = att.original_name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button onClick={handleDownload} disabled={loading} style={{ border: 'none', cursor: 'pointer', textDecoration: 'none', padding: '6px 16px', fontSize: '13px', background: 'var(--emerald)', color: 'white', borderRadius: '6px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+      {loading ? '...' : children}
+    </button>
+  );
+}
+
 export default function ChatArea({ activeChannel, onStartCall, targetMessageId, setActiveChannel }) {
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState('messages');
@@ -509,9 +540,9 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
                           </div>
                         </div>
                       </div>
-                      <a href={`${BASE}/${att.storage_key}`} download={att.original_name} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', padding: '6px 16px', fontSize: '13px', background: 'var(--emerald)', color: 'white', borderRadius: '6px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <DownloadButton att={att}>
                         <Download size={14} /> Download
-                      </a>
+                      </DownloadButton>
                     </div>
                   ))
                 )}

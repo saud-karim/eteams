@@ -173,23 +173,29 @@ async function addMember(req, res, next) {
     const ch = await Channel.findById(req.params.id);
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
     const { userId, isManager, permissions } = req.body;
+    
+    let finalIsManager = isManager ? 1 : 0;
+    let finalPermissions = permissions || {};
+
     if (req.user.role !== 'superadmin') {
       const isSelfJoin = req.user.id === userId;
       if (isSelfJoin) {
         if (ch.type === 'private') {
           return res.status(403).json({ error: 'Cannot join private channel without invite' });
         }
+        // Force safe defaults for public self-joins
+        finalIsManager = 0;
+        finalPermissions = {};
       } else {
         const mem = await Channel.getMembership(ch.id, req.user.id);
         if (!mem || (!mem.can_add_members && !mem.is_manager)) {
-          // Check if it's an invite-guest situation (if target is guest). 
-          // For now just enforce can_add_members.
           return res.status(403).json({ error: 'Cannot add members' });
         }
       }
     }
-    await Channel.addMember(ch.id, userId, { is_manager: isManager ? 1 : 0, ...(permissions || {}) });
-    await AuditLog.log(req.user.id, 'channel.add_member', 'channel', ch.id, { userId, isManager }, req.ip);
+    
+    await Channel.addMember(ch.id, userId, { ...finalPermissions, is_manager: finalIsManager });
+    await AuditLog.log(req.user.id, 'channel.add_member', 'channel', ch.id, { userId, isManager: finalIsManager }, req.ip);
     res.json({ ok: true });
   } catch (e) { next(e); }
 }

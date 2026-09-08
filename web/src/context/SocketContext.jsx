@@ -1,9 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext.jsx';
+import { getToken } from '../api/client.js';
 
 const SocketContext = createContext(null);
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '';
 
 export function SocketProvider({ children }) {
   const { user, setUser } = useAuth();
@@ -11,7 +12,7 @@ export function SocketProvider({ children }) {
 
   useEffect(() => {
     if (!user?.id) return;
-    const token = localStorage.getItem('accessToken');
+    const token = getToken();
     const socketPath = import.meta.env.VITE_SOCKET_PATH || '/socket.io/';
     const s = io(SOCKET_URL, { 
       auth: { token }, 
