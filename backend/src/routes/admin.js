@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 router.use(requireAuth);
-router.use(requireRole('superadmin'));
+router.use(requireAdmin);
 
 router.get('/audit-logs', adminController.getAuditLogs);
 router.get('/stats', adminController.getStats);

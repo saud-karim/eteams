@@ -1,3 +1,4 @@
+import { isAdmin } from '../utils/roles';
 import React, { useState } from 'react';
 import { 
   MessageSquare, Bookmark, Shield, Megaphone, Hash, Plus, UserPlus, Lock 
@@ -60,7 +61,7 @@ export default function Sidebar({ activeView, activeChannel, setActiveChannel, i
                 <span className="icon"><Bookmark size={14} /></span>
                 <span className="name">{t('saved')}</span>
               </div>
-              {user?.role === 'superadmin' && (
+              {isAdmin(user) && (
                 <div className={`nav-item ${isAdminActive ? 'active' : ''}`} style={{ borderTop: '1px solid var(--border)', marginTop: '8px', paddingTop: '12px' }} onClick={onOpenAdmin}>
                   <span className="icon" style={{ color: 'var(--emerald)' }}><Shield size={14} /></span>
                   <span className="name" style={{ color: 'var(--emerald)', fontWeight: 600 }}>{t('adminPanel')}</span>
@@ -88,7 +89,7 @@ export default function Sidebar({ activeView, activeChannel, setActiveChannel, i
             {/* Channels */}
             <div className={`section-header ${!sections.channels ? 'collapsed' : ''}`} onClick={() => toggleSection('channels')}>
               <span>{t('channels')}</span>
-              {(user?.role === 'superadmin' || user?.permissions?.['create-public'] || user?.permissions?.['create-private'] || user?.permissions?.['create-announcement']) && (
+              {(isAdmin(user) || user?.permissions?.['create-public'] || user?.permissions?.['create-private'] || user?.permissions?.['create-announcement']) && (
                 <span className="plus" onClick={(e) => { e.stopPropagation(); onOpenCreateChannel?.(); }}><Plus size={12} /></span>
               )}
             </div>
@@ -111,7 +112,7 @@ export default function Sidebar({ activeView, activeChannel, setActiveChannel, i
           <>
             <div className={`section-header ${!sections.dms ? 'collapsed' : ''}`} onClick={() => toggleSection('dms')}>
               <span>{t('directMessages')}</span>
-              {(user?.role === 'superadmin' || user?.permissions?.['dm-anyone']) && (
+              {(isAdmin(user) || user?.permissions?.['dm-anyone']) && (
                 <span className="plus" onClick={(e) => { e.stopPropagation(); onOpenNewDm?.(); }}><Plus size={12} /></span>
               )}
             </div>
@@ -152,7 +153,7 @@ export default function Sidebar({ activeView, activeChannel, setActiveChannel, i
                     </div>
                   );
                 })}
-                {(user?.role === 'superadmin' || user?.permissions?.['dm-anyone']) && (
+                {(isAdmin(user) || user?.permissions?.['dm-anyone']) && (
                   <div className="nav-item" onClick={onOpenNewDm} style={{ cursor: 'pointer' }}>
                     <span className="icon" style={{ color: 'var(--text-mute)' }}><UserPlus size={14} /></span>
                     <span className="name" style={{ color: 'var(--text-mute)' }}>{t('addTeammates')}</span>

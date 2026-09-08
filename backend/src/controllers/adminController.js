@@ -20,7 +20,7 @@ function parsePagination(query) {
 
 async function getAuditLogs(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const { limit, offset } = parsePagination(req.query);
     const logs = await AuditLog.list({ limit, offset });
     res.json({ logs });
@@ -31,7 +31,7 @@ async function getAuditLogs(req, res, next) {
 
 async function getStats(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const { db } = require('../db/connection');
     const [[{c: totalUsers}]] = await db.query('SELECT COUNT(*) as c FROM users');
     const [[{c: activeSessions}]] = await db.query("SELECT COUNT(*) as c FROM users WHERE presence = 'online'");
@@ -95,7 +95,7 @@ async function getStats(req, res, next) {
 
 async function getUsers(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const { db } = require('../db/connection');
     const { limit, offset } = parsePagination(req.query);
     const [rows] = await db.query(
@@ -110,7 +110,7 @@ async function getUsers(req, res, next) {
 
 async function getPendingUsers(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const users = await User.findPending();
     res.json({ users });
   } catch (err) { next(err); }
@@ -118,8 +118,13 @@ async function getPendingUsers(req, res, next) {
 
 async function approveUser(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
+    const { isSuperAdmin } = require('../utils/roles');
+    const targetUser = await User.findByIdAnyStatus(id);
+    if (targetUser && isSuperAdmin(targetUser) && !isSuperAdmin(req.user)) {
+      return res.status(403).json({ error: 'Cannot modify a superadmin' });
+    }
+
     const { department, reports_to, employment_type } = req.body;
     
     // Partially update if admin made changes
@@ -143,8 +148,13 @@ async function approveUser(req, res, next) {
 
 async function rejectUser(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
+    const { isSuperAdmin } = require('../utils/roles');
+    const targetUser = await User.findByIdAnyStatus(id);
+    if (targetUser && isSuperAdmin(targetUser) && !isSuperAdmin(req.user)) {
+      return res.status(403).json({ error: 'Cannot modify a superadmin' });
+    }
+
     await User.updateApproval(id, 'rejected', 0);
     await AuditLog.log(req.user.id, 'user.reject', 'user', id, null, req.ip);
     res.json({ success: true });
@@ -153,8 +163,13 @@ async function rejectUser(req, res, next) {
 
 async function deactivateUser(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
+    const { isSuperAdmin } = require('../utils/roles');
+    const targetUser = await User.findByIdAnyStatus(id);
+    if (targetUser && isSuperAdmin(targetUser) && !isSuperAdmin(req.user)) {
+      return res.status(403).json({ error: 'Cannot modify a superadmin' });
+    }
+
     if (id === req.user.id) return res.status(400).json({ error: 'Cannot deactivate yourself' });
     
     // In a real app we'd update is_active in DB. The User model might not have deactivate yet.
@@ -175,8 +190,13 @@ async function deactivateUser(req, res, next) {
 
 async function reactivateUser(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
+    const { isSuperAdmin } = require('../utils/roles');
+    const targetUser = await User.findByIdAnyStatus(id);
+    if (targetUser && isSuperAdmin(targetUser) && !isSuperAdmin(req.user)) {
+      return res.status(403).json({ error: 'Cannot modify a superadmin' });
+    }
+
     
     const { db } = require('../db/connection');
     await db.query('UPDATE users SET is_active = 1 WHERE id = :id', { id });
@@ -191,8 +211,13 @@ async function reactivateUser(req, res, next) {
 
 async function forceLogoutUser(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
+    const { isSuperAdmin } = require('../utils/roles');
+    const targetUser = await User.findByIdAnyStatus(id);
+    if (targetUser && isSuperAdmin(targetUser) && !isSuperAdmin(req.user)) {
+      return res.status(403).json({ error: 'Cannot modify a superadmin' });
+    }
+
     
     await AuditLog.log(req.user.id, 'user.force_logout', 'user', id, null, req.ip);
     emitToUser(id, 'force_logout', { message: 'An administrator ended your session.' });
@@ -205,8 +230,13 @@ async function forceLogoutUser(req, res, next) {
 
 async function resetUserPassword(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
+    const { isSuperAdmin } = require('../utils/roles');
+    const targetUser = await User.findByIdAnyStatus(id);
+    if (targetUser && isSuperAdmin(targetUser) && !isSuperAdmin(req.user)) {
+      return res.status(403).json({ error: 'Cannot modify a superadmin' });
+    }
+
     const { newPassword } = req.body;
     
     if (!newPassword) return res.status(400).json({ error: 'New password is required' });
@@ -227,7 +257,13 @@ async function resetUserPassword(req, res, next) {
 
 async function createUser(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+
+    const { isSuperAdmin } = require('../utils/roles');
+    if (!isSuperAdmin(req.user)) {
+      if (req.body.role === 'superadmin') return res.status(403).json({ error: 'Cannot grant superadmin role' });
+      if (req.body.permissions && req.body.permissions['admin-access'] === true) return res.status(403).json({ error: 'Cannot grant admin-access' });
+      if (req.body.permissions) req.body.permissions['admin-access'] = false;
+    }
     const { name, username, department, role, password, job_title, company_rank, reports_to, employment_type, role_preset, permissions, initial_channels } = req.body;
     
     if (!name || !username || !password) return res.status(400).json({ error: 'Name, username, and password are required' });
@@ -288,7 +324,7 @@ async function createUser(req, res, next) {
 
 async function getUserChannels(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const { id } = req.params;
     const { db } = require('../db/connection');
     const [rows] = await db.query('SELECT channel_id FROM memberships WHERE user_id = :id', { id });
@@ -300,8 +336,27 @@ async function getUserChannels(req, res, next) {
 
 async function updateUser(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
+    const { isSuperAdmin } = require('../utils/roles');
+    const targetUser = await User.findByIdAnyStatus(id);
+    if (targetUser && isSuperAdmin(targetUser) && !isSuperAdmin(req.user)) {
+      return res.status(403).json({ error: 'Cannot modify a superadmin' });
+    }
+    
+    if (!isSuperAdmin(req.user)) {
+      if (req.body.role === 'superadmin') return res.status(403).json({ error: 'Cannot grant superadmin role' });
+      if (req.body.permissions && req.body.permissions['admin-access'] === true && (!targetUser.permissions || !targetUser.permissions['admin-access'])) {
+         return res.status(403).json({ error: 'Cannot grant admin-access' });
+      }
+      if (req.body.permissions && req.body.permissions['admin-access'] === false && targetUser.permissions && targetUser.permissions['admin-access']) {
+         return res.status(403).json({ error: 'Cannot revoke admin-access' });
+      }
+      // Preserve existing admin-access status if any
+      if (req.body.permissions && targetUser.permissions) {
+        req.body.permissions['admin-access'] = targetUser.permissions['admin-access'] === true;
+      }
+    }
+
     const { name, username, department, role, job_title, company_rank, reports_to, employment_type, role_preset, permissions, initial_channels } = req.body;
     
     const { db } = require('../db/connection');
@@ -361,7 +416,7 @@ async function updateUser(req, res, next) {
 
 async function importUsers(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const { users } = req.body;
     if (!Array.isArray(users)) return res.status(400).json({ error: 'Expected array of users' });
     
@@ -397,7 +452,7 @@ async function importUsers(req, res, next) {
 
 async function getChannels(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const { limit, offset } = parsePagination(req.query);
     const channels = await Channel.adminListAll({ limit, offset });
     res.json({ channels });
@@ -408,7 +463,7 @@ async function getChannels(req, res, next) {
 
 async function getChannelManagers(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const { db } = require('../db/connection');
     
     const [rows] = await db.query(`
@@ -443,7 +498,7 @@ async function getChannelManagers(req, res, next) {
 
 async function updateChannel(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const { id } = req.params;
     const { name, description, type, is_readonly, is_mandatory, color, icon } = req.body;
     
@@ -475,7 +530,7 @@ async function updateChannel(req, res, next) {
 
 async function archiveChannel(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const { id } = req.params;
     
     await Channel.archive(id);
@@ -492,7 +547,7 @@ async function archiveChannel(req, res, next) {
 
 async function unarchiveChannel(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const { id } = req.params;
     
     await Channel.unarchive(id);
@@ -509,7 +564,7 @@ async function unarchiveChannel(req, res, next) {
 
 async function assignChannelManager(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const { id } = req.params;
     const { userId, is_manager, can_post, can_add_members, can_remove_members, can_pin_messages, can_edit_topic, can_delete_messages } = req.body;
     
@@ -541,7 +596,7 @@ async function assignChannelManager(req, res, next) {
 
 async function revokeChannelManager(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const { id, userId } = req.params;
     
     const { db } = require('../db/connection');
@@ -569,7 +624,7 @@ async function getRolePresets(req, res, next) {
 
 async function createRolePreset(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const preset = await RolePreset.create(req.body);
     res.json({ preset });
   } catch (err) { next(err); }
@@ -577,7 +632,7 @@ async function createRolePreset(req, res, next) {
 
 async function updateRolePreset(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     const preset = await RolePreset.update(req.params.id, req.body);
     res.json({ preset });
   } catch (err) { next(err); }
@@ -585,7 +640,7 @@ async function updateRolePreset(req, res, next) {
 
 async function deleteRolePreset(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    
     await RolePreset.delete(req.params.id);
     res.json({ success: true });
   } catch (err) { next(err); }

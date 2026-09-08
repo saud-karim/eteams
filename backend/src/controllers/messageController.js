@@ -11,6 +11,7 @@ const { parseMentions } = require('../utils/mentions');
 const { emitToChannel, emitToUser } = require('../sockets');
 const { processUpload, rollbackUpload } = require('../utils/upload');
 const { db } = require('../db/connection');
+const { isAdmin } = require('../utils/roles');
 
 const sendSchema = z.object({
   channelId: z.string().uuid(),
@@ -57,12 +58,12 @@ async function list(req, res, next) {
     const ch = await Channel.findByIdWithArchived(channelId);
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
     
-    if (ch.archived_at && req.user.role !== 'superadmin') {
+    if (ch.archived_at && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'Archived channel' });
     }
 
     if (ch.type === 'private' || ch.type === 'dm' || ch.type === 'group_dm' || ch.type === 'direct') {
-      if (!(await Channel.isMember(channelId, req.user.id)) && req.user.role !== 'superadmin') {
+      if (!(await Channel.isMember(channelId, req.user.id)) && !isAdmin(req.user)) {
         return res.status(403).json({ error: 'Not a member' });
       }
     }
@@ -84,7 +85,7 @@ async function listReplies(req, res, next) {
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
     
     if (ch.type === 'private' || ch.type === 'dm' || ch.type === 'group_dm' || ch.type === 'direct') {
-      if (!(await Channel.isMember(ch.id, req.user.id)) && req.user.role !== 'superadmin') {
+      if (!(await Channel.isMember(ch.id, req.user.id)) && !isAdmin(req.user)) {
         return res.status(403).json({ error: 'Not a member' });
       }
     }
@@ -104,7 +105,7 @@ async function getById(req, res, next) {
     // Check channel access
     const ch = await Channel.findById(msg.channel_id);
     if (ch.type === 'private') {
-      if (!(await Channel.isMember(ch.id, req.user.id)) && req.user.role !== 'superadmin') {
+      if (!(await Channel.isMember(ch.id, req.user.id)) && !isAdmin(req.user)) {
         return res.status(403).json({ error: 'Not a member' });
       }
     }
@@ -130,34 +131,34 @@ async function send(req, res, next) {
     }
 
     const mem = await Channel.getMembership(data.channelId, req.user.id);
-    if (!mem && req.user.role !== 'superadmin') return res.status(403).json({ error: 'Not a member' });
+    if (!mem && !isAdmin(req.user)) return res.status(403).json({ error: 'Not a member' });
     const ch = await Channel.findById(data.channelId);
     
-    if (ch.deleted_at && req.user.role !== 'superadmin') {
+    if (ch.deleted_at && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'Cannot post to a deleted channel.' });
     }
 
     const perms = req.user.permissions || {};
     
-    if (ch.is_readonly && req.user.role !== 'superadmin' && !mem?.is_manager) {
+    if (ch.is_readonly && !isAdmin(req.user) && !mem?.is_manager) {
       return res.status(403).json({ error: 'Channel is read-only. Only managers can post.' });
     }
     
-    if (!ch.is_readonly && req.user.role !== 'superadmin' && !mem?.can_post && !mem?.is_manager) {
+    if (!ch.is_readonly && !isAdmin(req.user) && !mem?.can_post && !mem?.is_manager) {
       return res.status(403).json({ error: 'You do not have permission to post in this channel.' });
     }
 
-    if (data.parentId && !perms['thread'] && req.user.role !== 'superadmin') {
+    if (data.parentId && !perms['thread'] && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'Missing thread permission' });
     }
 
-    if (data.body.includes('@everyone') && !perms['at-everyone'] && req.user.role !== 'superadmin') {
+    if (data.body.includes('@everyone') && !perms['at-everyone'] && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'Missing at-everyone permission' });
     }
-    if (data.body.includes('@channel') && !perms['at-channel'] && req.user.role !== 'superadmin') {
+    if (data.body.includes('@channel') && !perms['at-channel'] && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'Missing at-channel permission' });
     }
-    if (data.body.includes('@here') && !perms['at-here'] && req.user.role !== 'superadmin') {
+    if (data.body.includes('@here') && !perms['at-here'] && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'Missing at-here permission' });
     }
 
@@ -165,10 +166,10 @@ async function send(req, res, next) {
     let finalFileProps = null;
 
     if (req.file) {
-      if (!perms['upload'] && !perms['upload-large'] && req.user.role !== 'superadmin') {
+      if (!perms['upload'] && !perms['upload-large'] && !isAdmin(req.user)) {
         return res.status(403).json({ error: 'Missing upload permission' });
       }
-      if (req.file.size > 25 * 1024 * 1024 && !perms['upload-large'] && req.user.role !== 'superadmin') {
+      if (req.file.size > 25 * 1024 * 1024 && !perms['upload-large'] && !isAdmin(req.user)) {
         return res.status(403).json({ error: 'File too large and missing upload-large permission' });
       }
       
@@ -195,7 +196,7 @@ async function send(req, res, next) {
     }
     const mentions = parseMentions(data.body, memberLookup);
     
-    if (mentions.users.length > 0 && !perms['at-user'] && req.user.role !== 'superadmin') {
+    if (mentions.users.length > 0 && !perms['at-user'] && !isAdmin(req.user)) {
       if (storageKey) await rollbackUpload(storageKey, req.user.id, req.file.size);
       return res.status(403).json({ error: 'Missing at-user permission to mention users' });
     }
@@ -333,10 +334,10 @@ async function edit(req, res, next) {
   try {
     const msg = await Message.findById(req.params.id);
     if (!msg) return res.status(404).json({ error: 'Message not found' });
-    if (msg.user_id !== req.user.id && req.user.role !== 'superadmin') return res.status(403).json({ error: 'Cannot edit others messages' });
+    if (msg.user_id !== req.user.id && !isAdmin(req.user)) return res.status(403).json({ error: 'Cannot edit others messages' });
     
     const perms = req.user.permissions || {};
-    if (msg.user_id === req.user.id && !perms['edit-own'] && req.user.role !== 'superadmin') {
+    if (msg.user_id === req.user.id && !perms['edit-own'] && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'Missing edit-own permission' });
     }
     
@@ -357,7 +358,7 @@ async function remove(req, res, next) {
     const perms = req.user.permissions || {};
     
     let canDelete = false;
-    if (req.user.role === 'superadmin') {
+    if (isAdmin(req.user)) {
       canDelete = true;
     } else if (msg.user_id === req.user.id) {
       if (perms['delete-own']) canDelete = true;
@@ -380,7 +381,7 @@ async function react(req, res, next) {
     if (!emoji) return res.status(400).json({ error: 'Emoji required' });
     
     const perms = req.user.permissions || {};
-    if (!perms['react'] && req.user.role !== 'superadmin') {
+    if (!perms['react'] && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'Missing react permission' });
     }
     
@@ -398,7 +399,7 @@ async function togglePin(req, res, next) {
     const msg = await Message.findById(req.params.id);
     if (!msg) return res.status(404).json({ error: 'Message not found' });
     const mem = await Channel.getMembership(msg.channel_id, req.user.id);
-    if (!mem?.can_pin_messages && !mem?.is_manager && req.user.role !== 'superadmin') return res.status(403).json({ error: 'Cannot pin' });
+    if (!mem?.can_pin_messages && !mem?.is_manager && !isAdmin(req.user)) return res.status(403).json({ error: 'Cannot pin' });
     const updated = await Message.togglePin(req.params.id, !msg.is_pinned);
     updated.reactions = await Message.listReactions(req.params.id);
     emitToChannel(msg.channel_id, 'message:updated', updated);
@@ -412,7 +413,7 @@ async function search(req, res, next) {
     if (q.length < 2) return res.json({ messages: [], channels: [], users: [] });
     
     const perms = req.user.permissions || {};
-    const hasGlobalSearch = req.user.role === 'superadmin' || !!perms['search-history'];
+    const hasGlobalSearch = isAdmin(req.user) || !!perms['search-history'];
     
     const messages = await Message.search(req.user.id, q, hasGlobalSearch);
 

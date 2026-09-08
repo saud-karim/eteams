@@ -9,6 +9,7 @@ import Sidebar from '../components/Sidebar';
 import ChatArea from '../components/ChatArea';
 import CreateChannelModal from '../components/CreateChannelModal';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
+import { isAdmin } from '../utils/roles';
 import AdminPanel from '../components/AdminPanel';
 import NewDmModal from '../components/NewDmModal';
 import GlobalThreadsView from '../components/GlobalThreadsView';
@@ -112,7 +113,7 @@ export default function Workspace() {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [targetMessageId, setTargetMessageId] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const showAdminPanel = searchParams.get('admin') === 'true';
+  const showAdminPanel = searchParams.get('admin') === 'true' && isAdmin(user);
 
   const setShowAdminPanel = (val) => {
     setSearchParams(prev => {

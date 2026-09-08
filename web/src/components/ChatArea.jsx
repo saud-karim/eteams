@@ -1,3 +1,4 @@
+import { isAdmin } from '../utils/roles';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MoreHorizontal, Download, Lock, Hash, Megaphone, MessageSquare, Info, Settings, UserMinus
@@ -376,9 +377,9 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
 
   const currentMem = channelMembers.find(m => m.id === user?.id);
   const isManager = !!currentMem?.is_manager && currentMem.is_manager !== 0 && currentMem.is_manager !== false;
-  const canPost = (!!currentMem?.can_post && currentMem.can_post !== 0) || isManager || user?.role === 'superadmin';
+  const canPost = (!!currentMem?.can_post && currentMem.can_post !== 0) || isManager || isAdmin(user);
   const isReadOnly = channelObj?.is_readonly;
-  const canPostInChannel = canPost && (!isReadOnly || isManager || user?.role === 'superadmin');
+  const canPostInChannel = canPost && (!isReadOnly || isManager || isAdmin(user));
   let displayName = channelObj?.name || activeChannel || 'general';
   
   if (channelObj?.type === 'dm' || channelObj?.type === 'group_dm' || channelObj?.type === 'direct') {
@@ -438,14 +439,14 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
                   {channelObj?.type !== 'announcement' && channelObj?.type !== 'dm' && channelObj?.type !== 'group_dm' && (
                     <div className="hover-bg" onClick={handleLeaveChannel} style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4, fontSize: 13, color: 'var(--accent)' }}>Leave Channel</div>
                   )}
-                  {(user?.id === channelObj?.created_by || user?.role === 'superadmin' || channelObj?.type === 'dm' || channelObj?.type === 'group_dm') && (
+                  {(user?.id === channelObj?.created_by || isAdmin(user) || channelObj?.type === 'dm' || channelObj?.type === 'group_dm') && (
                     <div className="hover-bg" onClick={handleDeleteChannel} style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4, fontSize: 13, color: 'var(--error)' }}>Delete Channel</div>
                   )}
                 </div>
               )}
             </div>
             
-            {(isManager || user?.role === 'superadmin') && (
+            {(isManager || isAdmin(user)) && (
               <button className="chat-icon-btn" title="Export conversation" onClick={handleExport}><Download size={15} /></button>
             )}
           </div>
@@ -484,8 +485,8 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
               ) : (
                 mainMessages.map((msg, idx) => {
                   const author = users.find(u => u.id === msg.user_id) || { name: 'Unknown User' };
-                  const canPin = user?.role === 'superadmin' || !!currentMem?.can_pin_messages || !!currentMem?.is_manager;
-                  const canDeleteOthers = user?.role === 'superadmin' || !!currentMem?.can_delete_messages || !!currentMem?.is_manager;
+                  const canPin = isAdmin(user) || !!currentMem?.can_pin_messages || !!currentMem?.is_manager;
+                  const canDeleteOthers = isAdmin(user) || !!currentMem?.can_delete_messages || !!currentMem?.is_manager;
                   const isLast = idx === mainMessages.length - 1;
                   return (
                     <Message 
@@ -557,8 +558,8 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
             ) : (
               messages.filter(m => m.is_pinned).map(msg => {
                 const author = users.find(u => u.id === msg.user_id) || { name: 'Unknown User' };
-                const canPin = user?.role === 'superadmin' || !!currentMem?.can_pin_messages || !!currentMem?.is_manager;
-                const canDeleteOthers = user?.role === 'superadmin' || !!currentMem?.can_delete_messages || !!currentMem?.is_manager;
+                const canPin = isAdmin(user) || !!currentMem?.can_pin_messages || !!currentMem?.is_manager;
+                const canDeleteOthers = isAdmin(user) || !!currentMem?.can_delete_messages || !!currentMem?.is_manager;
                 return <Message key={msg.id} message={msg} author={author} currentUser={user} onReply={() => setActiveThreadMsg(msg)} canPin={canPin} canDeleteOthers={canDeleteOthers} />;
               })
             )}
@@ -575,7 +576,7 @@ export default function ChatArea({ activeChannel, onStartCall, targetMessageId, 
                       {member.name}
                       {member.id === channelObj?.created_by && <span style={{ fontSize: 10, background: 'var(--panel-3)', padding: '2px 6px', borderRadius: 4, color: 'var(--text-mute)' }}>Creator</span>}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>{member.role === 'superadmin' ? 'Workspace Admin' : (member.job_title || 'Member')}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>{isAdmin(member) ? 'Workspace Admin' : (member.job_title || 'Member')}</div>
                   </div>
                   
                   <div style={{ display: 'flex', gap: '4px' }}>

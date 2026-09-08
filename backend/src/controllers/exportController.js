@@ -1,5 +1,7 @@
 const Message = require('../models/Message');
 const Channel = require('../models/Channel');
+const { isAdmin } = require('../utils/roles');
+
 
 async function exportChannel(req, res, next) {
   try {
@@ -9,11 +11,11 @@ async function exportChannel(req, res, next) {
     const ch = await Channel.findById(channelId);
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
     
-    const isSuperAdmin = req.user.role === 'superadmin';
+    const isWorkspaceAdmin = isAdmin(req.user);
     const membership = await Channel.getMembership(channelId, req.user.id);
     const isChannelManager = membership && membership.is_manager;
     
-    if (!isSuperAdmin && !isChannelManager) {
+    if (!isWorkspaceAdmin && !isChannelManager) {
       return res.status(403).json({ error: 'Only channel managers or superadmins can export the chat.' });
     }
 

@@ -1,3 +1,5 @@
+const { isAdmin } = require('./roles');
+
 /**
  * Central Authorization Helpers
  * Enforces unified access control rules for channels, messages, and attachments.
@@ -14,7 +16,7 @@ function canViewChannel(user, channel, membership) {
   if (!user || !channel) return false;
   
   // Superadmin has global view access
-  if (user.role === 'superadmin') {
+  if (isAdmin(user)) {
     return true;
   }
 
@@ -45,7 +47,7 @@ function canSendMessage(user, channel, membership) {
   if (!user || !channel) return false;
   if (!canViewChannel(user, channel, membership)) return false;
 
-  if (user.role === 'superadmin') return true;
+  if (isAdmin(user)) return true;
   
   // Cannot send to deleted/archived channels
   if (channel.deleted_at || channel.archived_at) return false;
@@ -68,7 +70,7 @@ function canSendMessage(user, channel, membership) {
  */
 function canManageChannel(user, channel, membership) {
   if (!user || !channel) return false;
-  if (user.role === 'superadmin') return true;
+  if (isAdmin(user)) return true;
   
   return !!(membership && membership.is_manager);
 }
@@ -79,7 +81,7 @@ function canManageChannel(user, channel, membership) {
  */
 function canDeleteChannel(user, channel) {
   if (!user || !channel) return false;
-  if (user.role === 'superadmin') return true;
+  if (isAdmin(user)) return true;
   
   return channel.created_by === user.id;
 }
@@ -89,7 +91,7 @@ function canDeleteChannel(user, channel) {
  */
 function canManageMembers(user, channel, membership) {
   if (!user || !channel) return false;
-  if (user.role === 'superadmin') return true;
+  if (isAdmin(user)) return true;
   
   return !!(membership && (membership.is_manager || membership.can_add_members || membership.can_remove_members));
 }

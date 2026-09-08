@@ -59,9 +59,21 @@ export default function UsersTab({
               </td>
               <td style={{ padding: '12px', color: 'var(--text-dim)' }}>{u.dept}</td>
               <td style={{ padding: '12px' }}>
-                <span style={{ display: 'inline-block', background: u.role === 'superadmin' ? 'rgba(236,72,153,0.1)' : 'rgba(59,130,246,0.1)', color: u.role === 'superadmin' ? 'var(--pink)' : 'var(--blue)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                  {u.role === 'superadmin' ? 'Superadmin' : 'User'}
-                </span>
+                
+                {u.role === 'superadmin' ? (
+                  <span style={{ display: 'inline-block', background: 'rgba(236,72,153,0.1)', color: 'var(--pink)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    Superadmin
+                  </span>
+                ) : u.permissions?.['admin-access'] ? (
+                  <span style={{ display: 'inline-block', background: 'rgba(139,92,246,0.1)', color: 'var(--purple)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    Full Admin
+                  </span>
+                ) : (
+                  <span style={{ display: 'inline-block', background: 'rgba(59,130,246,0.1)', color: 'var(--blue)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    User
+                  </span>
+                )}
+  
               </td>
               <td style={{ padding: '12px' }}>
                 <span style={{ display: 'inline-block', background: !u.is_active ? 'rgba(239,68,68,0.1)' : u.presence !== 'offline' ? 'rgba(16,185,129,0.1)' : 'rgba(107,114,128,0.1)', color: !u.is_active ? 'var(--danger)' : u.presence !== 'offline' ? 'var(--emerald)' : 'var(--text-mute)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>

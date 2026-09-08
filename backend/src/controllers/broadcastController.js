@@ -1,10 +1,11 @@
 const Broadcast = require('../models/Broadcast');
 const { getIo } = require('../sockets');
 const AuditLog = require('../models/AuditLog');
+const { isAdmin } = require('../utils/roles');
 
 async function createBroadcast(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') {
+    if (!isAdmin(req.user)) {
       return res.status(403).json({ error: 'Only superadmins can send broadcasts' });
     }
 
@@ -30,7 +31,8 @@ async function createBroadcast(req, res, next) {
     // Emit socket event to everyone
     // In a real implementation with recipients filter, we'd emit to specific rooms
     // For now, emit globally as the mock implies 'All Users' or group-level
-    getIo().emit('system_broadcast', broadcast);
+    const io = getIo();
+    if (io) io.emit('system_broadcast', broadcast);
 
     res.json({ broadcast });
   } catch (err) {
@@ -40,7 +42,7 @@ async function createBroadcast(req, res, next) {
 
 async function getRecentBroadcasts(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') {
+    if (!isAdmin(req.user)) {
       return res.status(403).json({ error: 'Only superadmins can view broadcast history' });
     }
     const broadcasts = await Broadcast.getRecent(50);

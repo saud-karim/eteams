@@ -1,3 +1,4 @@
+import { isAdmin } from '../utils/roles';
 import { useState, useEffect } from 'react';
 import { api, BASE } from '../api/client.js';
 import { Download, File as FileIcon, Forward, CheckCheck, MessageSquare, SmilePlus, Bookmark, Pin, Edit2, Trash2 } from 'lucide-react';
@@ -109,7 +110,7 @@ export default function Message({ message, author, currentUser, onReply, canPin 
 
   const isMine = message.user_id === currentUser.id;
   const isCEO = author?.company_rank === 'ceo';
-  const canReact = currentUser.role === 'superadmin' || currentUser.permissions?.['react'];
+  const canReact = isAdmin(currentUser) || currentUser.permissions?.['react'];
 
   const react = async (emoji) => {
     setShowEmojiPicker(false);
@@ -265,7 +266,7 @@ export default function Message({ message, author, currentUser, onReply, canPin 
       </div>
       {showActions && !editing && (
         <div className="msg-actions">
-          {onReply && !isMine && (currentUser.role === 'superadmin' || (currentUser.permissions && currentUser.permissions['thread'] !== undefined ? currentUser.permissions['thread'] : true)) && (
+          {onReply && !isMine && (isAdmin(currentUser) || (currentUser.permissions && currentUser.permissions['thread'] !== undefined ? currentUser.permissions['thread'] : true)) && (
             <button className="msg-action" onClick={onReply} title="Reply" style={{ color: '#C084FC' }}>
               <MessageSquare size={15} />
             </button>
@@ -273,7 +274,7 @@ export default function Message({ message, author, currentUser, onReply, canPin 
           <button className="msg-action" onClick={() => setShowForwardModal(true)} title="Forward" style={{ color: '#9CA3AF' }}>
             <Forward size={15} />
           </button>
-          {(currentUser.role === 'superadmin' || currentUser.permissions?.['react']) && (
+          {(isAdmin(currentUser) || currentUser.permissions?.['react']) && (
             <button className="msg-action" onClick={() => setShowEmojiPicker(!showEmojiPicker)} title="React" style={{ color: '#FBBF24' }}>
               <SmilePlus size={15} />
             </button>
@@ -286,12 +287,12 @@ export default function Message({ message, author, currentUser, onReply, canPin 
               <Pin size={15} fill={isPinnedToDisplay ? 'currentColor' : 'none'} />
             </button>
           )}
-          {isMine && (currentUser.role === 'superadmin' || currentUser.permissions?.['edit-own']) && (
+          {isMine && (isAdmin(currentUser) || currentUser.permissions?.['edit-own']) && (
             <button className="msg-action" onClick={() => setEditing(true)} title="Edit" style={{ color: '#FB923C' }}>
               <Edit2 size={15} />
             </button>
           )}
-          {((isMine && (currentUser.role === 'superadmin' || currentUser.permissions?.['delete-own'])) || (!isMine && canDeleteOthers)) ? (
+          {((isMine && (isAdmin(currentUser) || currentUser.permissions?.['delete-own'])) || (!isMine && canDeleteOthers)) ? (
             <button className="msg-action danger" onClick={remove} title="Delete" style={{ color: '#94A3B8' }}>
               <Trash2 size={15} />
             </button>

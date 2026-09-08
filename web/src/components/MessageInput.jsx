@@ -1,3 +1,4 @@
+import { isAdmin } from '../utils/roles';
 import React, { useState, useEffect } from 'react';
 import { Send, File, Plus, Smile, AtSign, Bold, Italic, Strikethrough, Code, Link, X, Loader } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
@@ -96,12 +97,12 @@ export default function MessageInput({ channelId, parentId }) {
     { id: 'everyone', name: 'everyone', fullname: 'Notify all workspace members', initials: '🌍', special: true }
   ];
 
-  const canMentionUsers = user?.role === 'superadmin' || user?.permissions?.['at-user'];
+  const canMentionUsers = isAdmin(user) || user?.permissions?.['at-user'];
   
   const allPossibleMentions = [
-    ...(user?.role === 'superadmin' || user?.permissions?.['at-channel'] ? [specialMentions.find(m => m.id === 'channel')] : []),
-    ...(user?.role === 'superadmin' || user?.permissions?.['at-here'] ? [specialMentions.find(m => m.id === 'here')] : []),
-    ...(user?.role === 'superadmin' || user?.permissions?.['at-everyone'] ? [specialMentions.find(m => m.id === 'everyone')] : []),
+    ...(isAdmin(user) || user?.permissions?.['at-channel'] ? [specialMentions.find(m => m.id === 'channel')] : []),
+    ...(isAdmin(user) || user?.permissions?.['at-here'] ? [specialMentions.find(m => m.id === 'here')] : []),
+    ...(isAdmin(user) || user?.permissions?.['at-everyone'] ? [specialMentions.find(m => m.id === 'everyone')] : []),
     ...(canMentionUsers ? users.map(u => ({ ...u, fullname: u.role || 'Member', initials: u.avatar_initials })) : [])
   ];
 
@@ -176,7 +177,7 @@ export default function MessageInput({ channelId, parentId }) {
   };
 
   const perms = user?.permissions || {};
-  const isSuperadmin = user?.role === 'superadmin';
+  const isSuperadmin = isAdmin(user);
   
   let canPost = true;
   if (parentId && !isSuperadmin && !perms['thread']) canPost = false;

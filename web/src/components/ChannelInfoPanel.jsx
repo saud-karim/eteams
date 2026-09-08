@@ -1,3 +1,4 @@
+import { isAdmin } from '../utils/roles';
 import React, { useEffect, useState } from 'react';
 import { Hash, Lock, Megaphone, User, Settings, X, Plus, Clock, Info, Users, Shield, LogOut, UserMinus, Download } from 'lucide-react';
 import { api } from '../api/client';
@@ -128,7 +129,7 @@ export default function ChannelInfoPanel({ channel, onClose, onLeft }) {
   };
 
   const currentUserMem = members.find(m => m.id === user?.id);
-  const isManager = (!!currentUserMem?.is_manager && currentUserMem.is_manager !== 0 && currentUserMem.is_manager !== false) || user?.role === 'superadmin';
+  const isManager = (!!currentUserMem?.is_manager && currentUserMem.is_manager !== 0 && currentUserMem.is_manager !== false) || isAdmin(user);
 
   return (
     <div className="thread-panel info-panel" style={{ width: '420px', minWidth: '420px', background: 'var(--panel)', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>

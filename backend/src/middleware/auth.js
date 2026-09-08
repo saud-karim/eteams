@@ -19,7 +19,8 @@ const DEFAULT_PERMISSIONS = {
   'create-public': false,
   'create-private': false,
   'create-announcement': false,
-  'search-history': false
+  'search-history': false,
+  'admin-access': false
 };
 
 async function requireAuth(req, res, next) {
@@ -65,4 +66,18 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { requireAuth, requireRole, DEFAULT_PERMISSIONS };
+function requireAdmin(req, res, next) {
+  if (!req.user) return res.status(403).json({ error: 'Forbidden' });
+  const { isAdmin } = require('../utils/roles');
+  if (!isAdmin(req.user)) return res.status(403).json({ error: 'Forbidden' });
+  next();
+}
+
+function requireSuperAdmin(req, res, next) {
+  if (!req.user) return res.status(403).json({ error: 'Forbidden' });
+  const { isSuperAdmin } = require('../utils/roles');
+  if (!isSuperAdmin(req.user)) return res.status(403).json({ error: 'Forbidden' });
+  next();
+}
+
+module.exports = { requireAuth, requireRole, requireAdmin, requireSuperAdmin, DEFAULT_PERMISSIONS };

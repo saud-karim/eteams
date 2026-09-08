@@ -1,3 +1,4 @@
+import { isAdmin } from '../utils/roles';
 import React, { useState, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
@@ -19,7 +20,7 @@ export default function NewDmModal({ onClose, onDMCreated }) {
 
   const [selectedUsers, setSelectedUsers] = useState([]);
   const perms = user?.permissions || {};
-  const isSuperadmin = user?.role === 'superadmin';
+  const isSuperadmin = isAdmin(user);
   const canDMAnyone = isSuperadmin || perms['dm-anyone'];
   const canDMExec = isSuperadmin || perms['dm-exec'];
   const canDMCEO = isSuperadmin || perms['dm-ceo'];

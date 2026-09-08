@@ -23,6 +23,7 @@ import BroadcastTab from './admin/BroadcastTab';
 import PendingTab from './admin/PendingTab';
 import DepartmentsTab from './admin/DepartmentsTab';
 
+import { isSuperAdmin } from '../utils/roles';
 import { defaultPermissions } from '../constants/permissions';
 
 export default function AdminPanel({ onClose, onJumpToChannel }) {
@@ -39,6 +40,7 @@ export default function AdminPanel({ onClose, onJumpToChannel }) {
 
   const { t } = useLanguage();
   const { channels, users, setUsers } = useWorkspace();
+  const { user: currentUser } = useAuth();
 
   // Broadcast State
   const [broadcastType, setBroadcastType] = useState('informational');
@@ -355,6 +357,13 @@ export default function AdminPanel({ onClose, onJumpToChannel }) {
     setUserForm(prev => {
       const p = { ...prev.permissions };
       p[perm] = !p[perm];
+      
+      if (perm === 'admin-access' && p[perm] === true) {
+        Object.keys(p).forEach(k => {
+          p[k] = true;
+        });
+      }
+      
       return { ...prev, permissions: p, role_preset: 'custom' };
     });
   };
@@ -683,7 +692,20 @@ export default function AdminPanel({ onClose, onJumpToChannel }) {
               <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '12px' }}>📋 Full permission catalog — <b style={{ color: 'var(--emerald)' }}>green</b> checked = granted. Change preset above or tick individually.</div>
               
               <div className="perm-group-title">🔐 Account</div>
-              <label className="perm-check"><input type="checkbox" checked={true} disabled /><span>Can log in to Eteams</span></label>
+              <label className="perm-check"><input type="checkbox" checked={true} disabled /><span>Can log in to Eteams</span></label>\n
+              <div className="perm-group-title">👑 Administration</div>
+              <label className="perm-check">
+                <input 
+                  type="checkbox" 
+                  checked={userForm.permissions['admin-access'] || false} 
+                  disabled={!isSuperAdmin(currentUser)}
+                  onChange={() => togglePerm('admin-access')} 
+                />
+                <span style={{ color: !isSuperAdmin(currentUser) ? 'var(--text-mute)' : 'inherit' }}>
+                  Full Admin Access (Can access Admin Panel & manage Workspace)
+                </span>
+              </label>
+
               
               <div className="perm-group-title">💬 Messaging</div>
               <label className="perm-check"><input type="checkbox" checked={userForm.permissions['edit-own']} onChange={() => togglePerm('edit-own')} /><span>Edit own messages</span></label>

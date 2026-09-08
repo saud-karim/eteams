@@ -4,6 +4,7 @@ const Channel = require('../models/Channel');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
 const { slugify } = require('../utils/slugify');
+const { isAdmin, isSuperAdmin } = require('../utils/roles');
 
 const createSchema = z.object({
   name: z.string().min(2).max(80),
@@ -21,14 +22,14 @@ async function getBySlug(req, res, next) {
   try {
     const ch = await Channel.findBySlugWithArchived(req.params.slug);
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
-    if (ch.deleted_at && req.user.role !== 'superadmin') {
+    if (ch.deleted_at && !isAdmin(req.user)) {
       return res.status(404).json({ error: 'Channel not found' });
     }
-    if (ch.archived_at && req.user.role !== 'superadmin') {
+    if (ch.archived_at && !isAdmin(req.user)) {
       return res.status(404).json({ error: 'Channel not found' });
     }
     const isMember = await Channel.isMember(ch.id, req.user.id);
-    if (ch.type === 'private' && !isMember && req.user.role !== 'superadmin') {
+    if (ch.type === 'private' && !isMember && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'Not a member' });
     }
     const members = await Channel.listMembers(ch.id);
@@ -42,15 +43,15 @@ async function create(req, res, next) {
     const perms = req.user.permissions || {};
     
     if (data.type === 'public') {
-      if (!perms['create-public'] && req.user.role !== 'superadmin') {
+      if (!perms['create-public'] && !isAdmin(req.user)) {
         return res.status(403).json({ error: 'Missing create-public permission' });
       }
     } else if (data.type === 'announcement') {
-      if (!perms['create-announcement'] && req.user.role !== 'superadmin') {
+      if (!perms['create-announcement'] && !isAdmin(req.user)) {
         return res.status(403).json({ error: 'Missing create-announcement permission' });
       }
     } else if (data.type === 'private') {
-      if (!perms['create-private'] && req.user.role !== 'superadmin') {
+      if (!perms['create-private'] && !isAdmin(req.user)) {
         return res.status(403).json({ error: 'Missing create-private permission' });
       }
     }
@@ -75,9 +76,9 @@ async function create(req, res, next) {
     const allUsers = await User.findAll();
     for (const u of allUsers) {
       if (u.id !== req.user.id) {
-        if (data.is_mandatory || u.role === 'superadmin') {
+        if (data.is_mandatory || isAdmin(u)) {
           // Announcement logic means only superadmins or managers can post, so defaults are fine.
-          await Channel.addMember(id, u.id, { is_manager: u.role === 'superadmin' ? 1 : 0 });
+          await Channel.addMember(id, u.id, { is_manager: isAdmin(u) ? 1 : 0 });
         }
       }
     }
@@ -96,24 +97,24 @@ async function createDM(req, res, next) {
     if (ids.length > 9) return res.status(400).json({ error: 'Maximum 9 people in a Group DM' });
 
     const perms = req.user.permissions || {};
-    if (ids.length > 1 && !perms['group-dm'] && req.user.role !== 'superadmin') {
+    if (ids.length > 1 && !perms['group-dm'] && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'Missing group-dm permission' });
     }
 
     const targets = await Promise.all(ids.map(id => User.findById(id)));
     if (targets.includes(null)) return res.status(404).json({ error: 'One or more target users not found' });
     
-    if (!perms['dm-anyone'] && req.user.role !== 'superadmin') {
+    if (!perms['dm-anyone'] && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'Missing dm-anyone permission' });
     }
     
     const hasCEO = targets.some(t => t.company_rank === 'ceo');
-    if (hasCEO && !perms['dm-ceo'] && req.user.role !== 'superadmin') {
+    if (hasCEO && !perms['dm-ceo'] && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'You do not have permission to message the CEO directly.' });
     }
 
     const hasExec = targets.some(t => t.company_rank === 'executive' || t.company_rank === 'ceo');
-    if (hasExec && !perms['dm-exec'] && req.user.role !== 'superadmin') {
+    if (hasExec && !perms['dm-exec'] && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'You do not have permission to message executives directly.' });
     }
 
@@ -177,7 +178,7 @@ async function addMember(req, res, next) {
     let finalIsManager = isManager ? 1 : 0;
     let finalPermissions = permissions || {};
 
-    if (req.user.role !== 'superadmin') {
+    if (!isAdmin(req.user)) {
       const isSelfJoin = req.user.id === userId;
       if (isSelfJoin) {
         if (ch.type === 'private') {
@@ -222,13 +223,13 @@ async function removeMember(req, res, next) {
   try {
     const ch = await Channel.findById(req.params.id);
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
-    if (req.user.role !== 'superadmin') {
+    if (!isAdmin(req.user)) {
       const mem = await Channel.getMembership(ch.id, req.user.id);
       if (!mem || (!mem.can_remove_members && !mem.is_manager)) return res.status(403).json({ error: 'Cannot remove members' });
     }
     const { userId } = req.params;
     const targetUser = await User.findById(userId);
-    if (targetUser && targetUser.role === 'superadmin') {
+    if (targetUser && isSuperAdmin(targetUser)) {
       return res.status(403).json({ error: 'Cannot remove superadmins from channels' });
     }
     await Channel.removeMember(ch.id, userId);
@@ -243,10 +244,10 @@ async function deleteChannel(req, res, next) {
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
     if (ch.type === 'dm' || ch.type === 'group_dm') {
       const isMem = await Channel.isMember(ch.id, req.user.id);
-      if (!isMem && req.user.role !== 'superadmin') {
+      if (!isMem && !isAdmin(req.user)) {
         return res.status(403).json({ error: 'Not a member' });
       }
-    } else if (ch.created_by !== req.user.id && req.user.role !== 'superadmin') {
+    } else if (ch.created_by !== req.user.id && !isAdmin(req.user)) {
       return res.status(403).json({ error: 'Only the creator or superadmin can delete this channel' });
     }
     await Channel.deleteChannel(ch.id);
@@ -261,7 +262,7 @@ async function updateMemberPermissions(req, res, next) {
     if (!ch) return res.status(404).json({ error: 'Channel not found' });
     
     // Check if the requester is superadmin or a channel manager
-    if (req.user.role !== 'superadmin') {
+    if (!isAdmin(req.user)) {
       const requesterMem = await Channel.getMembership(ch.id, req.user.id);
       if (!requesterMem || !requesterMem.is_manager) {
         return res.status(403).json({ error: 'Only channel managers can update permissions' });

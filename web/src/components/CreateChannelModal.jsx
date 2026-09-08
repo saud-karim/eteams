@@ -1,3 +1,4 @@
+import { isAdmin } from '../utils/roles';
 import React, { useState } from 'react';
 import { X, Hash, Crown, Megaphone, Sparkles } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
@@ -10,9 +11,9 @@ export default function CreateChannelModal({ onClose }) {
   const { setChannels } = useWorkspace();
   const { user } = useAuth();
   
-  const canCreatePublic = user?.role === 'superadmin' || user?.permissions?.['create-public'];
-  const canCreatePrivate = user?.role === 'superadmin' || user?.permissions?.['create-private'];
-  const canCreateAnnouncement = user?.role === 'superadmin' || user?.permissions?.['create-announcement'];
+  const canCreatePublic = isAdmin(user) || user?.permissions?.['create-public'];
+  const canCreatePrivate = isAdmin(user) || user?.permissions?.['create-private'];
+  const canCreateAnnouncement = isAdmin(user) || user?.permissions?.['create-announcement'];
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
